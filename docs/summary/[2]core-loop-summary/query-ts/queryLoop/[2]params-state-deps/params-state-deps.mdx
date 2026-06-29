@@ -1,0 +1,100 @@
+---
+title: "[2] 输入与状态契约：QueryParams / State / deps"
+description: queryLoop 的三块基础数据结构 —— 不可变输入 QueryParams（16 字段）、跨迭代可变状态 State（12 字段，含 transition）、依赖注入 deps（把最难 mock 的副作用聚合），以及入口快照 buildQueryConfig、TOKEN_BUDGET 追踪器与留在循环局部的 taskBudgetRemaining（src/query.ts:284-336, 580-626）。
+---
+
+# [2] 输入与状态契约：QueryParams / State / deps
+
+> 在读循环逻辑之前，必须先理解三块数据结构：**输入是什么（QueryParams）、跨迭代携带什么（State）、副作用从哪来（deps）**。这一节是后续所有节的"数据字典"。
+
+---
+
+## 一、QueryParams：不可变输入（16 字段）
+
+`params` 在整个循环中**绝不重新赋值**——需要修改的字段都走 `State` 副本。
+
+```ts
+const { systemPrompt, userContext, systemContext, canUseTool,
+        fallbackModel, querySource, maxTurns, skipCacheWrite } = params
+```
+
+| 字段 | 含义 |
+|---|---|
+| `messages` | 对话历史。每轮把新助手回复 + 工具结果追加进副本 |
+| `systemPrompt` | 基础系统提示（不含 CLAUDE.md / git；那些由 context 拼接） |
+| `userContext` | 用户侧动态上下文（CWD/shell/日期），请求前由 `prependUserContext` 拼到最前 |
+| `systemContext` | 系统侧动态上下文（CLAUDE.md/git status），由 `appendSystemContext` 拼到 systemPrompt 后 |
+| `canUseTool` | 工具权限回调，每次工具调用先经它判断 |
+| `toolUseContext` | 工具执行上下文：agentId、模型、权限模式、AppState 引用 |
+| `fallbackModel` | 兜底模型，主模型限流/不可用时切换 |
+| `querySource` | 来源标签（`repl_main_thread` / `agent:*`）：决定持久化与归属 |
+| `maxOutputTokensOverride` | 输出 token 上限覆盖（限流恢复、超限重试用） |
+| `maxTurns` | 最大迭代轮数。未设置为 ∞ |
+| `skipCacheWrite` | 跳过 prompt cache 写入（仅读，避免大查询污染命中率） |
+| `taskBudget` | API task_budget（`{ total }`），整个 agent 轮次的预算 |
+| `deps` | 可选依赖注入，未提供用 `productionDeps()` |
+
+---
+
+## 二、State：跨迭代可变状态（12 字段）
+
+```ts
+type State = {
+  messages: Message[]
+  toolUseContext: ToolUseContext
+  autoCompactTracking: AutoCompactTrackingState | undefined
+  maxOutputTokensRecoveryCount: number
+  hasAttemptedReactiveCompact: boolean
+  maxOutputTokensOverride: number | undefined
+  pendingToolUseSummary: Promise<ToolUseSummaryMessage | null> | undefined
+  stopHookActive: boolean | undefined
+  turnCount: number
+  transition: Continue | undefined   // ← 上一次为什么续轮
+}
+```
+
+循环开头解构 `state`（裸名读取），续轮点写 `state = { ... }` **整体替换**而非 9 个独立赋值（见 [0]）。
+
+> **`transition` 的妙用**：首次迭代为 `undefined`，之后记录续轮原因（`next_turn` / `collapse_drain_retry` / …）。让单元测试**断言恢复路径已触发**，而不必检查消息内容。它也用作循环内的"上一次走了哪条恢复分支"的守卫（如 collapse 不重复排空）。
+
+---
+
+## 三、deps：依赖注入（测试友好）
+
+```ts
+const deps = params.deps ?? productionDeps()
+```
+
+`deps` 把 `query()` 内部**最难 mock 的副作用**聚合在一起（API 调用 `callModel`、压缩 `microcompact` / `autocompact`、UUID 生成 `uuid`）。
+
+- **生产**：`productionDeps()` 透明默认（真实实现）。
+- **测试**：只传 `{ callModel: mockFn }` 就能精确控制行为，**不必触碰进程全局的 `mock.module`**（避免跨文件 mock 污染，见 CLAUDE.md 测试规范）。参考 `src/__tests__/queryAutonomyProviderBoundary.test.ts`。
+
+---
+
+## 四、入口快照与两个特殊变量
+
+### 4.1 buildQueryConfig：一次性快照
+```ts
+const config = buildQueryConfig()
+```
+在入口处一次性快照不可变的 env/statsig/session 状态。**刻意排除 `feature()` 门控**——feature 检查必须直接写在 `if`/三元里（bun:bundle 的 tree-shaking 约束），不能塞进 config 对象。
+
+### 4.2 budgetTracker（TOKEN_BUDGET）
+```ts
+const budgetTracker = feature('TOKEN_BUDGET') ? createBudgetTracker() : null
+```
+
+### 4.3 taskBudgetRemaining：为何留在循环局部
+```ts
+let taskBudgetRemaining: number | undefined   // 不放进 State！
+```
+`task_budget.remaining` 跨压缩边界追踪服务端"看不见的"被压缩历史。**刻意保留在循环局部而非 State**，以免污染 7 个续轮点（每个续轮点都要显式带上它就太啰嗦）。首次 compact 之前为 `undefined`（未压缩时服务端能看到完整历史、自行从 `total` 倒计时）。
+
+---
+
+## 速记口诀
+- **params 不可变**（16 字段）vs **state 副本更新**（12 字段）。
+- `transition` = 续轮原因，测试断言恢复路径的钩子。
+- `deps` = 副作用聚合，测试只 mock 它、不碰全局 mock.module。
+- `buildQueryConfig` 排除 feature 门控；`taskBudgetRemaining` 留循环局部不进 State。

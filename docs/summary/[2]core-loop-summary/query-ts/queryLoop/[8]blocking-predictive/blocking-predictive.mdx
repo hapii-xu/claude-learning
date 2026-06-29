@@ -1,0 +1,82 @@
+---
+title: "[8] 阻塞上限与预测式压缩"
+description: 发请求前最后两道 token 关卡 —— 硬阻塞上限检查（auto-compact 关闭时撞限返回 blocking_limit，以及为何 compact/session_memory/reactive/collapse 各路径要跳过以防死锁/饿死恢复），与预测式 autocompact（用 estimateMaxTurnGrowth + 不含缓冲的 effectiveContextWindow 估算本轮增长是否超窗）（src/query.ts:1110-1222）。
+---
+
+# [8] 阻塞上限与预测式压缩
+
+> 压缩家族暗线的最后一组（请求前）。前面 [5][6] 是"按需压缩"，这一节是两道**保险**：硬阻塞（防止超限请求发出去白白报错）与预测式压缩（提前算本轮会不会爆）。
+
+---
+
+## 一、门控上提：collapseOwnsIt / mediaRecoveryEnabled
+
+```ts
+let collapseOwnsIt = false
+if (feature('CONTEXT_COLLAPSE')) {
+  collapseOwnsIt = (contextCollapse?.isContextCollapseEnabled() ?? false) && isAutoCompactEnabled()
+}
+const mediaRecoveryEnabled = reactiveCompact?.isReactiveCompactEnabled() ?? false
+```
+
+`mediaRecoveryEnabled` **每轮一次上提**：扣留（流循环内 [9]）与恢复（之后 [12]）必须用**同一个值**。`CACHED_MAY_BE_STALE` 可能在 5–30s 的流期间翻转，若扣留了却不恢复就会吃掉消息。
+
+---
+
+## 二、硬阻塞上限检查 → blocking_limit
+
+```ts
+if (!compactionResult && querySource !== 'compact' && querySource !== 'session_memory' &&
+    !(reactiveCompact?.isReactiveCompactEnabled() && isAutoCompactEnabled()) && !collapseOwnsIt) {
+  const estimatedTokens = tokenCountWithEstimation(messagesForQuery) - snipTokensFreed
+  const { isAtBlockingLimit } = calculateTokenWarningState(estimatedTokens, toolUseContext.options.mainLoopModel)
+  if (isAtBlockingLimit) {
+    yield createAssistantAPIErrorMessage({ content: PROMPT_TOO_LONG_ERROR_MESSAGE, error: 'invalid_request' })
+    return { reason: 'blocking_limit' }
+  }
+}
+```
+
+仅在 **auto-compact 关闭**时生效——保留空间让用户仍能手动 `/compact`。注意几处**跳过**条件，每个都防一种灾难：
+
+| 跳过条件 | 原因 |
+|---|---|
+| `compactionResult` 刚发生 | 压缩已验证在阈值下，但 `tokenCountWithEstimation` 会读到陈旧的压缩前 input_tokens |
+| `querySource === compact / session_memory` | 它们是继承完整对话的 fork agent，在此阻塞会**死锁**（compact agent 需运行才能降 token） |
+| reactive compact 启用且允许自动压缩 | preempt 合成错误会在 API 调用前返回，reactive 永远看不到可响应的 prompt-too-long |
+| `collapseOwnsIt` | collapse 的 `recoverFromOverflow` 在真实 413 时排空已分阶段 collapse，此处合成 preempt 会饿死恢复路径 |
+
+> 注意 `estimatedTokens` 减去了 `snipTokensFreed`——否则在 snip 已让我们低于 autocompact 阈值、但陈旧用量仍高于阻塞限制的窗口中会**错误阻塞**。
+
+---
+
+## 三、预测式 autocompact
+
+```ts
+if (!compactionResult && isAutoCompactEnabled()) {
+  const model = toolUseContext.options.mainLoopModel
+  const currentTokens = tokenCountWithEstimation(messagesForQuery) - snipTokensFreed
+  const estimatedGrowth = estimateMaxTurnGrowth(model)
+  const predictiveThreshold = getEffectiveContextWindowSize(model) - estimatedGrowth
+  if (currentTokens > predictiveThreshold) {
+    const predictiveResult = await deps.autocompact(messagesForQuery, ...)
+    if (predictiveResult.compactionResult) {
+      messagesForQuery = buildPostCompactMessages(predictiveResult.compactionResult)
+      snipTokensFreed = 0
+      tracking = tracking ? { ...tracking, compacted: true, consecutiveFailures: ... } : tracking
+    }
+  }
+}
+```
+
+主动 autocompact（[6]）基于"当前已超阈值"触发；预测式则**估算本轮的增长**是否会超窗：
+- `estimateMaxTurnGrowth(model)`：本轮最多可能新增多少 token；
+- `getEffectiveContextWindowSize(model)`：**不带 autocompact 缓冲**的窗口——避免与 `getAutoCompactThreshold`（已减缓冲）重复预留。
+- 命中则压缩，并把 `snipTokensFreed` 归零（已用新的压缩后消息）。
+
+---
+
+## 速记口诀
+- **门控上提**：`mediaRecoveryEnabled` 每轮一次，保证扣留与恢复同值。
+- **blocking_limit**：仅 auto-compact 关闭时；compact/session_memory/reactive/collapse 各路径跳过以防死锁/饿死恢复；减 `snipTokensFreed` 防误阻塞。
+- **预测式压缩**：用 `estimateMaxTurnGrowth` + 不含缓冲的窗口，提前压缩防本轮爆窗。

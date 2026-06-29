@@ -1,0 +1,259 @@
+---
+title: "[15] 错误处理与多层降级"
+description: queryModel 的两层 catch —— 内层捕获流式过程中的错误（用户 ESC、SDK 超时、流中途出错）并降级到非流式重试；外层捕获 withRetry 耗尽的错误（FallbackTriggeredError 上抛切模型、404 流端点降级、普通错误转 assistant 错误消息）。本文讲清用户中止与 SDK 超时如何区分、disableFallback 为何存在（避免流式工具重复执行）、404 为何在创建期抛出、以及 FallbackTriggeredError 为何绝不能吞掉（src/services/api/claude.ts:2883-3290）。
+---
+
+# [15] 错误处理与多层降级
+
+> queryModel 把所有"发请求 + 收流"的逻辑包在两层 `try/catch` 里。这一段（`claude.ts:2883-3290`）是 `[0]` **多层降级**暗线的主战场：
+> - **内层 catch（2883）**：流式接收过程中的错误 → 多数降级到**非流式重试**。
+> - **外层 catch（3080）**：`withRetry` 整体耗尽的错误 → 模型降级上抛 / 404 降级 / 普通错误。
+
+---
+
+## 一、降级全景
+
+```
+流式请求
+ ├─ 用户 ESC（signal.aborted）         → 直接抛 APIUserAbortError（不降级）
+ ├─ SDK 内部超时（signal 未中止）       → 抛 APIConnectionTimeoutError
+ ├─ disableFallback 开启               → 不降级，原样上抛
+ ├─ 其他流式错误 / 看门狗 throw         → 非流式降级（executeNonStreamingRequest）
+ │
+ └─（withRetry 耗尽，进外层 catch）
+     ├─ FallbackTriggeredError          → 上抛给 query.ts 真正切模型
+     ├─ 404 流端点创建错误               → 非流式降级
+     └─ 其他错误                        → 转 assistant 错误消息 yield
+```
+
+---
+
+## 二、内层 catch：流式错误处理（2883-3079）
+
+### 2.1 先清理 + 看门狗错误路径打点（2884-2910）
+
+```typescript
+} catch (streamingError) {
+  clearStreamIdleTimers()
+  if (streamIdleAborted && streamWatchdogFiredAt !== null) {
+    const exitDelayMs = Math.round(performance.now() - streamWatchdogFiredAt)
+    logEvent('tengu_stream_loop_exited_after_watchdog', { exit_path: 'error', exit_delay_ms, ... })
+  }
+```
+
+错误路径同样清理看门狗。`exit_path: 'error'`（对应 `[14]` 的 `'clean'`）——区分"看门狗触发后是干净退出还是抛错退出"。`streamWatchdogFiredAt !== null` 守卫确保 `[14]` 若已打点（置 null）这里就不重复。
+
+### 2.2 ⭐ 用户中止 vs SDK 超时（2912-2940）
+
+```typescript
+if (streamingError instanceof APIUserAbortError) {
+  if (signal.aborted) {
+    // 真正的用户中止（按了 ESC）
+    if (isAdvisorInProgress) logEvent('tengu_advisor_tool_interrupted', { ... })
+    throw streamingError                                  // 原样上抛
+  } else {
+    // SDK 抛了 abort，但我们的 signal 没中止 → 是 SDK 内部超时
+    throw new APIConnectionTimeoutError({ message: 'Request timed out' })
+  }
+}
+```
+
+两者 SDK 都抛 `APIUserAbortError`，靠 **`signal.aborted`** 区分：
+
+| signal.aborted | 真相 | 处理 |
+|---|---|---|
+| `true` | 用户真的按了 ESC | 原样抛（中断消息由 query.ts 处理）；若 advisor 进行中则打中断点 |
+| `false` | 是 SDK 内部超时 | 转成更准确的 `APIConnectionTimeoutError` |
+
+> 同一个异常类型，靠"我方信号有没有触发"反推真实成因——很巧妙的归因。
+
+### 2.3 disableFallback：禁用降级（2942-2982）
+
+```typescript
+const disableFallback =
+  isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK) ||
+  getFeatureValue_CACHED_MAY_BE_STALE('tengu_disable_streaming_to_non_streaming_fallback', false)
+
+if (disableFallback) {
+  logEvent('tengu_streaming_fallback_to_non_streaming', { fallback_disabled: true, ... })
+  throw streamingError      // 不降级，原样上抛给 withRetry
+}
+```
+
+⭐ 为什么要能禁用降级？注释（inc-4258）：
+
+> *流式工具执行处于活动状态时，流式中途降级会导致工具被重复执行：部分流已经启动了一个工具，然后非流式重试又产生同样的 tool_use 并再跑一次。*
+
+如果流式过程中工具**已经开始执行**，再非流式重试会让模型**重复产生同一个 tool_use**，导致工具**跑两遍**（可能有副作用，如重复写文件）。所以有了这个开关，在流式工具执行场景下关掉降级。
+
+### 2.4 非流式降级（2984-3076）
+
+```typescript
+didFallBackToNonStreaming = true
+if (options.onStreamingFallback) options.onStreamingFallback()
+logEvent('tengu_streaming_fallback_to_non_streaming', { fallback_disabled: false, ... })
+logEvent('tengu_nonstreaming_fallback_started', { ... })
+
+const result = yield* executeNonStreamingRequest(
+  { model, source },
+  { model, fallbackModel, thinkingConfig, fastMode, signal,
+    initialConsecutive529Errors: is529Error(streamingError) ? 1 : 0,   // ★ 529 预算延续
+    querySource },
+  paramsFromContext,                                   // ← 复用 [10] 闭包
+  (attempt, _t, tokens) => { attemptNumber = attempt; maxOutputTokens = tokens },
+  params => captureAPIRequest(params, options.querySource),
+  streamRequestId,
+)
+
+const m: AssistantMessage = { message: { ...result, content: normalizeContentFromAPI(...) }, ... }
+newMessages.push(m)
+fallbackMessage = m       // ← 标记降级消息，[16] finally 据此补算成本
+yield m
+```
+
+要点：
+
+- `executeNonStreamingRequest` 复用 `[10]` 的 `paramsFromContext` 闭包——同样的参数，只是 `stream: false`。
+- **529 预算延续**：`initialConsecutive529Errors: is529Error(streamingError) ? 1 : 0`。注释解释：把流式失败的 529 计入连续 529 预算，*使触发模型降级前总共能承受的 529 次数在流式和非流式模式下保持一致*（修复 issue #1513）。
+- `fallbackMessage = m`：标记这是降级产生的消息。**成本跟踪不在这里做**——因为降级是"先 push 再 yield"，成本要放到 `[16]` finally 才能在 `.return()` 提前终止时存活。
+
+### 2.5 finally（3077-3079）
+
+```typescript
+} finally {
+  clearStreamIdleTimers()
+}
+```
+
+内层 try 的 finally，再保险清一次看门狗定时器。
+
+---
+
+## 三、外层 catch：withRetry 耗尽（3080-3290）
+
+内层处理"单次流式尝试"的错误；当 `withRetry` 整体失败（所有重试用尽），错误冒泡到这里。
+
+### 3.1 ⭐ FallbackTriggeredError 必须上抛（3084-3086）
+
+```typescript
+if (errorFromRetry instanceof FallbackTriggeredError) {
+  throw errorFromRetry
+}
+```
+
+注释警告：
+
+> *FallbackTriggeredError 必须向上抛给 query.ts，由它执行真正的模型切换。在这里吞掉它会让降级变成空操作——用户只会看到 "Model fallback triggered: X -> Y" 的错误信息，而不会在降级模型上真正重试。*
+
+模型降级（如 Opus → Sonnet）的**真正切换**发生在 `query.ts` 层（它要换模型重开一轮）。queryModel **不能**自己处理这个错误，必须**原样上抛**。吞掉它 = 降级失效。这是个易错点，所以放在外层 catch 第一句。
+
+### 3.2 404 流端点降级（3088-3232）
+
+```typescript
+const is404StreamCreationError =
+  !didFallBackToNonStreaming &&
+  errorFromRetry instanceof CannotRetryError &&
+  errorFromRetry.originalError instanceof APIError &&
+  errorFromRetry.originalError.status === 404
+
+if (is404StreamCreationError) {
+  const failedRequestId = errorFromRetry.originalError.requestID ?? 'unknown'
+  didFallBackToNonStreaming = true
+  logEvent('tengu_streaming_fallback_to_non_streaming', { error: '404_stream_creation', ... })
+  try {
+    const result = yield* executeNonStreamingRequest(..., failedRequestId)
+    const m = { ... }; newMessages.push(m); fallbackMessage = m; yield m
+    // 继续走到下面成功日志
+  } catch (fallbackError) {
+    if (fallbackError instanceof FallbackTriggeredError) throw fallbackError   // 仍要上抛
+    // 降级也失败 → 普通错误处理（见 3.3）
+  }
+}
+```
+
+注释解释为什么 404 在这里而不是内层：
+
+> *在 v2.1.8 之前，BetaMessageStream 会在迭代过程中抛出 404（由内层 catch 捕获并降级），但改用原始流之后，404 在创建期间抛出（在这里被捕获）。*
+
+`[11]` 改用原始流后，404 在 `.withResponse()` **创建期**就抛了（还没进 `[13]` 循环），所以落到外层。处理某些网关"流式端点 404 但非流式正常"的情况——降级到非流式。注意降级里的 catch **仍要上抛 FallbackTriggeredError**。
+
+### 3.3 普通错误处理（3233-3290）
+
+```typescript
+} else {
+  let error = errorFromRetry
+  let errorModel = options.model
+  if (errorFromRetry instanceof CannotRetryError) {
+    error = errorFromRetry.originalError              // 解包真实错误
+    errorModel = errorFromRetry.retryContext.model    // 用重试时的模型
+  }
+  if (error instanceof APIError) extractQuotaStatusFromError(error)  // 限流配额
+
+  const requestId = streamRequestId
+    || (error instanceof APIError ? error.requestID : undefined)
+    || (error instanceof APIError ? error.error?.request_id : undefined)
+
+  logAPIError({ error, model: errorModel, ..., previousRequestId })
+
+  if (error instanceof APIUserAbortError) {
+    releaseStreamResources(); return     // 用户中止：不 yield 错误，中断由 query.ts 处理
+  }
+
+  yield getAssistantMessageFromError(error, errorModel, { messages, messagesForAPI })
+  releaseStreamResources()
+  return
+}
+```
+
+通用错误的归宿：
+
+| 步骤 | 动作 |
+|---|---|
+| 解包 | `CannotRetryError` 包着真实错误，取出 `originalError` 和重试模型 |
+| 配额 | 限流错误从错误体提配额状态 |
+| requestId | 从流 / 错误头 / 错误体多源兜底提取 |
+| 日志 | `logAPIError`（带 `previousRequestId` 串链） |
+| 用户中止 | **不 yield 错误消息**（中断由 query.ts 渲染），直接 return |
+| 其他错误 | `getAssistantMessageFromError` 转成 assistant 错误消息 yield 给用户 |
+
+每条 return 前都 `releaseStreamResources()`——内存防漏暗线。
+
+---
+
+## 四、两层 catch 职责对照
+
+| 维度 | 内层 catch（2883） | 外层 catch（3080） |
+|---|---|---|
+| 捕获什么 | 单次流式尝试的错误 | withRetry 整体耗尽的错误 |
+| 主要去向 | 非流式降级 | 上抛切模型 / 404 降级 / 转错误消息 |
+| 用户中止 | 抛 APIUserAbortError | return（不 yield 错误） |
+| 关键守则 | disableFallback 防工具重复执行 | FallbackTriggeredError 绝不吞 |
+
+---
+
+## 五、关键行号书签
+
+| 内容 | 位置 |
+|---|---|
+| 内层 catch 开始 | `claude.ts:2883` |
+| 看门狗 error 路径打点 | `claude.ts:2889-2910` |
+| 用户中止 vs SDK 超时 | `claude.ts:2912-2940` |
+| disableFallback（防工具重复） | `claude.ts:2942-2982` |
+| 非流式降级 + 529 预算 | `claude.ts:2984-3051` |
+| `fallbackMessage = m` | `claude.ts:3075` |
+| 外层 catch 开始 | `claude.ts:3080` |
+| FallbackTriggeredError 上抛 | `claude.ts:3084-3086` |
+| 404 流创建降级 | `claude.ts:3092-3232` |
+| 普通错误处理 | `claude.ts:3233-3290` |
+| 用户中止 return（不 yield） | `claude.ts:3279-3282` |
+
+---
+
+## 速记口诀
+
+- **两层 catch**：内层=单次流式错误→非流式降级；外层=重试耗尽→切模型/404降级/转错误消息。
+- **ESC vs 超时**：同抛 APIUserAbortError，靠 `signal.aborted` 区分（true=用户，false=SDK 超时→改抛 ConnectionTimeout）。
+- **disableFallback**：流式工具已执行时关降级，防 tool_use 重复跑两遍（inc-4258）。
+- **529 预算延续**：流式的 529 计入连续预算，流式/非流式承受次数一致（#1513）。
+- **FallbackTriggeredError 绝不吞**：必须上抛 query.ts 才能真正切模型；404 降级的内层 catch 也要再抛。
+- **用户中止不 yield 错误**：直接 return，中断消息由 query.ts 处理；每条 return 前释放流资源。

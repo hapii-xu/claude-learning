@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Provider 分流：OpenAI / Gemini / Grok 兼容层</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 7 节</div>
+  <h1>Provider 分流：OpenAI / Gemini / Grok 兼容层</h1>
+  <p class="hero-sub">queryModel 在共享预处理完成后、Anthropic 专属逻辑开始前的一个分叉 —— 如果当前 provider 是 OpenAI/Gemini/Grok，就把控制权交给对应兼容层并提前 return。本文讲清为什么分流点选在这里、三个 provider 各自传 tools 还是 filteredTools 的区别、以及 OpenAI 为何需要完整工具池来在客户端模拟动态工具加载（src/services/api/claude.ts:1621-1662）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1621-1662</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、分流点的位置：为什么是这里</a></li>
+    <li><a href="#sec-2">二、三个分流分支</a></li>
+    <li><a href="#sec-3">三、⭐ 关键差异：tools vs filteredTools</a></li>
+    <li><a href="#sec-4">四、<code>yield*</code> 委托：流如何穿透</a></li>
+    <li><a href="#sec-5">五、动态 import 的好处</a></li>
+    <li><a href="#sec-6">六、谁不在这里：firstParty 与 Bedrock</a></li>
+    <li><a href="#sec-7">七、关键行号书签</a></li>
+    <li><a href="#sec-8">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">这是 queryModel 里一个<strong>提前 return 的分叉</strong>（<code>claude.ts:1621-1662</code>）。Claude Code 支持 7 个 provider，其中 OpenAI/Gemini/Grok 走的是<strong>兼容层</strong>（把第三方 API 格式转成 Anthropic 内部格式）。当检测到这三者之一时，queryModel 把活儿交给对应的 <code>queryModel*</code> 函数，然后<strong>直接 return</strong>——本文件后面那一大堆 Anthropic 专属逻辑（betas、thinking、cache breakpoints、流式解析）<strong>全部跳过</strong>。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、分流点的位置：为什么是这里</h2>
+<pre><code>// OpenAI 兼容的 provider：在共享的预处理（消息归一化、工具过滤、
+// 媒体剔除）之后、Anthropic 专属逻辑（betas、thinking、caching）之前，
+// 交给 OpenAI 适配层处理。
+if (getAPIProvider() === 'openai') { ... return }</code></pre>
+<p>注释点明了分流点的<strong>精心选址</strong>：</p>
+<pre><code>┌─────────────────────────────────────────┐
+│ 共享预处理（所有 provider 都需要）         │
+│  · 工具过滤 [4][5]                         │
+│  · 消息归一化 + 清洗 [6]                    │
+│  · 媒体剔除 [6]                            │
+├─────────────────────────────────────────┤  ← ★ 分流点在这里
+│ Anthropic 专属（只有第一方/Bedrock 需要）  │
+│  · betas / thinking / cache breakpoints   │
+│  · 流式 SSE 解析 [10]-[16]                  │
+└─────────────────────────────────────────┘</code></pre>
+<p>把分流点放在<strong>两段之间</strong>，让三个兼容层能<strong>复用</strong>上面所有通用的消息/工具预处理，又不必趟下面那堆 Anthropic 专属的水。这是很经济的设计——不在每个兼容层里重复实现归一化、配对修复、媒体剔除。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、三个分流分支</h2>
+<h3>2.1 OpenAI（1624-1637）</h3>
+<pre><code>if (getAPIProvider() === 'openai') {
+  const { queryModelOpenAI } = await import('./openai/index.js')
+  yield* queryModelOpenAI(
+    messagesForAPI,
+    systemPrompt,
+    tools,            // ← 注意：完整 tools，不是 filteredTools
+    signal,
+    options,
+  )
+  return
+}</code></pre>
+<h3>2.2 Gemini（1639-1650）</h3>
+<pre><code>if (getAPIProvider() === 'gemini') {
+  const { queryModelGemini } = await import('./gemini/index.js')
+  yield* queryModelGemini(
+    messagesForAPI,
+    systemPrompt,
+    filteredTools,    // ← filteredTools
+    signal,
+    options,
+    thinkingConfig,   // ← Gemini 多传了 thinkingConfig
+  )
+  return
+}</code></pre>
+<h3>2.3 Grok（1652-1662）</h3>
+<pre><code>if (getAPIProvider() === 'grok') {
+  const { queryModelGrok } = await import('./grok/index.js')
+  yield* queryModelGrok(
+    messagesForAPI,
+    systemPrompt,
+    filteredTools,    // ← filteredTools
+    signal,
+    options,
+  )
+  return
+}</code></pre>
+</section>
+
+<section id="sec-3">
+<h2>三、⭐ 关键差异：tools vs filteredTools</h2>
+<p>三个分支传的工具列表<strong>不一样</strong>，这是本节最值得记住的细节：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>Provider</th><th>传的工具</th><th>原因</th></tr>
+<tr><td><strong>OpenAI</strong></td><td><strong>完整 <code>tools</code></strong></td><td>要在<strong>客户端模拟</strong> Anthropic 的动态工具加载</td></tr>
+<tr><td><strong>Gemini</strong></td><td><code>filteredTools</code></td><td>直接用过滤后的工具集</td></tr>
+<tr><td><strong>Grok</strong></td><td><code>filteredTools</code></td><td>同上</td></tr>
+</table>
+</div>
+<h3>3.1 OpenAI 为何要完整工具池</h3>
+<pre><code>// OpenAI 在客户端模拟 Anthropic 的动态工具加载。它需要完整的工具池，
+// 以便 SearchExtraToolsTool 可以搜索那些被有意从上面的初始 API 工具列表
+// 里过滤掉的延迟 MCP 工具。</code></pre>
+<p>回顾 <code>[4][5]</code>：Anthropic 路径下，延迟工具被<strong>服务端</strong>机制管理，客户端只发核心工具 + SearchExtraTools。但 OpenAI 协议<strong>没有</strong>这套服务端能力，所以兼容层得<strong>自己在客户端实现</strong>整个"工具搜索/延迟加载"流程。</p>
+<p>要模拟它，<code>SearchExtraToolsTool</code> 必须能"看到"<strong>所有</strong>延迟工具（才能搜出来），因此 OpenAI 分支必须拿到<strong>完整 <code>tools</code></strong>——而不是已经被剔掉延迟工具的 <code>filteredTools</code>。</p>
+<div class="callout blue">对比 <code>[5]</code> 里 <code>toolToAPISchema</code> 的同款思路：<strong>真正发送</strong>可以是过滤后的，但<strong>"能搜到什么"的上下文</strong>必须是完整的。OpenAI 把这条原则贯彻到整个查询。</div>
+<h3>3.2 Gemini/Grok 为何用 filteredTools</h3>
+<p>这两个兼容层的工具处理策略不同，直接消费过滤后的工具集即可（具体实现见各自兼容层 docs）。Gemini 还额外需要 <code>thinkingConfig</code>（因为它有自己的思考预算映射）。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、<code>yield*</code> 委托：流如何穿透</h2>
+<pre><code>yield* queryModelOpenAI(...)
+return</code></pre>
+<p><code>yield*</code>（委托生成器）的作用：把 <code>queryModelOpenAI</code> 这个生成器<strong>吐出的每一个值</strong>，原样转发给 queryModel 的消费者。也就是说兼容层产出的 <code>StreamEvent</code>/<code>AssistantMessage</code>/<code>错误消息</code>（同样的三类，见 <code>[0]</code>）会<strong>透明地</strong>流到上层——上层完全不知道背后是 OpenAI 还是 Anthropic。</p>
+<p>这正是 CLAUDE.md 里说的"<strong>流适配器模式</strong>：将第三方 API 格式转为 Anthropic 内部格式，下游代码完全不改"。<code>yield*</code> + <code>return</code> 就是这个"完全不改"的实现机制。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、动态 import 的好处</h2>
+<pre><code>const { queryModelOpenAI } = await import('./openai/index.js')</code></pre>
+<p>和 <code>[5]</code> 的 cachedMicrocompact 同理：三个兼容层用<strong>动态导入</strong>，只在真正用到对应 provider 时才加载其模块。第一方用户（绝大多数）永远不会把 OpenAI/Gemini/Grok 的代码加载进内存——契合 CLAUDE.md 强调的<strong>代码分割 / 按需加载</strong>（减小 RSS）。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、谁不在这里：firstParty 与 Bedrock</h2>
+<p><code>getAPIProvider()</code> 的 7 个值里，这里只拦截 3 个。剩下的：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>Provider</th><th>是否在此分流</th><th>走向</th></tr>
+<tr><td><code>firstParty</code>（Anthropic 直连）</td><td>否</td><td>继续往下（<code>[8]</code>+）</td></tr>
+<tr><td><code>bedrock</code>（AWS）</td><td>否</td><td>继续往下，但内部有多处 <code>getAPIProvider()==='bedrock'</code> 特判</td></tr>
+<tr><td><code>vertex</code>、<code>foundry</code></td><td>否</td><td>继续往下（走 Anthropic SDK 兼容路径）</td></tr>
+<tr><td><code>openai</code> / <code>gemini</code> / <code>grok</code></td><td><strong>是</strong></td><td>兼容层 + return</td></tr>
+</table>
+</div>
+<p>所以这之后的所有逻辑（<code>[8]</code>~<code>[16]</code>）都默认运行在"<strong>Anthropic SDK 协议</strong>"下（含 Bedrock/Vertex 这类仍用 Anthropic 消息格式的网关）。</p>
+</section>
+
+<section id="sec-7">
+<h2>七、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>分流点选址注释</td><td><code>claude.ts:1621-1623</code></td></tr>
+<tr><td>OpenAI 分支（传完整 tools）</td><td><code>claude.ts:1624-1637</code></td></tr>
+<tr><td>OpenAI 完整工具池注释</td><td><code>claude.ts:1626-1628</code></td></tr>
+<tr><td>Gemini 分支（filteredTools + thinkingConfig）</td><td><code>claude.ts:1639-1650</code></td></tr>
+<tr><td>Grok 分支（filteredTools）</td><td><code>claude.ts:1652-1662</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-8">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>分流选址</strong>：放在"共享预处理之后、Anthropic 专属之前"，让兼容层复用通用预处理。</li>
+<li><strong>三分支提前 return</strong>：OpenAI/Gemini/Grok 交给兼容层，跳过下面全部 Anthropic 逻辑。</li>
+<li><strong>OpenAI 要完整 tools</strong>：因为它在客户端模拟动态工具加载，SearchExtraTools 得能看到全部延迟工具；Gemini/Grok 用 filteredTools。</li>
+<li>**yield* 透明转发**：流适配器模式，下游不知道也不关心背后是哪个 provider。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

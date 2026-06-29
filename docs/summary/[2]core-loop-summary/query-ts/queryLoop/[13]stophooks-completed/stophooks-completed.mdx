@@ -1,0 +1,99 @@
+---
+title: "[13] 停止钩子与完成"
+description: 恢复阶梯走完后的正常终止路径 —— handleStopHooks 调用及 preventContinuation→stop_hook_prevented、blockingErrors→stop_hook_blocking 续轮（为何保留 hasAttemptedReactiveCompact 守卫防死循环）、TOKEN_BUDGET 的 checkTokenBudget（continue 注入 nudge / completionEvent 埋点），以及无工具调用、无错误、无 hook 阻塞时的 completed 终止（src/query.ts:1927-2029）。
+---
+
+# [13] 停止钩子与完成
+
+> [12] 的恢复阶梯都没拦住（说明模型产出了**有效**响应、且不需调工具），现在走正常收尾：stop hooks → token budget → `completed`。
+
+---
+
+## 一、handleStopHooks
+
+```ts
+const stopHookResult = yield* handleStopHooks(
+  messagesForQuery, assistantMessages, systemPrompt, userContext, systemContext,
+  toolUseContext, querySource, stopHookActive)
+```
+
+stop hook 是用户可配置的"回合即将结束"钩子，能：
+- 主动**阻止**结束（要求继续），或
+- 返回**阻塞错误**（把错误反馈给模型续轮）。
+
+注意它用 `yield*`——hook 执行过程中产生的消息会流给 UI。
+
+---
+
+## 二、preventContinuation → stop_hook_prevented
+
+```ts
+if (stopHookResult.preventContinuation) {
+  return { reason: 'stop_hook_prevented' }
+}
+```
+hook 明确要求停止，直接返回终止。
+
+---
+
+## 三、blockingErrors → stop_hook_blocking 续轮
+
+```ts
+if (stopHookResult.blockingErrors.length > 0) {
+  state = {
+    messages: [...messagesForQuery, ...assistantMessages, ...stopHookResult.blockingErrors],
+    maxOutputTokensRecoveryCount: 0,
+    hasAttemptedReactiveCompact,   // ← 保留，不重置！
+    stopHookActive: true,
+    transition: { reason: 'stop_hook_blocking' },
+  }
+  continue
+}
+```
+
+把阻塞错误拼进消息续轮，让模型看到错误并修正。`stopHookActive: true` 标记防止 hook 无限触发。
+
+> ⚠️ **为什么保留 `hasAttemptedReactiveCompact` 而不重置为 false**：若 compact 已运行且无法从 prompt-too-long 恢复，在 stop-hook 阻塞错误后重置会产生**死循环**：compact → 仍过长 → 错误 → stop hook 阻塞 → compact → …，烧掉数千次 API 调用。保留守卫切断这个环。
+
+---
+
+## 四、TOKEN_BUDGET：checkTokenBudget
+
+```ts
+if (feature('TOKEN_BUDGET')) {
+  const decision = checkTokenBudget(budgetTracker!, toolUseContext.agentId, getCurrentTurnTokenBudget(), getTurnOutputTokens())
+
+  if (decision.action === 'continue') {
+    incrementBudgetContinuationCount()
+    state = { messages: [...messagesForQuery, ...assistantMessages, createUserMessage({ content: decision.nudgeMessage, isMeta: true })],
+              transition: { reason: 'token_budget_continuation' } }
+    continue
+  }
+
+  if (decision.completionEvent) {
+    if (decision.completionEvent.diminishingReturns) { /* 日志：边际收益递减早停 */ }
+    logEvent('tengu_token_budget_completed', { ...decision.completionEvent, queryChainId, queryDepth })
+  }
+}
+```
+
+TOKEN_BUDGET 特性让 agent"用满预算尽量多干活"：
+- `action === 'continue'`：注入 nudge 消息续轮（"还有预算，接着干"）。
+- `completionEvent`：预算用完或边际收益递减，记埋点后正常完成。
+
+---
+
+## 五、completed
+
+```ts
+return { reason: 'completed' }
+```
+无工具调用、无可恢复错误、stop hook 放行、token budget 不续——回合正常完成。这是最常见的终止。
+
+---
+
+## 速记口诀
+- `handleStopHooks` → `preventContinuation`=停（`stop_hook_prevented`）/ `blockingErrors`=带错续轮（`stop_hook_blocking`）。
+- **`hasAttemptedReactiveCompact` 在 stop_hook_blocking 续轮时必须保留**，否则 compact↔错误 死循环。
+- TOKEN_BUDGET：`continue` 注入 nudge / `completionEvent` 埋点后完成。
+- 一切放行 → `completed`（最常见终止）。

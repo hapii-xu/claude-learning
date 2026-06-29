@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流事件处理大循环（核心）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 13 节</div>
+  <h1>流事件处理大循环（核心）</h1>
+  <p class="hero-sub">queryModel 的心脏 —— for-await 消费原始 SSE 流，把 message_start / content_block_start / content_block_delta / content_block_stop / message_delta / message_stop 六类事件翻译成内部 AssistantMessage 与 StreamEvent。本文讲清逐 chunk 重置看门狗与停顿检测、各内容块类型（text/thinking/tool_use/server_tool_use/connector_text）的累积、textDeltas 的 O(n) join 优化、content_block_stop 何时产出完整消息、message_delta 如何回填 usage/stopReason/成本/拒答/max_tokens、以及为什么用直接属性修改而非对象替换（src/services/api/claude.ts:2307-2775）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:2307-2775</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、SSE 事件的总体结构</a></li>
+    <li><a href="#sec-2">二、每个 chunk 的开场动作（2322-2362）</a></li>
+    <li><a href="#sec-3">三、message_start（2365-2412）</a></li>
+    <li><a href="#sec-4">四、content_block_start：开块（2413-2473）</a></li>
+    <li><a href="#sec-5">五、content_block_delta：累积增量（2474-2592）</a></li>
+    <li><a href="#sec-6">六、content_block_stop：产出完整消息（2593-2645）</a></li>
+    <li><a href="#sec-7">七、message_delta：回填用量与停止（2646-2729）</a></li>
+    <li><a href="#sec-8">八、message_stop（2730-2767）</a></li>
+    <li><a href="#sec-9">九、每个 chunk 末尾：yield StreamEvent（2770-2775）</a></li>
+    <li><a href="#sec-10">十、事件流转全景</a></li>
+    <li><a href="#sec-11">十一、关键行号书签</a></li>
+    <li><a href="#sec-12">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">这是整个 queryModel 的<strong>心脏</strong>（<code>claude.ts:2322-2775</code>）：一个 <code>for await (const part of stream)</code> 循环，把 Anthropic 服务端推来的<strong>原始 SSE 事件</strong>逐个翻译成 Claude Code 的内部消息。<code>[0]</code> 说的"三类 yield"绝大多数在这里产出。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、SSE 事件的总体结构</h2>
+<p>Anthropic 流式响应是一串有序事件，一次完整回复的事件序列大致是：</p>
+<pre><code>message_start                          ← 消息骨架（含初始 usage）
+  content_block_start  (index 0)       ← 第 0 块开始（text/thinking/tool_use...）
+    content_block_delta (index 0) ×N   ← 第 0 块的增量
+  content_block_stop   (index 0)       ← 第 0 块完成 → 产出一条 AssistantMessage
+  content_block_start  (index 1)
+    content_block_delta (index 1) ×N
+  content_block_stop   (index 1)
+  ...
+message_delta                          ← 最终 usage + stop_reason
+message_stop                           ← 结束</code></pre>
+<p>循环的工作就是：<strong>按 index 累积每个块的增量，块结束时产出完整消息，最后回填用量和停止原因</strong>。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、每个 chunk 的开场动作（2322-2362）</h2>
+<pre><code>for await (const part of stream) {
+  resetStreamIdleTimer()                 // ← 重置看门狗（[12]）
+  try { _apiRawSink?.(part) } catch {}   // 原始事件旁路（调试/录制）
+  const now = Date.now()
+
+  // 停顿检测（被动）
+  if (lastEventTime !== null) {
+    const timeSinceLastEvent = now - lastEventTime
+    if (timeSinceLastEvent &gt; STALL_THRESHOLD_MS) {   // 30s
+      stallCount++; totalStallTime += timeSinceLastEvent
+      logForDebugging(`Streaming stall detected: ...`, { level: 'warn' })
+      logEvent('tengu_streaming_stall', { ... })
+    }
+  }
+  lastEventTime = now
+
+  if (isFirstChunk) {
+    queryCheckpoint('query_first_chunk_received')
+    if (!options.agentId) headlessProfilerCheckpoint('first_chunk')
+    endQueryProfile()
+    isFirstChunk = false
+  }
+  switch (part.type) { ... }
+}</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>动作</th><th>说明</th></tr>
+<tr><td><code>resetStreamIdleTimer()</code></td><td>收到数据就重置 <code>[12]</code> 的空闲倒计时</td></tr>
+<tr><td><strong>停顿检测</strong></td><td>与看门狗不同：被动回看与上个事件的间隔，&gt;30s 记一次 stall（<strong>只记录不杀流</strong>，见 <code>[12]</code> 对比表）</td></tr>
+<tr><td>首 chunk 埋点</td><td><code>query_first_chunk_received</code> + <code>endQueryProfile()</code>，标记 TTFB 结束</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-3">
+<h2>三、message_start（2365-2412）</h2>
+<pre><code>case 'message_start': {
+  partialMessage = part.message       // 保存消息骨架
+  ttftMs = Date.now() - start          // 首 token 时间
+  usage = updateUsage(usage, part.message?.usage)
+  // [Hapii][Cache] 大量缓存命中率日志（input/cacheRead/cacheCreate/hitRate）
+  if (process.env.USER_TYPE === 'ant' &amp;&amp; 'research' in part.message) {
+    research = part.message.research   // 内部 research 字段
+  }
+  break
+}</code></pre>
+<ul>
+<li>存下 <code>partialMessage</code>（后续每个 content_block_stop 都基于它构造消息）。</li>
+<li>算出 <code>ttftMs</code>（Time To First Token）。</li>
+<li>初始 <code>usage</code>（这里通常只有 input/cache 数据；output 在 message_delta 才有）。</li>
+<li>本 fork 加了详尽的 <strong><code>[Hapii][Cache]</code> 缓存统计日志</strong>：命中率、cache read/create、并解释"前缀太短/缓存关闭"等无缓存原因——是学习缓存行为的好窗口。</li>
+</ul>
+</section>
+
+<section id="sec-4">
+<h2>四、content_block_start：开块（2413-2473）</h2>
+<p>按块类型初始化 <code>contentBlocks[part.index]</code>，并把可变字段清空以便自己累积：</p>
+<pre><code>case 'content_block_start':
+  switch (part.content_block.type) {
+    case 'tool_use':
+      contentBlocks[part.index] = { ...part.content_block, input: '' }  // input 累积成字符串
+      break
+    case 'server_tool_use':
+      contentBlocks[part.index] = { ...part.content_block, input: '' }
+      if (part.content_block.name === 'advisor') {
+        isAdvisorInProgress = true                    // advisor 开始 → 打点
+        logEvent('tengu_advisor_tool_call', { ... })
+      }
+      break
+    case 'text':
+      textDeltas.set(part.index, [])                  // 文本用数组缓冲
+      contentBlocks[part.index] = { ...part.content_block, text: '' }
+      break
+    case 'thinking':
+      contentBlocks[part.index] = { ...part.content_block, thinking: '', signature: '' }
+      break
+    default:
+      contentBlocks[part.index] = { ...part.content_block }
+      if (part.content_block.type === 'advisor_tool_result') {
+        isAdvisorInProgress = false                   // advisor 结果 → 结束
+      }
+      break
+  }
+  break</code></pre>
+<h3>⭐ 为什么 <code>{ ...part.content_block }</code> 复制</h3>
+<p>注释吐槽 SDK "别扭"：*sdk 会一边工作一边修改 text 块的内容。我们希望这些块是不可变的，以便自己累积状态*。所以<strong>复制一份</strong>，把 <code>text</code>/<code>input</code>/<code>thinking</code> 清空，由 Claude Code 自己用 delta 累积，不受 SDK 内部改动影响。</p>
+<p><code>isAdvisorInProgress</code> 在 advisor server_tool_use 开始时置 true、结果到达时置 false——用于 <code>[15]</code> 用户中断时判断是否中断了 advisor 并打点。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、content_block_delta：累积增量（2474-2592）</h2>
+<p>先处理 connector_text（feature gated），再按 <code>delta.type</code> 分发：</p>
+<pre><code>case 'content_block_delta': {
+  const contentBlock = contentBlocks[part.index]
+  if (!contentBlock) { logEvent('tengu_streaming_error', ...); throw new RangeError('Content block not found') }
+
+  if (feature('CONNECTOR_TEXT') &amp;&amp; delta.type === 'connector_text_delta') {
+    contentBlock.connector_text += delta.connector_text
+  } else {
+    switch (delta.type) {
+      case 'citations_delta':  break  // TODO
+      case 'input_json_delta':
+        // 校验是 tool_use/server_tool_use 且 input 是 string，否则 throw
+        contentBlock.input += delta.partial_json     // ★ 工具输入字符串累积
+        break
+      case 'text_delta':
+        textDeltas.get(part.index)?.push(delta.text)  // ★ push 进数组，不 +=
+        break
+      case 'signature_delta':
+        contentBlock.signature = delta.signature      // thinking/connector 签名
+        break
+      case 'thinking_delta':
+        contentBlock.thinking += delta.thinking
+        break
+    }
+  }
+  break
+}</code></pre>
+<h3>5.1 ⭐ textDeltas 的 O(n) join 优化</h3>
+<p>文本增量<strong>不直接 <code>+=</code></strong>，而是 <code>push</code> 进 <code>textDeltas.get(index)</code> 数组，到 content_block_stop 才 <code>join('')</code>。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>做法</th><th>复杂度</th><th>原因</th></tr>
+<tr><td><code>text += delta</code>（直觉）</td><td><strong>O(n²)</strong></td><td>字符串不可变，每次 += 复制整串</td></tr>
+<tr><td><code>array.push(delta)</code> + 最后 <code>join</code></td><td><strong>O(n)</strong></td><td>只在末尾追加，一次性拼</td></tr>
+</table>
+</div>
+<p>长回复成千上万个 delta，这个优化避免二次方级的字符串复制。注意：<strong>工具输入 <code>input</code> 仍用 <code>+=</code></strong>（JSON 通常较短，且需边累积边校验类型），文本才用数组缓冲。</p>
+<h3>5.2 严格的类型校验</h3>
+<p>每种 delta 都校验 <code>contentBlock.type</code> 匹配（如 text_delta 必须落在 text 块上），不匹配就 <code>logEvent('tengu_streaming_error')</code> + throw。这是对<strong>流损坏/协议错乱</strong>的防御——宁可明确报错也不静默写错块。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、content_block_stop：产出完整消息（2593-2645）</h2>
+<pre><code>case 'content_block_stop': {
+  const contentBlock = contentBlocks[part.index]
+  if (!contentBlock) throw new RangeError('Content block not found')
+  if (!partialMessage) throw new Error('Message not found')
+
+  // 把累积的 text deltas 合并（O(n) join）
+  const deltas = textDeltas.get(part.index)
+  if (deltas) { contentBlock.text = deltas.join(''); textDeltas.delete(part.index) }
+
+  const m: AssistantMessage = {
+    message: {
+      ...partialMessage,
+      usage: partialMessage.usage ?? { ...EMPTY_USAGE },
+      content: normalizeContentFromAPI([contentBlock], tools, options.agentId),
+    },
+    requestId: streamRequestId ?? undefined,
+    type: 'assistant',
+    uuid: randomUUID(),
+    timestamp: new Date().toISOString(),
+    ...(USER_TYPE === 'ant' &amp;&amp; research !== undefined &amp;&amp; { research }),
+    ...(advisorModel &amp;&amp; { advisorModel }),
+  }
+  newMessages.push(m)
+  yield m                                  // ★ 产出一条 AssistantMessage
+  break
+}</code></pre>
+<ul>
+<li>块结束 → 把文本数组 join 成最终 text。</li>
+<li>用 <code>partialMessage</code> 骨架 + 这一个内容块，<code>normalizeContentFromAPI</code> 转回内部格式，构造一条 <code>AssistantMessage</code>。</li>
+<li>推进 <code>newMessages</code> 并 <code>yield</code>——这是 <code>[0]</code> 三类 yield 里的 <strong>AssistantMessage</strong>，上层据此渲染/存档。</li>
+<li><strong>每个内容块产出一条独立消息</strong>（一段 text 一条、一个 tool_use 一条），而不是等整条回复结束。</li>
+</ul>
+</section>
+
+<section id="sec-7">
+<h2>七、message_delta：回填用量与停止（2646-2729）</h2>
+<pre><code>case 'message_delta': {
+  usage = updateUsage(usage, part.usage)
+  if (USER_TYPE === 'ant' &amp;&amp; 'research' in part) {
+    research = part.research
+    for (const msg of newMessages) msg.research = research   // 回写到已 yield 的消息
+  }
+  stopReason = part.delta.stop_reason
+
+  const lastMsg = newMessages.at(-1)
+  if (lastMsg) {
+    lastMsg.message.usage = usage             // ★ 直接属性修改
+    lastMsg.message.stop_reason = stopReason
+  }
+
+  // 成本累加
+  const costUSDForPart = calculateUSDCost(resolvedModel, usage)   // ← 用 [2] 的 resolvedModel
+  costUSD += addToTotalSessionCost(costUSDForPart, usage, options.model)
+
+  // 拒答 / max_tokens / 上下文超限
+  const refusalMessage = getErrorMessageIfRefusal(part.delta.stop_reason, options.model)
+  if (refusalMessage) yield refusalMessage
+  if (stopReason === 'max_tokens') { logEvent('tengu_max_tokens_reached', ...); yield createAssistantAPIErrorMessage({ ... }) }
+  if (stopReason === 'model_context_window_exceeded') { ...; yield createAssistantAPIErrorMessage({ ... }) }
+  break
+}</code></pre>
+<h3>7.1 为什么要回填到"已 yield 的消息"</h3>
+<p>消息是在 <strong>content_block_stop</strong> 时基于 <code>partialMessage</code> 创建的，而 <code>partialMessage</code> 来自 <strong>message_start</strong>（那时 <code>output_tokens: 0</code>、<code>stop_reason: null</code>）。真正的最终 usage 和 stop_reason 在 <strong>message_delta</strong> 才到——但消息<strong>早就 yield 出去了</strong>。所以这里要把最终值<strong>回写</strong>到最后一条已产出的消息上。</p>
+<h3>7.2 ⭐ 直接属性修改，不要对象替换</h3>
+<p>注释强调：</p>
+<div class="callout blue">*使用直接属性修改，而不是对象替换。transcript 写入队列持有 message.message 的引用，并以 100ms 的 flush 间隔懒序列化。对象替换（<code>{...lastMsg.message, usage}</code>）会让排队中的引用脱钩；直接修改能确保 transcript 拿到最终值。*</div>
+<p>transcript（会话记录）队列<strong>持有的是引用</strong>，懒序列化。若用 <code>lastMsg.message = {...}</code> 替换对象，队列里的旧引用就指向不到新值了；<code>lastMsg.message.usage = usage</code> 原地改，引用始终有效。<strong>引用语义的陷阱</strong>。</p>
+<h3>7.3 三种停止原因处理</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>stop_reason</th><th>处理</th></tr>
+<tr><td>拒答（refusal）</td><td><code>getErrorMessageIfRefusal</code> → yield 错误消息</td></tr>
+<tr><td><code>max_tokens</code></td><td>打点 + yield "超出输出上限"错误（提示设 <code>CLAUDE_CODE_MAX_OUTPUT_TOKENS</code>）</td></tr>
+<tr><td><code>model_context_window_exceeded</code></td><td>打点 + yield 错误（<strong>复用 max_tokens 的恢复路径</strong>——都是"被截断，请从上次继续"）</td></tr>
+</table>
+</div>
+<p>成本计算用 <code>resolvedModel</code>（<code>[2]</code>），印证那里"算钱必须用真实模型"的结论。</p>
+</section>
+
+<section id="sec-8">
+<h2>八、message_stop（2730-2767）</h2>
+<pre><code>case 'message_stop': {
+  // 计算最终缓存命中率，打印 [Hapii][Cache] FINAL CACHE SUMMARY
+  // 仅日志，无状态变更
+  break
+}</code></pre>
+<p>只做<strong>最终缓存统计日志</strong>（总 input、命中率、首请求写缓存提示等）。本 fork 的学习增强，纯可观测性。</p>
+</section>
+
+<section id="sec-9">
+<h2>九、每个 chunk 末尾：yield StreamEvent（2770-2775）</h2>
+<pre><code>yield {
+  type: 'stream_event',
+  event: part,
+  ...(part.type === 'message_start' ? { ttftMs } : undefined),
+}</code></pre>
+<p><strong>switch 之后、循环每轮末尾</strong>，无条件把原始事件包成 <code>StreamEvent</code> yield 出去——这是 <code>[0]</code> 三类 yield 里的 <strong>StreamEvent</strong>（逐帧信号，驱动实时 UI）。message_start 时额外附带 <code>ttftMs</code>。</p>
+<p>所以同一段内容，上层会<strong>两次</strong>收到信息：逐 chunk 的 StreamEvent（实时渲染）+ 块结束的 AssistantMessage（结构化结果）——正是 <code>[0]</code> "逐帧 vs 完整片段"的类比。</p>
+</section>
+
+<section id="sec-10">
+<h2>十、事件流转全景</h2>
+<div class="mermaid">graph TD
+    A["for await part of stream"] --&gt; B["resetWatchdog + 停顿检测 + 首chunk埋点"]
+    B --&gt; C{part.type}
+    C --&gt;|message_start| D["存 partialMessage / ttftMs / 初始 usage"]
+    C --&gt;|content_block_start| E["按类型初始化块(清空可变字段)"]
+    C --&gt;|content_block_delta| F["累积: text→数组push / input→+= / thinking/signature"]
+    C --&gt;|content_block_stop| G["join文本 → 构造 AssistantMessage → yield"]
+    C --&gt;|message_delta| H["回填 usage/stopReason(直接改) + 成本 + 拒答/max_tokens"]
+    C --&gt;|message_stop| I["最终缓存统计日志"]
+    D --&gt; J["yield StreamEvent(逐帧)"]
+    E --&gt; J
+    F --&gt; J
+    G --&gt; J
+    H --&gt; J
+    I --&gt; J
+
+    style G fill:#d2f0e3,stroke:#22a766
+    style H fill:#ffe0cc,stroke:#d77757
+    style J fill:#dde0fe,stroke:#5769f7</div>
+</section>
+
+<section id="sec-11">
+<h2>十一、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>for await</code> 循环 + 重置看门狗</td><td><code>claude.ts:2322-2323</code></td></tr>
+<tr><td>停顿检测（stall）</td><td><code>claude.ts:2330-2351</code></td></tr>
+<tr><td>首 chunk 埋点</td><td><code>claude.ts:2354-2362</code></td></tr>
+<tr><td>message_start</td><td><code>claude.ts:2365-2412</code></td></tr>
+<tr><td>content_block_start（各类型）</td><td><code>claude.ts:2413-2473</code></td></tr>
+<tr><td>content_block_delta（各 delta）</td><td><code>claude.ts:2474-2592</code></td></tr>
+<tr><td>input_json 累积 / text push</td><td><code>claude.ts:2533 / 2547</code></td></tr>
+<tr><td>content_block_stop（产出消息）</td><td><code>claude.ts:2593-2645</code></td></tr>
+<tr><td>textDeltas join</td><td><code>claude.ts:2619-2623</code></td></tr>
+<tr><td>message_delta（回填/成本/停止）</td><td><code>claude.ts:2646-2729</code></td></tr>
+<tr><td>直接属性修改注释</td><td><code>claude.ts:2671-2680</code></td></tr>
+<tr><td>message_stop（缓存统计）</td><td><code>claude.ts:2730-2767</code></td></tr>
+<tr><td>yield StreamEvent</td><td><code>claude.ts:2770-2774</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-12">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>六类事件</strong>：start(骨架) → block_start(开块) → block_delta(累积) → block_stop(产出消息) → message_delta(回填用量/停止) → message_stop(缓存日志)。</li>
+<li><strong>两次给上层</strong>：每块结束 yield AssistantMessage（完整），每 chunk yield StreamEvent（逐帧）。</li>
+<li><strong>文本 O(n)</strong>：text_delta push 进数组、最后 join；工具 input 才 <code>+=</code>。</li>
+<li><strong>复制再累积</strong>：block_start 复制 SDK 块并清空可变字段，自己掌控累积。</li>
+<li><strong>回填用直接改</strong>：message_delta 的最终 usage/stop_reason 原地改属性，别替换对象（transcript 持引用）。</li>
+<li><strong>算钱用 resolvedModel</strong>：成本计算用 [2] 解析的真实模型。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

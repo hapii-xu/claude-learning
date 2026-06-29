@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>paramsFromContext：最终请求参数构建闭包</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 10 节</div>
+  <h1>paramsFromContext：最终请求参数构建闭包</h1>
+  <p class="hero-sub">queryModel 把所有材料拼成最终 API 请求体的核心闭包 —— 它会被多次调用（日志、每次重试各一次），按 retryContext 动态生成 thinking（adaptive vs budget）、temperature、betas、context_management、output_config、cache breakpoints 等全部参数。本文讲清为什么用闭包而非一次性对象、adaptive thinking 的敏感性、1M/structured-outputs 等动态 beta 的追加、以及预算标量避免闭包 pin 住整个上下文的内存技巧（src/services/api/claude.ts:1883-2135）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1883-2135</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、闭包前的两段准备</a></li>
+    <li><a href="#sec-2">二、paramsFromContext 闭包总览</a></li>
+    <li><a href="#sec-3">三、闭包内逐段拆解</a></li>
+    <li><a href="#sec-4">四、闭包后：日志标量预算（2102-2135）</a></li>
+    <li><a href="#sec-5">五、关键行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">前面 <code>[1]</code>~<code>[9]</code> 准备好的一切（messages、system、allTools、betas、各种锁存值），到这里被一个<strong>闭包 <code>paramsFromContext</code></strong> 拼成最终的 API 请求体（<code>claude.ts:1906-2100</code>）。它<strong>不是只调用一次</strong>——日志要一次、每次重试要一次——所以做成闭包，每次按传入的 <code>retryContext</code> 重新生成参数。本文还覆盖闭包前的资源清理函数与 cache edits 消费（1883-1900），以及闭包后的日志标量预算（2102-2135）。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、闭包前的两段准备</h2>
+<h3>1.1 releaseStreamResources 函数定义（1883-1894）</h3>
+<pre><code>function releaseStreamResources(): void {
+  cleanupStream(stream)
+  stream = undefined
+  if (streamResponse) {
+    streamResponse.body?.cancel().catch(() =&gt; {})
+    streamResponse = undefined
+  }
+}</code></pre>
+<p>呼应 <code>[0]</code> 的<strong>内存泄漏防护</strong>暗线：<code>Response</code> 对象持有 V8 堆外的 TLS/socket 缓冲区（GH #32920），必须显式 cancel。这个函数后面在看门狗（<code>[12]</code>）、错误处理（<code>[15]</code>）、finally（<code>[16]</code>）多处调用。在此提前定义，因为闭包和后续逻辑都要引用它。</p>
+<h3>1.2 cache edits 一次性消费（1896-1900）</h3>
+<pre><code>// 在定义 paramsFromContext 之前，一次性消费待处理的 cache edits。
+// paramsFromContext 会被多次调用（日志、重试），在其中消费会让第一次
+// 调用偷走后续调用的 edits。
+const consumedCacheEdits = cachedMCEnabled ? consumePendingCacheEdits() : null
+const consumedPinnedEdits = cachedMCEnabled ? getPinnedCacheEdits() : []</code></pre>
+<p>⭐ 关键陷阱：<code>consumePendingCacheEdits()</code> 是<strong>消费型</strong>操作（取出即清空）。如果放在 <code>paramsFromContext</code> <strong>内部</strong>，那么第一次调用（日志用）就会把 edits 取走，真正发请求时就空了。所以<strong>在闭包外消费一次</strong>，把结果存入 <code>consumedCacheEdits</code>，闭包每次引用同一份。这是"多次调用的闭包"必须注意的副作用隔离。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、paramsFromContext 闭包总览</h2>
+<pre><code>let lastRequestBetas: string[] | undefined
+
+const paramsFromContext = (retryContext: RetryContext) =&gt; {
+  const betasParams = [...betas]   // 复制一份，不污染外层 betas
+  // ... 各种动态追加与配置 ...
+  return { model, messages, system, tools, ..., thinking, temperature, ... }
+}</code></pre>
+<p>为什么是闭包而非一次性对象？因为<strong>重试可能改变参数</strong>：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>场景</th><th>retryContext 带来的变化</th></tr>
+<tr><td>普通重试</td><td>同样参数重发</td></tr>
+<tr><td>上下文窗口超限重试</td><td><code>maxTokensOverride</code> 减小输出上限</td></tr>
+<tr><td>模型降级重试</td><td><code>retryContext.model</code> 变成 fallback 模型</td></tr>
+<tr><td>fast mode 冷却</td><td><code>retryContext.fastMode</code> 变化</td></tr>
+</table>
+</div>
+<p>每次重试用最新的 <code>retryContext</code> 调一次闭包，拿到<strong>针对这次尝试</strong>的参数。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、闭包内逐段拆解</h2>
+<h3>3.1 动态 beta 追加</h3>
+<pre><code>// Sonnet 1M 上下文实验
+if (!betasParams.includes(CONTEXT_1M_BETA_HEADER) &amp;&amp; getSonnet1mExpTreatmentEnabled(retryContext.model)) {
+  betasParams.push(CONTEXT_1M_BETA_HEADER)
+}
+// Bedrock 模型相关 betas
+const bedrockBetas = getAPIProvider() === 'bedrock' ? [...getBedrockExtraBodyParamsBetas(retryContext.model)] : []
+const extraBodyParams = getExtraBodyParams(bedrockBetas)</code></pre>
+<p><code>betasParams</code> 先复制外层 <code>betas</code>，再按本次 retryContext 追加（1M 上下文、Bedrock 专属）。<strong>用 <code>retryContext.model</code> 而非 <code>options.model</code></strong>——因为降级后模型可能变了。</p>
+<h3>3.2 effort / task budget / structured outputs</h3>
+<pre><code>configureEffortParams(effort, outputConfig, extraBodyParams, betasParams, options.model)
+configureTaskBudgetParams(options.taskBudget, outputConfig, betasParams)
+
+if (options.outputFormat &amp;&amp; !('format' in outputConfig)) {
+  outputConfig.format = options.outputFormat as BetaJSONOutputFormat
+  if (modelSupportsStructuredOutputs(options.model) &amp;&amp; !betasParams.includes(STRUCTURED_OUTPUTS_BETA_HEADER)) {
+    betasParams.push(STRUCTURED_OUTPUTS_BETA_HEADER)
+  }
+}</code></pre>
+<ul>
+<li><code>configureEffortParams</code>：把 <code>[9]</code> 解析的 effort 写进 <code>output_config</code>。</li>
+<li><code>configureTaskBudgetParams</code>：任务 token 预算。</li>
+<li><strong>结构化输出</strong>（<code>--json-schema</code>）：设 <code>output_config.format</code>，并在模型支持时追加 <code>STRUCTURED_OUTPUTS_BETA_HEADER</code>。</li>
+</ul>
+<h3>3.3 max output tokens</h3>
+<pre><code>const maxOutputTokens =
+  retryContext?.maxTokensOverride ||
+  options.maxOutputTokensOverride ||
+  getMaxOutputTokensForModel(options.model)</code></pre>
+<p>优先级：<strong>重试覆盖 &gt; 选项覆盖 &gt; 模型默认</strong>。注释说重试上下文优先，*因为它会在我们超出上下文窗口限制时尝试纠正*（超限重试时调小，见 <code>[15]</code>）。</p>
+<h3>3.4 ⭐ thinking：adaptive vs budget（敏感）</h3>
+<pre><code>const hasThinking = thinkingConfig.type !== 'disabled' &amp;&amp; !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_THINKING)
+let thinking
+if (hasThinking &amp;&amp; modelSupportsThinking(options.model)) {
+  if (!isEnvTruthy(DISABLE_ADAPTIVE_THINKING) &amp;&amp; modelSupportsAdaptiveThinking(options.model)) {
+    thinking = { type: 'adaptive' }                      // 自适应，无预算
+  } else {
+    let thinkingBudget = getMaxThinkingTokensForModel(options.model)
+    if (thinkingConfig.type === 'enabled' &amp;&amp; thinkingConfig.budgetTokens !== undefined) {
+      thinkingBudget = thinkingConfig.budgetTokens
+    }
+    thinkingBudget = Math.min(maxOutputTokens - 1, thinkingBudget)  // 不能超过输出上限
+    thinking = { budget_tokens: thinkingBudget, type: 'enabled' }
+  }
+}</code></pre>
+<p>注释带了一句<strong>罕见的严正警告</strong>：</p>
+<div class="callout red">*重要：不要在未通知模型发布 DRI 和研究团队的情况下修改下面的 adaptive-vs-budget thinking 选择。这是一项敏感设置，会极大影响模型质量和刷榜表现。*</div>
+<p>两条路径：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>路径</th><th>条件</th><th>thinking 参数</th></tr>
+<tr><td><strong>adaptive</strong>（自适应）</td><td>模型支持 + 未禁用</td><td><code>{ type: 'adaptive' }</code>，由模型自己决定思考量</td></tr>
+<tr><td><strong>budget</strong>（固定预算）</td><td>不支持 adaptive</td><td><code>{ type: 'enabled', budget_tokens: N }</code>，N 取 <code>min(maxOutputTokens-1, 预算)</code></td></tr>
+</table>
+</div>
+<h3>3.5 context_management / prompt caching</h3>
+<pre><code>const contextManagement = getAPIContextManagement({ hasThinking, isRedactThinkingActive, clearAllThinking: false })
+const enablePromptCaching = options.enablePromptCaching ?? getPromptCachingEnabled(retryContext.model)</code></pre>
+<p>获取 API 侧上下文管理策略；按 retryContext.model 算是否启用 prompt caching。</p>
+<h3>3.6 fast mode：再现"锁存 vs 实时"</h3>
+<pre><code>let speed
+const isFastModeForRetry = isFastModeEnabled() &amp;&amp; isFastModeAvailable() &amp;&amp; !isFastModeCooldown()
+  &amp;&amp; isFastModeSupportedByModel(options.model) &amp;&amp; !!retryContext.fastMode
+if (isFastModeForRetry) { speed = 'fast' }                         // 实时：冷却时不设
+if (fastModeHeaderLatched &amp;&amp; !betasParams.includes(FAST_MODE_BETA_HEADER)) {
+  betasParams.push(FAST_MODE_BETA_HEADER)                          // 锁存：一直发头
+}</code></pre>
+<p>完美印证 <code>[9]</code> 的二分：<strong>header 锁存就一直发（缓存安全），但 <code>speed='fast'</code> 实时判定（冷却时不发，真正抑制 fast 请求）</strong>。AFK 和 cache editing 同理：</p>
+<pre><code>// AFK mode beta（锁存 + isAgenticQuery 闸控）
+if (feature('TRANSCRIPT_CLASSIFIER') &amp;&amp; afkHeaderLatched &amp;&amp; shouldIncludeFirstPartyOnlyBetas()
+    &amp;&amp; isAgenticQuery &amp;&amp; !betasParams.includes(AFK_MODE_BETA_HEADER)) {
+  betasParams.push(AFK_MODE_BETA_HEADER)
+}
+// cache editing beta（header 锁存稳定；useCachedMC 实时控制请求体行为）
+const useCachedMC = cachedMCEnabled &amp;&amp; getAPIProvider() === 'firstParty' &amp;&amp; options.querySource === 'repl_main_thread'
+if (cacheEditingHeaderLatched &amp;&amp; cacheEditingBetaHeader &amp;&amp; ... &amp;&amp; !betasParams.includes(cacheEditingBetaHeader)) {
+  betasParams.push(cacheEditingBetaHeader)
+}</code></pre>
+<h3>3.7 temperature</h3>
+<pre><code>const temperature = !hasThinking ? (options.temperatureOverride ?? 1) : undefined</code></pre>
+<p>⭐ <strong>只在 thinking 关闭时才发 temperature</strong>。注释：启用 thinking 时 API 要求 <code>temperature: 1</code>（已是默认值），所以干脆不发。</p>
+<h3>3.8 过滤空 beta + 返回</h3>
+<pre><code>const filteredBetas = betasParams.filter(Boolean)   // 剔除空字符串
+lastRequestBetas = filteredBetas
+
+return {
+  model: normalizeModelStringForAPI(options.model),
+  messages: addCacheBreakpoints(messagesForAPI, enablePromptCaching, options.querySource,
+    useCachedMC, consumedCacheEdits, consumedPinnedEdits, options.skipCacheWrite),
+  system,
+  tools: allTools,
+  tool_choice: options.toolChoice,
+  ...(useBetas &amp;&amp; { betas: filteredBetas }),
+  metadata: getAPIMetadata(),
+  max_tokens: maxOutputTokens,
+  thinking,
+  ...(temperature !== undefined &amp;&amp; { temperature }),
+  ...(contextManagement &amp;&amp; useBetas &amp;&amp; betasParams.includes(CONTEXT_MANAGEMENT_BETA_HEADER) &amp;&amp; { context_management: contextManagement }),
+  ...extraBodyParams,
+  ...(Object.keys(outputConfig).length &gt; 0 &amp;&amp; { output_config: outputConfig }),
+  ...(speed !== undefined &amp;&amp; { speed }),
+}</code></pre>
+<ul>
+<li><strong>过滤空 beta</strong>：呼应 <code>[5]</code>——<code>CACHE_EDITING_BETA_HEADER</code> 等常量在 feature 关闭时是 <code>''</code>，空串会产生非法 <code>anthropic-beta</code> 头（400）。</li>
+<li><code>lastRequestBetas</code>：保存这次实际发送的 betas，供日志（<code>[16]</code>）使用。</li>
+<li><strong><code>addCacheBreakpoints</code></strong>：在消息里插入 <code>cache_control</code> 断点（公开 prompt caching），消费前面准备的 <code>consumedCacheEdits</code>/<code>consumedPinnedEdits</code>。</li>
+<li>大量 <code>...(cond &amp;&amp; { ... })</code> <strong>条件展开</strong>：只有满足条件的字段才进请求体，保持请求干净。</li>
+</ul>
+</section>
+
+<section id="sec-4">
+<h2>四、闭包后：日志标量预算（2102-2135）</h2>
+<pre><code>let langfuseThinking
+{
+  const queryParams = paramsFromContext({ model: options.model, thinkingConfig })
+  const logMessagesLength = queryParams.messages.length
+  const logBetas = useBetas ? (queryParams.betas ?? []) : []
+  const logEffortValue = queryParams.output_config?.effort
+  if (queryParams.thinking &amp;&amp; queryParams.thinking.type !== 'disabled') {
+    langfuseThinking = queryParams.thinking
+  }
+  void options.getToolPermissionContext().then(permissionContext =&gt; {
+    logAPIQuery({ model, messagesLength: logMessagesLength, ..., previousRequestId })
+  })
+}</code></pre>
+<p>这里<strong>第一次调用</strong> <code>paramsFromContext</code>（仅为日志），然后异步打 <code>logAPIQuery</code>。</p>
+<h3>⭐ 内存技巧：预算标量，别 pin 闭包</h3>
+<p>呼应 <code>[0]</code> 的<strong>闭包防 pin</strong> 暗线。注释：</p>
+<div class="callout blue">*同步计算日志标量，使触发即忘的 <code>.then()</code> 闭包只捕获原始值，而不是 paramsFromContext 完整闭包作用域（messagesForAPI、system、allTools、betas——整个构建请求的上下文），否则这些对象会被一直 pin 到 promise 完成。*</div>
+<p>如果 <code>.then()</code> 直接引用 <code>queryParams</code>，就会通过闭包链 pin 住整个请求上下文（可能几十万 token 的数据）直到权限 Promise 完成。所以<strong>先把需要的标量</strong>（<code>logMessagesLength</code>、<code>logBetas</code>、<code>logEffortValue</code>）抽成原始值，<code>.then()</code> 只捕获这些小值——大对象可被及时 GC。</p>
+<p><code>previousRequestId</code>（<code>[2]</code>）在此首次用于日志，把请求链串起来。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>releaseStreamResources</code> 定义</td><td><code>claude.ts:1887-1894</code></td></tr>
+<tr><td>cache edits 一次性消费</td><td><code>claude.ts:1899-1900</code></td></tr>
+<tr><td><code>paramsFromContext</code> 定义</td><td><code>claude.ts:1906</code></td></tr>
+<tr><td>1M / Bedrock 动态 beta</td><td><code>claude.ts:1910-1922</code></td></tr>
+<tr><td>structured outputs</td><td><code>claude.ts:1944-1953</code></td></tr>
+<tr><td>maxOutputTokens 优先级</td><td><code>claude.ts:1956-1959</code></td></tr>
+<tr><td>thinking adaptive/budget（敏感警告）</td><td><code>claude.ts:1966-1995</code></td></tr>
+<tr><td>fast/AFK/cacheEditing beta 追加</td><td><code>claude.ts:2010-2055</code></td></tr>
+<tr><td>temperature 条件</td><td><code>claude.ts:2059-2061</code></td></tr>
+<tr><td>过滤空 beta + return</td><td><code>claude.ts:2067-2099</code></td></tr>
+<tr><td><code>addCacheBreakpoints</code></td><td><code>claude.ts:2072-2080</code></td></tr>
+<tr><td>日志标量预算 + logAPIQuery</td><td><code>claude.ts:2102-2135</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>闭包不是一次性</strong>：日志一次 + 每次重试一次；用 <code>retryContext</code>（可能改 model/maxTokens/fastMode）按尝试生成参数。</li>
+<li><strong>cache edits 闭包外消费</strong>：消费型操作，放闭包内会被第一次调用偷走。</li>
+<li><strong>thinking 两路且敏感</strong>：adaptive（无预算，模型自定）vs budget（固定，min(maxTokens-1,预算)）——改动需通知 DRI/研究团队。</li>
+<li><strong>temperature 只在无 thinking 时发</strong>：有 thinking 时 API 强制为 1。</li>
+<li><strong>再现锁存 vs 实时</strong>：beta 头锁存照发，speed/useCachedMC 实时判定可停。</li>
+<li><strong>过滤空 beta</strong>：空串头会 400。</li>
+<li><strong>预算标量防 pin</strong>：<code>.then()</code> 只捕获原始值，别让它 pin 住整个请求上下文。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

@@ -1,0 +1,475 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>外层 query() 包装器 — trace 拥有权与内存治理</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* 鈹€鈹€ Hero 鈹€鈹€ */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* 鈹€鈹€ Code 鈹€鈹€ */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* 鈹€鈹€ Callout 鈹€鈹€ */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* 鈹€鈹€ Tables 鈹€鈹€ */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* 鈹€鈹€ Flow card 鈹€鈹€ */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* 鈹€鈹€ Card grid 鈹€鈹€ */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* 鈹€鈹€ Arch layers 鈹€鈹€ */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* 鈹€鈹€ Mode cards 鈹€鈹€ */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* 鈹€鈹€ Mermaid placeholder box 鈹€鈹€ */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 1 节</div>
+  <h1>外层 <span>query()</span> 包装器</h1>
+  <p class="hero-sub"><strong>queryLoop 的公开入口与生命周期管理者</strong> —— Langfuse trace 拥有权、try/catch/finally、autonomy 命令收尾、trace 闭包断链与 Performance 缓冲清理（571MB OTel 泄漏对策），以及只在正常返回时通知 command lifecycle。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>query.ts:359–526</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>ownsTrace</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>finally 三件事</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>内存治理</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、函数骨架</a></li>
+    <li><a href="#sec-2">二、trace 拥有权</a></li>
+    <li><a href="#sec-3">三、autonomy 收尾</a></li>
+    <li><a href="#sec-4">四、内存治理</a></li>
+    <li><a href="#sec-5">五、completed 通知</a></li>
+  </ul>
+</div>
+<div class="page-wrap">
+<section id="sec-1">
+  <h2>一、函数骨架：try / catch / finally</h2>
+  <p><code>query()</code> 本身不做循环，它 <code>yield*</code> 委托给 <code>queryLoop()</code>。价值全在生命周期管理与善后。</p>
+<pre><code><span class="k">export async function*</span> <span class="n">query</span>(<span class="n">params</span>)<span class="p">:</span> <span class="t">AsyncGenerator</span>&lt;..., <span class="t">Terminal</span>&gt; {
+  <span class="k">const</span> <span class="n">ownsTrace</span> <span class="p">=</span> !<span class="n">params</span>.<span class="n">toolUseContext</span>.<span class="n">langfuseTrace</span>
+  <span class="k">let</span> <span class="n">terminal</span>, <span class="n">didThrow</span> <span class="p">=</span> <span class="k">false</span>, <span class="n">thrownError</span>
+  <span class="k">try</span> {
+    <span class="n">terminal</span> <span class="p">=</span> <span class="k">yield*</span> <span class="n">queryLoop</span>(<span class="n">paramsWithTrace</span>, ...)
+  } <span class="k">catch</span> (<span class="n">error</span>) {
+    <span class="n">didThrow</span> <span class="p">=</span> <span class="k">true</span>; <span class="n">thrownError</span> <span class="p">=</span> <span class="n">error</span>
+    <span class="k">throw</span> <span class="n">error</span>                       <span class="c">// ← 重新抛出，不吞</span>
+  } <span class="k">finally</span> {
+    <span class="c">/* autonomy 收尾 + trace 结束 + 闭包断链 + Performance 清理 */</span>
+  }
+  <span class="k">for</span> (<span class="k">const</span> <span class="n">uuid</span> <span class="k">of</span> <span class="n">consumedCommandUuids</span>) <span class="n">notifyCommandLifecycle</span>(<span class="n">uuid</span>, <span class="s">'completed'</span>)
+  <span class="k">return</span> <span class="n">terminal</span>!
+}</code></pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>出口</th><th>finally</th><th>completed 通知</th></tr>
+    <tr><td>正常 return</td><td>执行</td><td>✅ 发送</td></tr>
+    <tr><td>throw</td><td>执行</td><td>❌ 跳过（重新抛出）</td></tr>
+    <tr><td><code>.return()</code> 提前关闭</td><td>执行</td><td>❌ 跳过</td></tr>
+  </table></div>
+</section>
+<section id="sec-2">
+  <h2>二、Langfuse trace 的拥有权（ownsTrace）</h2>
+<pre><code><span class="k">const</span> <span class="n">ownsTrace</span> <span class="p">=</span> !<span class="n">params</span>.<span class="n">toolUseContext</span>.<span class="n">langfuseTrace</span></code></pre>
+  <div class="card-grid">
+    <div class="card orange"><div class="card-title">主线程</div><div class="card-body">进来时 trace 为空 → <code>ownsTrace = true</code>，自己 <code>createTrace</code>、自己 <code>endTrace</code>。</div></div>
+    <div class="card blue"><div class="card-title">子 agent</div><div class="card-body"><code>runAgent()</code> 已塞入父 trace → <code>ownsTrace = false</code>，<strong>复用</strong>父 trace，绝不自己结束。</div></div>
+  </div>
+  <div class="callout"><strong>为什么重要：</strong>trace 带层级（observation 树）。子 agent 若自己 end，会提前关闭父级 span 树。<code>ownsTrace</code> 保证"谁创建谁销毁"。</div>
+</section>
+<section id="sec-3">
+  <h2>三、finally：autonomy 命令收尾</h2>
+<pre><code><span class="k">await</span> <span class="n">finalizeAutonomyCommandsForTurn</span>({
+  <span class="n">commands</span><span class="p">:</span> <span class="n">consumedAutonomyCommands</span>,
+  <span class="n">outcome</span><span class="p">:</span> <span class="n">getAutonomyTurnOutcome</span>({ <span class="n">terminal</span>, ...(<span class="n">didThrow</span> ? { <span class="n">thrownError</span> } : {}) }),
+  <span class="n">priority</span><span class="p">:</span> <span class="s">'later'</span>,
+}).<span class="n">then</span>(<span class="n">nextCommands</span> <span class="p">=&gt;</span> { <span class="k">for</span> (<span class="k">const</span> <span class="n">c</span> <span class="k">of</span> <span class="n">nextCommands</span>) <span class="n">enqueue</span>(<span class="n">c</span>) }).<span class="n">catch</span>(<span class="n">logError</span>)</code></pre>
+  <ul>
+    <li><code>getAutonomyTurnOutcome</code> 用 <code>terminal</code>（正常）或 <code>thrownError</code>（异常）<strong>反推本回合结局</strong>。</li>
+    <li>返回的 <code>nextCommands</code> 重新 <code>enqueue</code>，形成自动模式的"链式推进"。</li>
+  </ul>
+</section>
+<section id="sec-4">
+  <h2>四、⭐ finally：内存治理（571MB OTel 泄漏对策）</h2>
+  <h3>4.1 只有 ownsTrace 才 endTrace + 主动 flush</h3>
+<pre><code><span class="k">if</span> (<span class="n">ownsTrace</span>) {
+  <span class="k">const</span> <span class="n">isAborted</span> <span class="p">=</span> <span class="n">terminal</span>?.<span class="n">reason</span> <span class="p">===</span> <span class="s">'aborted_streaming'</span> <span class="p">||</span> <span class="n">terminal</span>?.<span class="n">reason</span> <span class="p">===</span> <span class="s">'aborted_tools'</span>
+  <span class="n">endTrace</span>(<span class="n">langfuseTrace</span>, <span class="k">undefined</span>, <span class="n">isAborted</span> ? <span class="s">'interrupted'</span> : <span class="k">undefined</span>)
+  <span class="k">await</span> <span class="n">flushLangfuse</span>()   <span class="c">// 否则 SpanImpl 保留数百 KB JSON 到批次定时器(10s)</span>
+}</code></pre>
+  <h3>4.2 闭包断链置 null</h3>
+<pre><code><span class="k">if</span> (<span class="n">paramsWithTrace</span> !== <span class="n">params</span>) {
+  <span class="n">paramsWithTrace</span>.<span class="n">toolUseContext</span>.<span class="n">langfuseTrace</span> <span class="p">=</span> <span class="k">null</span>
+  <span class="n">paramsWithTrace</span>.<span class="n">toolUseContext</span>.<span class="n">langfuseRootTrace</span> <span class="p">=</span> <span class="k">null</span>
+  <span class="n">paramsWithTrace</span>.<span class="n">toolUseContext</span>.<span class="n">langfuseBatchSpan</span> <span class="p">=</span> <span class="k">null</span>
+}</code></pre>
+  <p><code>toolUseContext</code> 捕获的 trace → <code>SpanImpl</code> → <code>otperformance</code>（571MB Performance 对象）。置 null 后 GC 才能回收整棵 span 树。</p>
+  <h3>4.3 清理 JSC 原生 Performance 缓冲</h3>
+<pre><code><span class="k">const</span> <span class="n">gPerf</span> <span class="p">=</span> <span class="n">globalThis</span>.<span class="n">performance</span>
+<span class="k">if</span> (<span class="n">gPerf</span>?.<span class="n">clearMarks</span>) {
+  <span class="k">try</span> { <span class="n">gPerf</span>.<span class="n">clearMarks</span>(); <span class="n">gPerf</span>.<span class="n">clearMeasures</span>?.(); <span class="n">gPerf</span>.<span class="n">clearResourceTimings</span>?.() } <span class="k">catch</span> {}
+}</code></pre>
+  <div class="callout red"><strong>根因：</strong>OTel 引用 <code>globalThis.performance</code>，后者把 marks/measures 存进一个<strong>永不收缩的 C++ Vector</strong>。长会话即便 span 已 flush 且置 null，仍累积数百 MB 死容量——必须显式清理。</div>
+</section>
+<section id="sec-5">
+  <h2>五、finally 之后：command lifecycle completed</h2>
+<pre><code><span class="k">for</span> (<span class="k">const</span> <span class="n">uuid</span> <span class="k">of</span> <span class="n">consumedCommandUuids</span>) <span class="n">notifyCommandLifecycle</span>(<span class="n">uuid</span>, <span class="s">'completed'</span>)
+<span class="k">return</span> <span class="n">terminal</span>!</code></pre>
+  <p>这行在 <code>finally</code> <strong>之外</strong>、<code>return</code> 之前。只有正常返回才到达——throw 和 <code>.return()</code> 都跳过。在回合失败时给出和 <code>print.ts</code> 的 <code>drainCommandQueue</code> 相同的<strong>非对称 started-without-completed 信号</strong>。</p>
+  <h3>速记口诀</h3>
+  <ul>
+    <li><code>query()</code> = 薄包装 + 善后，循环本体在 <code>queryLoop</code>。</li>
+    <li><strong>ownsTrace</strong>：谁创建谁销毁，子 agent 复用父 trace。</li>
+    <li><strong>finally 三件事</strong>：autonomy 收尾 → endTrace+flush → 闭包断链 + Performance 清理。</li>
+    <li><strong>completed 在 finally 之外</strong>：只有正常 return 才发。</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

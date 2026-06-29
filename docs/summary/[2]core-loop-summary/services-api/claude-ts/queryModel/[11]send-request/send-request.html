@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流式状态初始化、withRetry 与发起请求</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 11 节</div>
+  <h1>流式状态初始化、withRetry 与发起请求</h1>
+  <p class="hero-sub">queryModel 从"准备好参数"到"真正把请求打出去"的一段 —— 初始化一大批流式累积状态变量、用 withRetry 包裹客户端创建与请求发送、禁用 SDK 自动重试改用手动实现、生成 clientRequestId 关联超时日志、用原始 Stream 而非 BetaMessageStream 避免 O(n²) 解析、以及把 withRetry 生成器产出的 API 错误消息透传出去。本文讲清重试编排、检查点埋点与"为什么用原始流"（src/services/api/claude.ts:2137-2244）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:2137-2244</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、流式状态变量初始化（2137-2151）</a></li>
+    <li><a href="#sec-2">二、withRetry 编排（2153-2222）</a></li>
+    <li><a href="#sec-3">三、消费 withRetry 生成器（2224-2244）</a></li>
+    <li><a href="#sec-4">四、本段在生命周期中的位置</a></li>
+    <li><a href="#sec-5">五、关键行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue"><code>[10]</code> 准备好 <code>paramsFromContext</code> 后，这一段（<code>claude.ts:2137-2244</code>）做三件事： 1. 初始化一大批<strong>流式累积状态</strong>变量（usage、costUSD、contentBlocks……）。 2. 用 <strong><code>withRetry</code></strong> 包裹"创建客户端 + 发请求"，自己掌控重试。 3. 拿到流后，重置状态，准备进入 <code>[13]</code> 的事件大循环。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、流式状态变量初始化（2137-2151）</h2>
+<pre><code>const newMessages: AssistantMessage[] = []
+let ttftMs = 0
+let partialMessage: BetaMessage | undefined
+const contentBlocks: (BetaContentBlock | ConnectorTextBlock)[] = []
+const textDeltas = new Map&lt;number, string[]&gt;()
+let usage: NonNullableUsage = EMPTY_USAGE
+let costUSD = 0
+let stopReason: BetaStopReason | null = null
+let didFallBackToNonStreaming = false
+let fallbackMessage: AssistantMessage | undefined
+let maxOutputTokens = 0
+let responseHeaders: globalThis.Headers | undefined
+let research: unknown
+let isFastModeRequest = isFastMode
+let isAdvisorInProgress = false</code></pre>
+<p>这些是<strong>整个流处理的可变状态</strong>，声明在 try 之前，以便 <code>[13]</code> 事件循环累积、<code>[15]</code> 错误处理读取、<code>[16]</code> finally/收尾使用。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>变量</th><th>作用</th><th>在哪累积</th></tr>
+<tr><td><code>newMessages</code></td><td>本次产出的所有 assistant 消息</td><td><code>[13]</code> content_block_stop</td></tr>
+<tr><td><code>ttftMs</code></td><td>首 token 时间（Time To First Token）</td><td><code>[13]</code> message_start</td></tr>
+<tr><td><code>partialMessage</code></td><td>message_start 的骨架消息</td><td><code>[13]</code></td></tr>
+<tr><td><code>contentBlocks</code></td><td>按 index 累积的内容块</td><td><code>[13]</code> content_block_*</td></tr>
+<tr><td><code>textDeltas</code></td><td>文本增量缓冲（O(n) join 优化）</td><td><code>[13]</code> text_delta</td></tr>
+<tr><td><code>usage</code> / <code>costUSD</code></td><td>token 用量与成本</td><td><code>[13]</code> message_delta</td></tr>
+<tr><td><code>stopReason</code></td><td>停止原因</td><td><code>[13]</code> message_delta</td></tr>
+<tr><td><code>didFallBackToNonStreaming</code> / <code>fallbackMessage</code></td><td>降级标志与降级消息</td><td><code>[15]</code></td></tr>
+<tr><td><code>responseHeaders</code></td><td>响应头（配额/网关检测）</td><td><code>[14]</code></td></tr>
+<tr><td><code>isFastModeRequest</code></td><td>实际 fast mode 状态（重试中可变）</td><td><code>[11]</code> retry 回调</td></tr>
+<tr><td><code>isAdvisorInProgress</code></td><td>advisor 是否进行中（中断打点用）</td><td><code>[13]</code></td></tr>
+</table>
+</div>
+<div class="callout blue"><code>textDeltas</code> 用 <code>Map&lt;index, string[]&gt;</code> 而非直接 <code>+=</code> 字符串，是为了 O(n) 的最终 join 而非 O(n²) 的反复拼接——细节见 <code>[13]</code>。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、withRetry 编排（2153-2222）</h2>
+<pre><code>queryCheckpoint('query_client_creation_start')
+const generator = withRetry(
+  () =&gt; getAnthropicClient({
+    maxRetries: 0,               // ★ 禁用 SDK 自动重试，改用手动实现
+    model: options.model,
+    fetchOverride: options.fetchOverride,
+    source: options.querySource,
+  }),
+  async (anthropic, attempt, context) =&gt; {
+    // ↑ 每次尝试都会跑这个回调
+    attemptNumber = attempt
+    isFastModeRequest = context.fastMode ?? false
+    start = Date.now()
+    attemptStartTimes.push(start)
+    queryCheckpoint('query_client_creation_end')
+
+    const params = paramsFromContext(context)        // ← [10] 闭包，按本次 context 生成
+    captureAPIRequest(params, options.querySource)   // 为 bug 报告捕获请求
+    maxOutputTokens = params.max_tokens
+
+    queryCheckpoint('query_api_request_sent')
+    if (!options.agentId) headlessProfilerCheckpoint('api_request_sent')
+
+    clientRequestId =
+      getAPIProvider() === 'firstParty' &amp;&amp; isFirstPartyAnthropicBaseUrl()
+        ? randomUUID() : undefined
+
+    const result = await anthropic.beta.messages
+      .create({ ...params, stream: true }, {
+        signal,
+        ...(clientRequestId &amp;&amp; { headers: { [CLIENT_REQUEST_ID_HEADER]: clientRequestId } }),
+      })
+      .withResponse()
+    queryCheckpoint('query_response_headers_received')
+    streamRequestId = result.request_id
+    streamResponse = result.response
+    return result.data
+  },
+  {
+    model: options.model,
+    fallbackModel: options.fallbackModel,
+    thinkingConfig,
+    ...(isFastModeEnabled() ? { fastMode: isFastMode } : false),
+    signal,
+    querySource: options.querySource,
+  },
+)</code></pre>
+<h3>2.1 withRetry 的三个参数</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>参数</th><th>作用</th></tr>
+<tr><td><code>getClient</code> 工厂</td><td>创建/缓存 Anthropic 客户端（带 <code>maxRetries: 0</code>）</td></tr>
+<tr><td><code>attempt</code> 回调</td><td>每次尝试执行：生成参数 → 发请求 → 返回流</td></tr>
+<tr><td>配置</td><td>model/fallbackModel/thinking/fastMode/signal/querySource</td></tr>
+</table>
+</div>
+<h3>2.2 ⭐ 为什么 <code>maxRetries: 0</code></h3>
+<p>注释：*禁用 SDK 自动重试，改用手动实现*。SDK 自带重试，但 Claude Code 要<strong>自己掌控重试逻辑</strong>——它要做的远不止简单重发：连续 529 预算、模型降级（FallbackTriggeredError）、上下文超限调小 maxTokens、fast mode 冷却……这些都需要 <code>withRetry</code> 在每次尝试间根据错误调整 <code>retryContext</code>，再用 <code>[10]</code> 的闭包重新生成参数。SDK 的傻瓜重试满足不了，所以关掉它。</p>
+<h3>2.3 每次尝试回调做的事</h3>
+<ol>
+<li>记录 attempt 号、本次是否 fast mode、起始时间。</li>
+<li><strong><code>paramsFromContext(context)</code></strong>：用本次 context（可能是降级后的 model）生成参数——这正是 <code>[10]</code> 闭包"会被多次调用"的原因。</li>
+<li><code>captureAPIRequest</code>：留存请求供 bug 报告。</li>
+<li>一串 <code>queryCheckpoint</code>：精细的性能埋点（client_creation → api_request_sent → response_headers_received）。</li>
+</ol>
+<h3>2.4 clientRequestId：关联超时日志</h3>
+<pre><code>clientRequestId = (firstParty &amp;&amp; 官方 URL) ? randomUUID() : undefined</code></pre>
+<p>注释：*生成并跟踪客户端 request ID，使超时（不会返回服务端 request ID）仍然能与服务端日志关联*。超时场景下服务端 request ID 拿不到，所以客户端<strong>自己生成一个</strong>塞进请求头 <code>CLIENT_REQUEST_ID_HEADER</code>，事后能凭它在服务端日志里找到这次请求。仅限第一方官方 URL（第三方 provider 不记录它）。</p>
+<h3>2.5 ⭐ 用原始 Stream，不用 BetaMessageStream</h3>
+<pre><code>const result = await anthropic.beta.messages.create({ ...params, stream: true }, {...}).withResponse()</code></pre>
+<p>注释：*使用原始流而不是 BetaMessageStream，避免 O(n²) 的部分 JSON 解析。BetaMessageStream 会在每个 input_json_delta 上调用 partialParse()，而我们并不需要它——tool 输入的累积由我们自己处理*。</p>
+<ul>
+<li><code>BetaMessageStream</code>（SDK 高级封装）会在每个增量上重新 partial-parse 整个 JSON → O(n²)。</li>
+<li>工具输入 Claude Code 自己累积（<code>[13]</code> 的 <code>contentBlock.input += delta.partial_json</code>），不需要 SDK 边解析边给。</li>
+<li>所以用 <code>.create(...).withResponse()</code> 拿<strong>原始 Stream</strong> + Response 对象（<code>result.data</code> / <code>result.response</code>）。</li>
+</ul>
+<h3>2.6 <code>.withResponse()</code> 拿到什么</h3>
+<pre><code>streamRequestId = result.request_id   // 服务端 request ID
+streamResponse = result.response       // Response 对象（配额头 + 资源释放）
+return result.data                     // 原始事件流</code></pre>
+<p><code>streamResponse</code> 就是 <code>[11]/[16]</code> 资源释放、<code>[14]</code> 配额头提取的来源。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、消费 withRetry 生成器（2224-2244）</h2>
+<pre><code>let e
+do {
+  e = await generator.next()
+  // yield API 错误消息（流有 'controller' 属性，错误消息没有）
+  if (!('controller' in e.value)) {
+    yield e.value
+  }
+} while (!e.done)
+stream = e.value as Stream&lt;BetaRawMessageStreamEvent&gt;
+
+// 重置状态（重试后从干净状态开始累积）
+newMessages.length = 0
+ttftMs = 0
+partialMessage = undefined
+contentBlocks.length = 0
+textDeltas.clear()
+usage = EMPTY_USAGE
+stopReason = null
+isAdvisorInProgress = false</code></pre>
+<h3>3.1 边重试边透传错误消息</h3>
+<p><code>withRetry</code> 本身是个<strong>生成器</strong>：重试过程中它可能 <code>yield</code> 出"中间态的 API 错误消息"（给用户看的提示）。这里 <code>do...while</code> 逐个取出：</p>
+<ul>
+<li><strong>是错误消息</strong>（没有 <code>controller</code> 属性）→ <code>yield</code> 给上层显示。</li>
+<li><strong>是流对象本身</strong>（有 <code>controller</code> 属性）→ 不 yield，留作 <code>stream</code>。</li>
+</ul>
+<p>用 <code>'controller' in e.value</code> 区分"流"和"错误消息"——流是可迭代对象带 controller，错误消息是普通对象。</p>
+<h3>3.2 拿到流后重置累积状态</h3>
+<p>重试可能已经部分累积过状态（上次尝试失败前），所以<strong>拿到最终的流之后</strong>把所有累积变量清零，保证 <code>[13]</code> 从干净状态开始。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、本段在生命周期中的位置</h2>
+<div class="mermaid">graph LR
+    A["[10] paramsFromContext 就绪"] --&gt; B["初始化流式状态变量"]
+    B --&gt; C["withRetry 编排&lt;br/&gt;maxRetries:0 手动重试"]
+    C --&gt; D["每次尝试:&lt;br/&gt;params=闭包(context)&lt;br/&gt;原始流 create stream:true"]
+    D --&gt; E["do/while 消费生成器&lt;br/&gt;错误消息透传 / 取出 stream"]
+    E --&gt; F["重置累积状态"]
+    F --&gt; G["[12]看门狗 → [13]事件循环"]
+
+    style C fill:#dde0fe,stroke:#5769f7
+    style D fill:#d2f0e3,stroke:#22a766</div>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>流式状态变量初始化</td><td><code>claude.ts:2137-2151</code></td></tr>
+<tr><td><code>withRetry</code> 调用</td><td><code>claude.ts:2155</code></td></tr>
+<tr><td><code>getAnthropicClient({ maxRetries: 0 })</code></td><td><code>claude.ts:2157-2162</code></td></tr>
+<tr><td>每次尝试回调</td><td><code>claude.ts:2163</code></td></tr>
+<tr><td><code>paramsFromContext(context)</code></td><td><code>claude.ts:2174</code></td></tr>
+<tr><td><code>clientRequestId</code> 生成</td><td><code>claude.ts:2190-2193</code></td></tr>
+<tr><td>原始流 <code>.create(stream:true).withResponse()</code></td><td><code>claude.ts:2198-2208</code></td></tr>
+<tr><td><code>streamRequestId</code> / <code>streamResponse</code></td><td><code>claude.ts:2210-2211</code></td></tr>
+<tr><td>do/while 消费生成器</td><td><code>claude.ts:2225-2233</code></td></tr>
+<tr><td>重置累积状态</td><td><code>claude.ts:2236-2243</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>状态先声明</strong>：usage/cost/contentBlocks/textDeltas... 在 try 外声明，供事件循环累积、错误处理与 finally 共享。</li>
+<li><strong>maxRetries:0</strong>：关掉 SDK 重试，自己用 withRetry 掌控（529 预算 / 降级 / 调 maxTokens / fast 冷却）。</li>
+<li><strong>clientRequestId</strong>：超时拿不到服务端 ID，客户端自造一个塞头里，事后能对上服务端日志。</li>
+<li><strong>原始流不用 BetaMessageStream</strong>：避免每个 delta O(n²) partialParse，工具输入自己累积。</li>
+<li><strong>生成器消费</strong>：用 <code>'controller' in value</code> 区分"错误消息(透传)"与"流(留用)"，拿到流后重置状态。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

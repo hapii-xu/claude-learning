@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>queryModel 包装层总览</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 包装层总览</div>
+  <h1>queryModel <span>包装层</span>总览</h1>
+  <p class="hero-sub"><code>queryModel()</code> 是 2100 行的传输引擎，但业务代码从不直接调用它——永远经过两个薄包装入口 <code>queryModelWithStreaming</code>（流式）和 <code>queryModelWithoutStreaming</code>（非流式），两者又都穿过同一层 <code>withStreamingVCR</code> 再委托给 <code>queryModel</code>。本系列拆这层门面：两个入口的差异、VCR 录放、非流式降级引擎、一圈 helper（src/services/api/claude.ts:963-1292 + src/services/vcr.ts:26-383）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:963-1292</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>vcr.ts:26-383</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>6 节系列</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、为什么需要包装层</a></li>
+    <li><a href="#sec-2">二、本系列覆盖的代码</a></li>
+    <li><a href="#sec-3">三、两个入口的差异</a></li>
+    <li><a href="#sec-4">四、几条暗线</a></li>
+    <li><a href="#sec-5">五、Options 参数大包</a></li>
+    <li><a href="#sec-6">六、行号书签</a></li>
+    <li><a href="#sec-7">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue"><code>queryModel()</code>（<code>claude.ts:1303</code>）已经在隔壁 <code>queryModel/</code> 系列逐段讲过。但你在 <code>query.ts</code> 或 <code>QueryEngine</code> 里<strong>永远不会看到 <code>queryModel(...)</code> 这个调用</strong>——它被刻意藏在两个入口函数后面。本系列讲的就是这层"门面"：两个包装入口、它们共享的 VCR 录放层、以及一圈支撑性的 helper。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、为什么需要"包装层"</h2>
+<p><code>queryModel</code> 是个 <code>async function*</code>（异步生成器），直接用它有三个麻烦：</p>
+<ol>
+<li><strong>流式 vs 非流式</strong>：REPL 要逐字渲染（消费每个 yield），但 compact / extract_memories 等辅助查询只想要"最终那条 assistant 消息"。</li>
+<li><strong>测试录放（VCR）</strong>：CI 里不能真打 Anthropic API，需要一层透明的"录一次、之后回放 fixture"机制。</li>
+<li><strong>统一日志 + abort 兜底</strong>：每次调用都要打开始/结束日志；用户 ESC 时要抛可识别的 <code>APIUserAbortError</code>。</li>
+</ol>
+<p>把这些横切关注点塞进 <code>queryModel</code> 本体会让它更臃肿，所以拆成了薄包装。</p>
+<div class="mermaid-box">QueryEngine / query.ts
+        │
+        ├─ 要逐字流？ ──▶ queryModelWithStreaming()      claude.ts:1022
+        │                      │
+        └─ 只要结果？ ──▶ queryModelWithoutStreaming()   claude.ts:963
+                               │
+            两者都 ▶ withStreamingVCR(messages, () => queryModel(...))   vcr.ts:352
+                               │
+                               ▼
+                         queryModel()      claude.ts:1303（本系列不重复讲）</div>
+<div class="callout"><strong>一句话定位</strong>：包装层 = "流式/非流式选择 + VCR 录放 + 日志/abort 兜底"三件横切事务的归处。它上面是对话逻辑，下面是 <code>queryModel</code> 这台 2100 行的传输引擎。</div>
+<div class="callout purple">🔗 <strong>交叉引用</strong>：下游那台 2100 行的传输引擎 <code>queryModel</code> 本体（请求构建 / 发送 / 流式解析 / 错误降级，6 大阶段 16 小节）拆在姊妹系列 <a href="../../queryModel/[0]overview/overview.html"><code>queryModel/</code></a> 里。本系列只讲它的外圈包装与周边 helper。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、本系列覆盖的代码</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节</th><th>函数 / 主题</th><th>位置</th></tr>
+<tr><td><code>[1]streaming-wrapper</code></td><td><code>queryModelWithStreaming</code></td><td><code>claude.ts:1022-1054</code></td></tr>
+<tr><td><code>[2]nonstreaming-wrapper</code></td><td><code>queryModelWithoutStreaming</code></td><td><code>claude.ts:963-1020</code></td></tr>
+<tr><td><code>[3]vcr-layer</code></td><td><code>withStreamingVCR</code> + <code>withVCR</code> / <code>shouldUseVCR</code> / 脱水水合</td><td><code>vcr.ts:26-383</code></td></tr>
+<tr><td><code>[4]nonstreaming-fallback-engine</code></td><td><code>executeNonStreamingRequest</code> + <code>getNonstreamingFallbackTimeoutMs</code></td><td><code>claude.ts:1079-1196</code></td></tr>
+<tr><td><code>[5]helpers</code></td><td><code>shouldDeferLspTool</code> / <code>getPreviousRequestIdFromMessages</code> / <code>stripExcessMediaItems</code></td><td><code>claude.ts:1060-1292</code></td></tr>
+</table>
+</div>
+<div class="callout purple">注意 <code>[4]</code> 的 <code>executeNonStreamingRequest</code> <strong>不是入口包装</strong>，而是 <code>queryModel</code> 里 <code>[15]error-fallback</code> 一节调用的"非流式降级引擎"——流式请求失败后改用它重发。放在本系列是因为它和两个入口一样属于"queryModel 的外圈"，理解它能补全降级闭环。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、两个入口的差异（核心对照）</h2>
+<p>两个入口的函数体几乎一样——都只是 <code>withStreamingVCR(messages, () =&gt; queryModel(...))</code>——差别全在<strong>怎么消费这个生成器</strong>。</p>
+<div class="mermaid-box">queryModelWithStreaming  (async function*)
+   └─ return yield* …    透传每个事件 ──▶ 调用方 for await 逐字渲染
+
+queryModelWithoutStreaming  (async function → Promise)
+   └─ 内部 for await 吃光生成器
+        只留住 type==='assistant' 那条 ──▶ return 单条 AssistantMessage</div>
+<div class="tbl-wrap">
+<table>
+<tr><th>维度</th><th>queryModelWithStreaming</th><th>queryModelWithoutStreaming</th></tr>
+<tr><td>函数形态</td><td><code>async function*</code>（生成器）</td><td><code>async function</code>（返回 Promise）</td></tr>
+<tr><td>返回</td><td>逐个 yield StreamEvent / AssistantMessage / Error</td><td>单条 <code>AssistantMessage</code></td></tr>
+<tr><td>谁消费生成器</td><td><strong>调用方</strong>（<code>for await</code>）</td><td><strong>自己内部</strong> <code>for await</code> 吃光</td></tr>
+<tr><td>典型场景</td><td>REPL 主线程、子 agent 实时输出</td><td>compact、extract_memories、queryHaiku</td></tr>
+<tr><td>abort 处理</td><td>透传，由调用方处理</td><td>自己判断 <code>signal.aborted</code> → 抛 <code>APIUserAbortError</code></td></tr>
+<tr><td>为什么</td><td>UI 要逐字打字效果</td><td>调用方只关心最终结构化结果</td></tr>
+</table>
+</div>
+<div class="callout red"><strong>关键细节</strong>：非流式入口必须<strong>把生成器消费到底</strong>（哪怕只要最后一条），因为 <code>queryModel</code> 把成功日志 <code>logAPISuccessAndDuration</code> 放在所有 yield <strong>之后</strong>。提前 break 会漏掉日志和收尾。详见 <code>[2]</code>。</div>
+</section>
+
+<section id="sec-4">
+<h2>四、贯穿包装层的几条"暗线"</h2>
+<h3>4.1 暗线 A：生成器消费的完整性</h3>
+<p>非流式入口的注释明确写着"继续消费生成器，确保 <code>logAPISuccessAndDuration</code> 会被调用"。生成器的 <code>finally</code>（资源释放、成本统计、langfuse）只有在迭代真正走完或被 <code>.return()</code> 时才触发——所以"吃光"不是浪费，是正确性要求（<code>[2]</code> <code>[3]</code>）。</p>
+<h3>4.2 暗线 B：VCR 对生产环境零开销</h3>
+<p><code>withStreamingVCR</code> 第一行就是 <code>if (!shouldUseVCR()) return yield* f()</code>——非测试环境直接透传，<strong>没有任何 buffer、哈希、文件 IO</strong>。只有 <code>NODE_ENV==='test'</code> 或内部用户显式 <code>FORCE_VCR=1</code> 才进入录放逻辑（<code>[3]</code>）。</p>
+<h3>4.3 暗线 C：fixture 的"脱水/水合"</h3>
+<p>VCR 要让同一段对话在不同机器、不同 cwd、不同 UUID 下都命中同一个 fixture 文件，所以哈希前要把路径、UUID、时间戳、耗时、成本统统替换成占位符（<code>dehydrateValue</code>），回放时再换回真实值（<code>hydrateValue</code>）。否则 CI 永远命不中缓存（<code>[3]</code>）。</p>
+<h3>4.4 暗线 D：非流式降级的有界超时</h3>
+<p><code>executeNonStreamingRequest</code> 用 <code>getNonstreamingFallbackTimeoutMs()</code> 给每次尝试套一个超时（远端会话 120s / 否则 300s），目的是让"卡死的后端"得到干净的 <code>APIConnectionTimeoutError</code>，而不是一直挂到容器被 SIGKILL（<code>[4]</code>）。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、Options —— 穿过包装层的"参数大包"</h2>
+<p>两个入口、<code>queryModel</code>、降级引擎都共用同一个 <code>options: Options</code> 配置对象（<code>claude.ts:771-961</code>，约 30 个字段）。它不是本系列的主角，但每节都会引用其中几个字段，先建立印象：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>字段族</th><th>代表字段</th><th>用途</th></tr>
+<tr><td>模型选择</td><td><code>model</code> / <code>fallbackModel</code> / <code>advisorModel</code></td><td>主模型、529 降级模型、顾问模型</td></tr>
+<tr><td>来源标识</td><td><code>querySource</code></td><td>遥测、缓存 TTL、agentic 判定、重试策略</td></tr>
+<tr><td>缓存控制</td><td><code>enablePromptCaching</code> / <code>skipCacheWrite</code></td><td>prompt 缓存开关与断点位置</td></tr>
+<tr><td>推理控制</td><td><code>effortValue</code> / <code>temperatureOverride</code> / <code>fastMode</code></td><td>思考力度、温度、快速模式</td></tr>
+<tr><td>回调</td><td><code>onStreamingFallback</code> / <code>addNotification</code></td><td>降级通知、TUI 横幅</td></tr>
+<tr><td>可观测</td><td><code>langfuseTrace</code> / <code>queryTracking</code> / <code>agentId</code></td><td>trace span、调用链归因</td></tr>
+</table>
+</div>
+<div class="callout">完整字段注释见 <code>claude.ts:771-961</code>。本系列只在用到时点名。</div>
+</section>
+
+<section id="sec-6">
+<h2>六、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>queryModelWithoutStreaming</code> 定义</td><td><code>claude.ts:963</code></td></tr>
+<tr><td><code>queryModelWithStreaming</code> 定义</td><td><code>claude.ts:1022</code></td></tr>
+<tr><td><code>shouldDeferLspTool</code></td><td><code>claude.ts:1060</code></td></tr>
+<tr><td><code>getNonstreamingFallbackTimeoutMs</code></td><td><code>claude.ts:1079</code></td></tr>
+<tr><td><code>executeNonStreamingRequest</code></td><td><code>claude.ts:1090</code></td></tr>
+<tr><td><code>getPreviousRequestIdFromMessages</code></td><td><code>claude.ts:1205</code></td></tr>
+<tr><td><code>stripExcessMediaItems</code></td><td><code>claude.ts:1233</code></td></tr>
+<tr><td><code>Options</code> 类型</td><td><code>claude.ts:771-961</code></td></tr>
+<tr><td><code>withStreamingVCR</code></td><td><code>vcr.ts:352</code></td></tr>
+<tr><td><code>withVCR</code></td><td><code>vcr.ts:91</code></td></tr>
+<tr><td><code>shouldUseVCR</code></td><td><code>vcr.ts:26</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-7">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>一句话</strong>：包装层 = 流式/非流式选择 + VCR 录放 + 日志/abort 兜底，三件横切事务的归处。</li>
+<li><strong>两个入口同体异消费</strong>：函数体都是 <code>withStreamingVCR(() =&gt; queryModel(...))</code>，差别在生成器是"调用方消费"还是"自己吃光"。</li>
+<li><strong>非流式必须吃光生成器</strong>：成功日志和 finally 收尾在所有 yield 之后。</li>
+<li><strong>VCR 生产零开销</strong>：<code>shouldUseVCR()</code> 为假就直接透传。</li>
+<li><strong>脱水水合</strong>：fixture 哈希前把路径/UUID/时间戳换占位符，跨机命中。</li>
+<li><strong>降级有界超时</strong>：<code>executeNonStreamingRequest</code> 给每次尝试套 120s/300s，卡死后端干净超时。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

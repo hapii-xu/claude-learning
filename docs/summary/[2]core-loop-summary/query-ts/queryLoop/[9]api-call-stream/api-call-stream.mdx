@@ -1,0 +1,141 @@
+---
+title: "[9] API 调用与流式消费"
+description: queryLoop 的主干 —— attemptWithFallback while + deps.callModel 的全套参数装配（prependUserContext、thinkingConfig、taskBudget remaining、queryTracking 等），流式 for-await 中的 streamingFallbackOccured tombstone 清理、backfillObservableInput 克隆 yield（保 prompt 缓存字节）、withheld 错误四源扣留、assistantMessages/toolUseBlocks 累积置 needsFollowUp、streamingToolExecutor 边流边跑、pendingCacheEdits 延迟边界消息（src/query.ts:1224-1472）。
+---
+
+# [9] API 调用与流式消费
+
+> 这是 `queryLoop` 的**主干**——所有前面的预处理都是为这一步服务。一次 `callModel` 调用产出一个消息流，循环逐条消费、yield、累积、边流边跑工具。本节是全系列最核心的一节。
+
+---
+
+## 一、外层 while：attemptWithFallback
+
+```ts
+let attemptWithFallback = true
+queryCheckpoint('query_api_loop_start')
+try {
+  while (attemptWithFallback) {
+    attemptWithFallback = false
+    try {
+      let streamingFallbackOccured = false
+      for await (const message of deps.callModel({ ... })) { /* 消费流 */ }
+    } catch (innerError) { /* fallback 重试 或 rethrow，见 [10] */ }
+  }
+} catch (error) { /* 外层错误处理，见 [10] */ }
+```
+
+`attemptWithFallback` 是一个**单次重试开关**：正常只跑一遍；遇到 `FallbackTriggeredError`（[10]）时置回 `true` 并 `continue`，用兜底模型重跑整个请求。
+
+---
+
+## 二、deps.callModel 参数装配
+
+```ts
+for await (const message of deps.callModel({
+  messages: prependUserContext(messagesForQuery, userContext),   // 拼用户上下文到最前
+  systemPrompt: fullSystemPrompt,
+  thinkingConfig: toolUseContext.options.thinkingConfig,
+  tools: toolUseContext.options.tools,
+  signal: toolUseContext.abortController.signal,
+  options: {
+    model: currentModel,
+    fallbackModel,
+    onStreamingFallback: () => { streamingFallbackOccured = true },
+    querySource, queryTracking, skipCacheWrite, agentId: toolUseContext.agentId,
+    mcpTools: appState.mcp.tools,
+    maxOutputTokensOverride,
+    fetchOverride: dumpPromptsFetch,
+    ...(params.taskBudget && { taskBudget: { total, ...(taskBudgetRemaining !== undefined && { remaining: taskBudgetRemaining }) } }),
+    langfuseTrace: toolUseContext.langfuseTrace,
+    /* …还有 fastMode / effortValue / advisorModel / agents 等 */
+  },
+})) { ... }
+```
+
+要点：
+- `prependUserContext` 把 `userContext`（CWD/shell/日期）拼到 messages 最前——**每次请求都拼**（动态上下文）。
+- `taskBudget.remaining` 只在 `taskBudgetRemaining !== undefined` 时带上（首次压缩前不带，见 [2]）。
+- `fetchOverride: dumpPromptsFetch` 注入 [7] 的单例调试 fetch。
+
+---
+
+## 三、流式 for-await 内部：五件事
+
+### 3.1 streamingFallbackOccured → tombstone 清理
+```ts
+if (streamingFallbackOccured) {
+  for (const msg of assistantMessages) yield { type: 'tombstone' as const, message: msg }
+  logEvent('tengu_orphaned_messages_tombstoned', { ... })
+  assistantMessages.length = 0; toolResults.length = 0; toolUseBlocks.length = 0; needsFollowUp = false
+  if (streamingToolExecutor) { streamingToolExecutor.discard(); streamingToolExecutor = new StreamingToolExecutor(...) }
+}
+```
+流式中途切到 fallback 时，之前累积的部分消息（尤其 thinking 块）签名无效，会引发 "thinking blocks cannot be modified" 错误。给它们 yield **tombstone**（让 UI/transcript 移除），清空累积，重建 executor。
+
+### 3.2 backfillObservableInput：克隆后再 yield（⭐ 保 prompt 缓存）
+```ts
+let yieldMessage = message
+if (message.type === 'assistant') {
+  // 对 tool_use 块调 tool.backfillObservableInput，仅当"新增字段"时才克隆
+  if (clonedContent) yieldMessage = { ...message, message: { ...assistantMsg.message, content: clonedContent } }
+}
+```
+工具输入回填（如文件工具展开 `file_path`）只作用在**克隆副本**上再 yield。**原始 `message` 保持不变**——它会回流到 API，改它会破坏 prompt 缓存（字节不匹配）。且只在 backfill **新增字段**时克隆；仅覆盖已有字段则跳过（覆盖会改 transcript、破坏 resume 的 VCR 固件哈希）。
+
+### 3.3 withheld：错误扣留四源
+```ts
+let withheld = false
+if (feature('CONTEXT_COLLAPSE')) { if (contextCollapse?.isWithheldPromptTooLong(...)) withheld = true }
+if (reactiveCompact?.isWithheldPromptTooLong(message)) withheld = true
+if (mediaRecoveryEnabled && reactiveCompact?.isWithheldMediaSizeError(message)) withheld = true
+if (isWithheldMaxOutputTokens(message)) withheld = true
+if (!withheld) yield yieldMessage     // 扣留的不 yield
+```
+可恢复的错误（413 / 媒体超限 / 输出截断）**先扣留**，不 yield 给 UI，等流结束的恢复检查（[12]）决定能否救回。仍会 push 进 `assistantMessages` 让恢复检查找得到。四源相互独立，关一个不破坏另一个。
+
+> feature() 只能用在 if/三元条件（bun:bundle 约束），所以 collapse 检查是嵌套而非组合。
+
+### 3.4 累积 assistant + toolUse 块 → needsFollowUp
+```ts
+if (message.type === 'assistant') {
+  assistantMessages.push(assistantMessage)
+  const msgToolUseBlocks = content.filter(c => c.type === 'tool_use')
+  if (msgToolUseBlocks.length > 0) { toolUseBlocks.push(...msgToolUseBlocks); needsFollowUp = true }
+  if (streamingToolExecutor && !aborted) for (const tb of msgToolUseBlocks) streamingToolExecutor.addTool(tb, assistantMessage)
+}
+```
+出现 tool_use 块即 `needsFollowUp = true`（[7] 的退出信号），并喂给 streaming executor **立即开跑**。
+
+### 3.5 边流收割 streaming 工具结果
+```ts
+if (streamingToolExecutor && !aborted) {
+  for (const result of streamingToolExecutor.getCompletedResults()) {
+    if (result.message) { yield result.message; toolResults.push(...normalizeMessagesForAPI([result.message], tools).filter(_ => _.type === 'user')) }
+  }
+}
+```
+工具在模型还在流式输出时就可能跑完——已完成的结果当场 yield + 收进 `toolResults`。
+
+---
+
+## 四、流结束：pendingCacheEdits 延迟边界消息
+
+```ts
+if (feature('CACHED_MICROCOMPACT') && pendingCacheEdits) {
+  const usage = assistantMessages.at(-1)?.message.usage
+  const cumulativeDeleted = usage?.cache_deleted_input_tokens ?? 0
+  const deletedTokens = Math.max(0, cumulativeDeleted - pendingCacheEdits.baselineCacheDeletedTokens)
+  if (deletedTokens > 0) yield createMicrocompactBoundaryMessage(pendingCacheEdits.trigger, 0, deletedTokens, ...)
+}
+```
+[5] 的 microcompact 把边界消息延迟到这里——现在能拿到 API 返回的**真实** `cache_deleted_input_tokens`（API 字段是累计的，减去请求前的基线得增量）。
+
+---
+
+## 速记口诀
+- **attemptWithFallback**：单次重试开关，fallback 时重跑整请求。
+- `prependUserContext` 每次拼动态上下文；`taskBudget.remaining` 首次压缩前不带。
+- 流内五件事：**tombstone 清理 → backfill 克隆 yield → withheld 扣留 → 累积置 needsFollowUp → streaming 收割**。
+- **backfill 克隆不动原消息**（保 prompt 缓存字节）；**withheld 四源**不 yield 等恢复。
+- 流末用真实 `cache_deleted_input_tokens` 补发 microcompact 边界消息。

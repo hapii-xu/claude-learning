@@ -1,0 +1,128 @@
+---
+title: "[12] 终止判断与恢复家族"
+description: needsFollowUp=false 时进入终止判断，先逐级尝试恢复被扣留的错误 —— collapse_drain_retry（recoverFromOverflow 排空已分阶段折叠）、reactive_compact_retry（tryReactiveCompact 完整摘要 + task_budget 延续 + hasAttemptedReactiveCompact 防螺旋）、恢复失败暴露 prompt_too_long/image_error（不落 stop hooks 防死亡螺旋），以及 max_output_tokens 的 8k→64k 升级与续写注入（src/query.ts:1695-1925）。
+---
+
+# [12] 终止判断与恢复家族
+
+> 当 `needsFollowUp === false`（模型没要调工具），进入终止判断。但在真正 `return completed` 之前，必须先处理 [9] 里被**扣留（withheld）**的可恢复错误。这是恢复家族暗线的核心——三种错误、逐级兜底。
+
+```ts
+if (!needsFollowUp) {
+  const lastMessage = assistantMessages.at(-1)
+  const isWithheld413 = lastMessage?.isApiErrorMessage && isPromptTooLongMessage(lastMessage)
+  const isWithheldMedia = mediaRecoveryEnabled && reactiveCompact?.isWithheldMediaSizeError(lastMessage)
+  // … 恢复阶梯 …
+}
+```
+
+---
+
+## 一、413 恢复第一阶段：collapse_drain_retry
+
+```ts
+if (isWithheld413) {
+  if (feature('CONTEXT_COLLAPSE') && contextCollapse && state.transition?.reason !== 'collapse_drain_retry') {
+    const drained = contextCollapse.recoverFromOverflow(messagesForQuery, querySource)
+    if (drained.committed > 0) {
+      state = { messages: drained.messages, ..., transition: { reason: 'collapse_drain_retry', committed: drained.committed } }
+      continue
+    }
+  }
+}
+```
+
+- **便宜、保细粒度**：排空所有已分阶段的 context-collapse，把折叠提交成真实归档，腾出空间。
+- **门控**：上一次 transition **不是** `collapse_drain_retry`——若已排空过、重试仍 413，就落到下一阶段（reactive compact）。
+
+---
+
+## 二、413/媒体恢复第二阶段：reactive_compact_retry
+
+```ts
+if ((isWithheld413 || isWithheldMedia) && reactiveCompact) {
+  const compacted = await reactiveCompact.tryReactiveCompact({
+    hasAttempted: hasAttemptedReactiveCompact, querySource,
+    aborted: ..., messages: messagesForQuery, cacheSafeParams: { ... },
+  })
+  if (compacted) {
+    if (params.taskBudget) { /* 与主动路径相同的 preCompactContext 延续语义 */ }
+    const postCompactMessages = buildPostCompactMessages(compacted)
+    for (const msg of postCompactMessages) yield msg
+    state = { messages: postCompactMessages, ..., hasAttemptedReactiveCompact: true, transition: { reason: 'reactive_compact_retry' } }
+    continue
+  }
+  // 无恢复 → 暴露错误并退出（见三）
+}
+```
+
+- **完整摘要**（比 collapse 激进）。媒体错误（图片/PDF/多图）走 reactive 的 **strip-retry**，跳过 collapse 排空（collapse 不剥离图片）。
+- `hasAttemptedReactiveCompact` 守卫：若超大媒体在保留尾部，压缩后再次媒体报错——此守卫防螺旋。
+- `task_budget` 延续：此时 `messagesForQuery` 仍是那次 413 失败尝试的输入，用它捕获压缩前窗口（同 [6]）。
+
+---
+
+## 三、恢复失败：暴露错误（不落 stop hooks）
+
+```ts
+  // reactive 无恢复
+  yield lastMessage!
+  void executeStopFailureHooks(lastMessage!, toolUseContext)
+  return { reason: isWithheldMedia ? 'image_error' : 'prompt_too_long' }
+} else if (feature('CONTEXT_COLLAPSE') && isWithheld413) {
+  // collapse 扣留但无法恢复（reactiveCompact 被编译掉）
+  yield lastMessage
+  void executeStopFailureHooks(lastMessage, toolUseContext)
+  return { reason: 'prompt_too_long' }
+}
+```
+
+> **为什么不落 stop hooks**：模型从未产生有效响应，hooks 无东西可评估。在 prompt-too-long 上跑 stop hooks 会造成**死亡螺旋**：错误 → hook 阻塞 → 重试 → 错误 → …（hook 每轮注入更多 token）。改用 `executeStopFailureHooks`。
+
+---
+
+## 四、输出截断恢复：max_output_tokens
+
+被 `isWithheldMaxOutputTokens` 扣留的输出截断，分两步救：
+
+### 4.1 升级重试（escalate）：8k → 64k
+```ts
+if (capEnabled && maxOutputTokensOverride === undefined && !process.env.CLAUDE_CODE_MAX_OUTPUT_TOKENS) {
+  state = { ..., maxOutputTokensOverride: ESCALATED_MAX_TOKENS, transition: { reason: 'max_output_tokens_escalate' } }
+  continue
+}
+```
+若用的是 8k 默认上限并撞顶，就以 64k 重试同一请求——无元消息、无周旋。每轮触发一次（由 override 检查保护）。
+
+### 4.2 续写注入（recovery）
+```ts
+if (maxOutputTokensRecoveryCount < MAX_OUTPUT_TOKENS_RECOVERY_LIMIT) {
+  const recoveryMessage = createUserMessage({ content: '输出令牌限制已达到。直接继续——不要道歉…', isMeta: true })
+  state = { messages: [...messagesForQuery, ...assistantMessages, recoveryMessage],
+            maxOutputTokensRecoveryCount: maxOutputTokensRecoveryCount + 1,
+            transition: { reason: 'max_output_tokens_recovery', attempt: ... } }
+  continue
+}
+yield lastMessage   // 恢复耗尽 → 暴露扣留的错误
+```
+64k 还撞顶就注入"继续写"meta 消息续轮，最多 `MAX_OUTPUT_TOKENS_RECOVERY_LIMIT` 次。耗尽则暴露错误。
+
+---
+
+## 五、最后：lastMessage 是 API 错误 → model_error
+
+```ts
+if (lastMessage?.isApiErrorMessage) {
+  void executeStopFailureHooks(lastMessage, toolUseContext)
+  return { reason: 'model_error', error: lastMessage.error ?? lastMessage.apiError ?? 'api_error' }
+}
+```
+最后一条是 API 错误（限流、鉴权失败等）时跳过 stop hooks（同样防死亡螺旋），返回 `model_error`。
+
+---
+
+## 速记口诀（恢复阶梯）
+- **413**：collapse drain（便宜）→ reactive compact（完整）→ 暴露 `prompt_too_long`。
+- **媒体超限**：reactive strip-retry（跳过 collapse）→ 暴露 `image_error`；`hasAttemptedReactiveCompact` 防螺旋。
+- **输出截断**：8k→64k escalate → 注入续写 recovery（有上限）→ 耗尽暴露。
+- **恢复失败/API 错误一律不落 stop hooks**，改 `executeStopFailureHooks`，防死亡螺旋。

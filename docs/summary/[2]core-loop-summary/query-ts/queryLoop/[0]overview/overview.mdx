@@ -1,0 +1,194 @@
+---
+title: "[0] queryLoop 方法总览"
+description: queryLoop 是 Claude Code 一个对话回合的执行引擎 —— 一个 while(true) 的 async generator，每次迭代「预处理消息 → 调 API 流式响应 → 跑工具 → 判断终止」，并兜底压缩、错误降级、上下文恢复与内存治理。本文给出 query()/queryLoop 分工、generator 协议、迭代-终止模型、Terminal/transition 全表、三条贯穿全文的暗线，以及单次迭代阶段地图，作为 [1]~[15] 各分节文档的总索引（src/query.ts:359-2457）。
+---
+
+# [0] queryLoop 方法总览
+
+> `queryLoop()` 是 `src/query.ts` 里最长、最核心的函数（约 **1900 行**，`query.ts:540-2457`）。它是 Claude Code **一个对话回合（user turn）的执行引擎**——上层把消息、系统提示、工具、权限回调都准备好后，由它负责"发请求、收流、跑工具、再发请求"，直到模型不再发工具调用、或被中断、或达到上限。
+>
+> 本系列把这 1900 行按**代码从上到下的执行顺序**切成 16 个小节（`[0]`~`[15]`），每节单独一个文件深入讲解。本文是**总索引 + 心智模型**，先建立全局认知，再逐节深入。
+
+---
+
+## 一、它在调用链里的位置
+
+`queryLoop` 不是公开入口。公开入口是 `query()`，它是一层薄包装；真正的循环在 `queryLoop()`：
+
+```
+QueryEngine / print.ts （对话回合的消费方）
+        │  for-await 消费 generator
+        ▼
+query()                ← query.ts:359   公开入口：建/收 Langfuse trace、autonomy 收尾、GC 清理
+        │  yield* 委托
+        ▼
+queryLoop()            ← query.ts:540   ★本系列主角：while(true) 迭代循环
+        │  每次迭代调用
+        ▼
+deps.callModel()  →  queryModel()（claude.ts）→ Anthropic API
+```
+
+| 层 | 职责 | 位置 |
+|---|---|---|
+| `query()` | trace 拥有权、`finally` 收尾（autonomy 命令、闭包断链、Performance 清理） | `query.ts:359-526` |
+| **`queryLoop()`** | **真正的回合循环：预处理 → API → 工具 → 终止判断** | `query.ts:540-2457` |
+| `deps.callModel` | 单次 LLM 请求的传输（见 queryModel 系列） | `claude.ts` |
+
+> 一句话定位：**`query()` 管"一次调用的生命周期与善后"，`queryLoop()` 管"一个回合里反复发请求跑工具的循环"**。
+
+---
+
+## 二、async generator 协议
+
+`queryLoop` 是 `async function*`。调用方用 `for-await` 消费它 `yield` 出来的事件，循环结束时它 `return` 一个 `Terminal`：
+
+```ts
+async function* queryLoop(...): AsyncGenerator<
+  | StreamEvent          // 流式 token / stream_request_start
+  | RequestStartEvent
+  | Message              // assistant 回复、工具结果、系统/错误消息
+  | TombstoneMessage     // 撤销孤儿消息（fallback 时）
+  | ToolUseSummaryMessage,
+  Terminal               // ← return 值：本回合为什么结束
+>
+```
+
+- **`yield`**：把一个事件推给调用方（UI 实时渲染流式 token、显示工具结果等）。
+- **`return { reason: ... }`**：回合结束，返回 `Terminal` 描述终止原因。
+- **`continue`**：进入下一次迭代（续轮）。
+
+> 关键直觉：`queryLoop` 边算边吐。它不是"算完再返回结果"，而是一个**长期挂起、随时 yield**的协程。UI 的流式效果、工具执行的实时反馈，全靠这个 generator 协议。
+
+---
+
+## 三、迭代-终止模型
+
+循环体是一个 `while (true)`，靠 **`return`（终止）/ `continue`（续轮）** 两种出口驱动：
+
+```ts
+let state: State = { messages, toolUseContext, turnCount: 1, transition: undefined, ... }
+while (true) {
+  // 1. 解构 state（裸名读取）
+  // 2. 预处理 messages（裁边、压缩、系统提示）
+  // 3. 调 API，流式 yield
+  // 4. 没有工具调用？→ 终止判断 → return Terminal
+  // 5. 有工具调用？→ 跑工具 → 拼接结果
+  // 6. state = { ...next }  →  continue（续轮）
+}
+```
+
+**为什么用单个 `state` 对象整体替换，而不是 9 个独立变量赋值？**
+
+跨迭代要携带的可变状态有 12 个字段（`messages`、`toolUseContext`、`turnCount`、恢复计数、`transition` 等）。循环里有 **7 个不同的"续轮点"**（正常续轮、collapse 重试、reactive 重试、max-tokens 升级/续写、stop-hook 阻塞、token-budget 续写）。如果每个续轮点都写 9 个独立赋值，极易漏赋导致状态串味。统一用 `state = { ... }` **整体替换**，每个续轮点一眼能看全所有字段。
+
+> `state.transition` 字段专门记录"上一次为什么续轮"，让单元测试不必检查消息内容就能断言恢复路径已触发。
+
+---
+
+## 四、Terminal reason 全表（10 种回合终止原因）
+
+`queryLoop` 的每个 `return` 都带一个 `reason`。掌握这 10 种就掌握了"回合可能怎么结束"：
+
+| reason | 触发点（行号） | 含义 |
+|---|---|---|
+| `completed` | 2028 | 正常完成：模型不再发工具调用、无错误、stop-hook 放行 |
+| `max_turns` | 2431 | 达到 `maxTurns` 上限（限制子 agent 递归深度） |
+| `blocking_limit` | 1172 | auto-compact 关闭时撞到硬阻塞 token 上限 |
+| `aborted_streaming` | 1683 | 流式响应阶段被用户中断（Ctrl+C） |
+| `aborted_tools` | 2204 | 工具执行阶段被用户中断 |
+| `hook_stopped` | 2213 | 工具结果里有 `hook_stopped_continuation`，hook 要求停 |
+| `stop_hook_prevented` | 1947 | stop hook 主动阻止继续 |
+| `model_error` | 1596 / 1922 | API/运行时错误，或最后一条消息是 API 错误 |
+| `image_error` | 1576 / 1821 | 图片尺寸/调整错误，或媒体恢复失败 |
+| `prompt_too_long` | 1821 / 1832 | 413 上下文超限且所有恢复路径都失败 |
+
+---
+
+## 五、transition.reason 全表（7 种续轮原因）
+
+`return` 之外的另一条出口是 `continue`。每个 `continue` 都把 `state.transition.reason` 设成对应值：
+
+| transition.reason | 触发点 | 含义 |
+|---|---|---|
+| `next_turn` | 2449 | 正常续轮：拿到工具结果，继续下一轮请求 |
+| `collapse_drain_retry` | 1750 | 413 恢复第一阶段：排空已分阶段的 context-collapse |
+| `reactive_compact_retry` | 1805 | 413/媒体恢复第二阶段：reactive compact 完整摘要 |
+| `max_output_tokens_escalate` | 1867 | 输出截断：8k → 64k 单次升级重试 |
+| `max_output_tokens_recovery` | 1899 | 输出截断：注入"继续写"meta 消息续轮 |
+| `stop_hook_blocking` | 1969 | stop hook 返回阻塞错误，带错误续轮 |
+| `token_budget_continuation` | 2005 | TOKEN_BUDGET 触发的"再接着干"续写 |
+
+---
+
+## 六、三条贯穿全文的暗线
+
+读 `queryLoop` 时若只看主流程会漏掉大半精华。有三条暗线反复出现，建议带着它们读后续每一节：
+
+### 暗线 1 · 内存治理
+长会话最大的敌人是内存无限增长。`queryLoop` 处处在主动释放：
+- 释放前序 `toolUseResult` 负载（[4]，避免 400KB FileRead 永驻）；
+- `microcompact` 清理后删除 `contentReplacement` 原始字符串（[5]）；
+- `dumpPromptsFetch` 每会话只建一次（[7]，700KB vs 500MB）；
+- 闭包断链置 `null` + `performance.clearMarks`（[1]，571MB OTel 泄漏对策）。
+
+### 暗线 2 · 压缩家族
+一次迭代里有**六种**压缩/瘦身手段，按固定顺序排布、互补不互斥：
+
+```
+snipCompact (HISTORY_SNIP)        ← [5]
+   → microcompact                 ← [5]
+   → contextCollapse              ← [5]
+   → autocompact (主动)           ← [6]
+   → 预测式 autocompact           ← [8]
+   → reactiveCompact (413 兜底)   ← [12]
+```
+
+### 暗线 3 · 恢复家族
+"请求失败了怎么救回来"是 `queryLoop` 最复杂的部分。错误先在流里被**扣留（withheld）**，等流结束再逐级尝试恢复：
+
+```
+413 上下文超限：collapse drain → reactive compact → 暴露错误(prompt_too_long)
+媒体尺寸超限：  reactive compact strip-retry → 暴露错误(image_error)
+输出截断：      8k→64k 升级 → 注入续写 → 耗尽暴露
+```
+
+---
+
+## 七、单次迭代阶段地图（[1]~[15] 索引）
+
+把一次 `while` 迭代从上到下展开，就是后续各节的顺序：
+
+```
+┌─ 入口与状态 ──────────────────────────────────┐
+│ [1] 外层 query() 包装器（trace/收尾/GC）        │  359-526
+│ [2] QueryParams / State / deps / config        │  284-336,580-626
+│ [3] 循环入口：内存预取 / skill+tool 预取 / 链路 │  628-712
+├─ 请求前预处理 ────────────────────────────────┤
+│ [4] 历史裁边 + 工具结果预算                      │  714-800
+│ [5] 压缩家族：snip → micro → collapse           │  802-895
+│ [6] 系统提示构建 + 主动 autocompact             │  897-1019
+│ [7] 设置阶段 + 模型选择                          │  1021-1108
+│ [8] 阻塞上限 + 预测式压缩                        │  1110-1222
+├─ API 调用与流式 ──────────────────────────────┤
+│ [9] callModel 流式消费（核心）                  │  1224-1472
+│ [10] 模型降级 + 错误处理                         │  1473-1597
+│ [11] 流后检查 + 流式中断                         │  1599-1693
+├─ 终止与续轮 ──────────────────────────────────┤
+│ [12] 终止判断 + 恢复家族                         │  1695-1925
+│ [13] 停止钩子 + 完成                             │  1927-2029
+│ [14] 工具执行                                   │  2031-2226
+│ [15] 附件注入 + 续轮闭环                         │  2228-2457
+└───────────────────────────────────────────────┘
+```
+
+> 阅读建议：先读 [1][2][3] 建立"输入/状态/入口"的骨架，再读 [9] 抓住主干（API 流式消费），最后回头补 [5][6][8][12] 这些"压缩与恢复"的复杂分支。
+
+---
+
+## 速记口诀
+
+- **两个函数**：`query()` 管生命周期与善后，`queryLoop()` 管回合循环。
+- **一个协议**：async generator，`yield` 事件、`return` Terminal、`continue` 续轮。
+- **一个状态**：单个 `state` 对象整体替换，7 个续轮点不漏字段，`transition` 记录续轮原因。
+- **10 个终止 + 7 个续轮**：背下这张表 = 掌握回合所有出口。
+- **三条暗线**：内存治理、压缩家族、恢复家族 —— 贯穿后续每一节。

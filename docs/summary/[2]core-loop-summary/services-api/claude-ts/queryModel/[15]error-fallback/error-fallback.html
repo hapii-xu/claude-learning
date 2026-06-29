@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>错误处理与多层降级</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 15 节</div>
+  <h1>错误处理与多层降级</h1>
+  <p class="hero-sub">queryModel 的两层 catch —— 内层捕获流式过程中的错误（用户 ESC、SDK 超时、流中途出错）并降级到非流式重试；外层捕获 withRetry 耗尽的错误（FallbackTriggeredError 上抛切模型、404 流端点降级、普通错误转 assistant 错误消息）。本文讲清用户中止与 SDK 超时如何区分、disableFallback 为何存在（避免流式工具重复执行）、404 为何在创建期抛出、以及 FallbackTriggeredError 为何绝不能吞掉（src/services/api/claude.ts:2883-3290）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:2883-3290</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、降级全景</a></li>
+    <li><a href="#sec-2">二、内层 catch：流式错误处理（2883-3079）</a></li>
+    <li><a href="#sec-3">三、外层 catch：withRetry 耗尽（3080-3290）</a></li>
+    <li><a href="#sec-4">四、两层 catch 职责对照</a></li>
+    <li><a href="#sec-5">五、关键行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">queryModel 把所有"发请求 + 收流"的逻辑包在两层 <code>try/catch</code> 里。这一段（<code>claude.ts:2883-3290</code>）是 <code>[0]</code> <strong>多层降级</strong>暗线的主战场： - <strong>内层 catch（2883）</strong>：流式接收过程中的错误 → 多数降级到<strong>非流式重试</strong>。 - <strong>外层 catch（3080）</strong>：<code>withRetry</code> 整体耗尽的错误 → 模型降级上抛 / 404 降级 / 普通错误。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、降级全景</h2>
+<pre><code>流式请求
+ ├─ 用户 ESC（signal.aborted）         → 直接抛 APIUserAbortError（不降级）
+ ├─ SDK 内部超时（signal 未中止）       → 抛 APIConnectionTimeoutError
+ ├─ disableFallback 开启               → 不降级，原样上抛
+ ├─ 其他流式错误 / 看门狗 throw         → 非流式降级（executeNonStreamingRequest）
+ │
+ └─（withRetry 耗尽，进外层 catch）
+     ├─ FallbackTriggeredError          → 上抛给 query.ts 真正切模型
+     ├─ 404 流端点创建错误               → 非流式降级
+     └─ 其他错误                        → 转 assistant 错误消息 yield</code></pre>
+</section>
+
+<section id="sec-2">
+<h2>二、内层 catch：流式错误处理（2883-3079）</h2>
+<h3>2.1 先清理 + 看门狗错误路径打点（2884-2910）</h3>
+<pre><code>} catch (streamingError) {
+  clearStreamIdleTimers()
+  if (streamIdleAborted &amp;&amp; streamWatchdogFiredAt !== null) {
+    const exitDelayMs = Math.round(performance.now() - streamWatchdogFiredAt)
+    logEvent('tengu_stream_loop_exited_after_watchdog', { exit_path: 'error', exit_delay_ms, ... })
+  }</code></pre>
+<p>错误路径同样清理看门狗。<code>exit_path: 'error'</code>（对应 <code>[14]</code> 的 <code>'clean'</code>）——区分"看门狗触发后是干净退出还是抛错退出"。<code>streamWatchdogFiredAt !== null</code> 守卫确保 <code>[14]</code> 若已打点（置 null）这里就不重复。</p>
+<h3>2.2 ⭐ 用户中止 vs SDK 超时（2912-2940）</h3>
+<pre><code>if (streamingError instanceof APIUserAbortError) {
+  if (signal.aborted) {
+    // 真正的用户中止（按了 ESC）
+    if (isAdvisorInProgress) logEvent('tengu_advisor_tool_interrupted', { ... })
+    throw streamingError                                  // 原样上抛
+  } else {
+    // SDK 抛了 abort，但我们的 signal 没中止 → 是 SDK 内部超时
+    throw new APIConnectionTimeoutError({ message: 'Request timed out' })
+  }
+}</code></pre>
+<p>两者 SDK 都抛 <code>APIUserAbortError</code>，靠 <strong><code>signal.aborted</code></strong> 区分：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>signal.aborted</th><th>真相</th><th>处理</th></tr>
+<tr><td><code>true</code></td><td>用户真的按了 ESC</td><td>原样抛（中断消息由 query.ts 处理）；若 advisor 进行中则打中断点</td></tr>
+<tr><td><code>false</code></td><td>是 SDK 内部超时</td><td>转成更准确的 <code>APIConnectionTimeoutError</code></td></tr>
+</table>
+</div>
+<div class="callout blue">同一个异常类型，靠"我方信号有没有触发"反推真实成因——很巧妙的归因。</div>
+<h3>2.3 disableFallback：禁用降级（2942-2982）</h3>
+<pre><code>const disableFallback =
+  isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK) ||
+  getFeatureValue_CACHED_MAY_BE_STALE('tengu_disable_streaming_to_non_streaming_fallback', false)
+
+if (disableFallback) {
+  logEvent('tengu_streaming_fallback_to_non_streaming', { fallback_disabled: true, ... })
+  throw streamingError      // 不降级，原样上抛给 withRetry
+}</code></pre>
+<p>⭐ 为什么要能禁用降级？注释（inc-4258）：</p>
+<div class="callout blue">*流式工具执行处于活动状态时，流式中途降级会导致工具被重复执行：部分流已经启动了一个工具，然后非流式重试又产生同样的 tool_use 并再跑一次。*</div>
+<p>如果流式过程中工具<strong>已经开始执行</strong>，再非流式重试会让模型<strong>重复产生同一个 tool_use</strong>，导致工具<strong>跑两遍</strong>（可能有副作用，如重复写文件）。所以有了这个开关，在流式工具执行场景下关掉降级。</p>
+<h3>2.4 非流式降级（2984-3076）</h3>
+<pre><code>didFallBackToNonStreaming = true
+if (options.onStreamingFallback) options.onStreamingFallback()
+logEvent('tengu_streaming_fallback_to_non_streaming', { fallback_disabled: false, ... })
+logEvent('tengu_nonstreaming_fallback_started', { ... })
+
+const result = yield* executeNonStreamingRequest(
+  { model, source },
+  { model, fallbackModel, thinkingConfig, fastMode, signal,
+    initialConsecutive529Errors: is529Error(streamingError) ? 1 : 0,   // ★ 529 预算延续
+    querySource },
+  paramsFromContext,                                   // ← 复用 [10] 闭包
+  (attempt, _t, tokens) =&gt; { attemptNumber = attempt; maxOutputTokens = tokens },
+  params =&gt; captureAPIRequest(params, options.querySource),
+  streamRequestId,
+)
+
+const m: AssistantMessage = { message: { ...result, content: normalizeContentFromAPI(...) }, ... }
+newMessages.push(m)
+fallbackMessage = m       // ← 标记降级消息，[16] finally 据此补算成本
+yield m</code></pre>
+<p>要点：</p>
+<ul>
+<li><code>executeNonStreamingRequest</code> 复用 <code>[10]</code> 的 <code>paramsFromContext</code> 闭包——同样的参数，只是 <code>stream: false</code>。</li>
+<li><strong>529 预算延续</strong>：<code>initialConsecutive529Errors: is529Error(streamingError) ? 1 : 0</code>。注释解释：把流式失败的 529 计入连续 529 预算，*使触发模型降级前总共能承受的 529 次数在流式和非流式模式下保持一致*（修复 issue #1513）。</li>
+<li><code>fallbackMessage = m</code>：标记这是降级产生的消息。<strong>成本跟踪不在这里做</strong>——因为降级是"先 push 再 yield"，成本要放到 <code>[16]</code> finally 才能在 <code>.return()</code> 提前终止时存活。</li>
+</ul>
+<h3>2.5 finally（3077-3079）</h3>
+<pre><code>} finally {
+  clearStreamIdleTimers()
+}</code></pre>
+<p>内层 try 的 finally，再保险清一次看门狗定时器。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、外层 catch：withRetry 耗尽（3080-3290）</h2>
+<p>内层处理"单次流式尝试"的错误；当 <code>withRetry</code> 整体失败（所有重试用尽），错误冒泡到这里。</p>
+<h3>3.1 ⭐ FallbackTriggeredError 必须上抛（3084-3086）</h3>
+<pre><code>if (errorFromRetry instanceof FallbackTriggeredError) {
+  throw errorFromRetry
+}</code></pre>
+<p>注释警告：</p>
+<div class="callout blue">*FallbackTriggeredError 必须向上抛给 query.ts，由它执行真正的模型切换。在这里吞掉它会让降级变成空操作——用户只会看到 "Model fallback triggered: X -&gt; Y" 的错误信息，而不会在降级模型上真正重试。*</div>
+<p>模型降级（如 Opus → Sonnet）的<strong>真正切换</strong>发生在 <code>query.ts</code> 层（它要换模型重开一轮）。queryModel <strong>不能</strong>自己处理这个错误，必须<strong>原样上抛</strong>。吞掉它 = 降级失效。这是个易错点，所以放在外层 catch 第一句。</p>
+<h3>3.2 404 流端点降级（3088-3232）</h3>
+<pre><code>const is404StreamCreationError =
+  !didFallBackToNonStreaming &amp;&amp;
+  errorFromRetry instanceof CannotRetryError &amp;&amp;
+  errorFromRetry.originalError instanceof APIError &amp;&amp;
+  errorFromRetry.originalError.status === 404
+
+if (is404StreamCreationError) {
+  const failedRequestId = errorFromRetry.originalError.requestID ?? 'unknown'
+  didFallBackToNonStreaming = true
+  logEvent('tengu_streaming_fallback_to_non_streaming', { error: '404_stream_creation', ... })
+  try {
+    const result = yield* executeNonStreamingRequest(..., failedRequestId)
+    const m = { ... }; newMessages.push(m); fallbackMessage = m; yield m
+    // 继续走到下面成功日志
+  } catch (fallbackError) {
+    if (fallbackError instanceof FallbackTriggeredError) throw fallbackError   // 仍要上抛
+    // 降级也失败 → 普通错误处理（见 3.3）
+  }
+}</code></pre>
+<p>注释解释为什么 404 在这里而不是内层：</p>
+<div class="callout blue">*在 v2.1.8 之前，BetaMessageStream 会在迭代过程中抛出 404（由内层 catch 捕获并降级），但改用原始流之后，404 在创建期间抛出（在这里被捕获）。*</div>
+<p><code>[11]</code> 改用原始流后，404 在 <code>.withResponse()</code> <strong>创建期</strong>就抛了（还没进 <code>[13]</code> 循环），所以落到外层。处理某些网关"流式端点 404 但非流式正常"的情况——降级到非流式。注意降级里的 catch <strong>仍要上抛 FallbackTriggeredError</strong>。</p>
+<h3>3.3 普通错误处理（3233-3290）</h3>
+<pre><code>} else {
+  let error = errorFromRetry
+  let errorModel = options.model
+  if (errorFromRetry instanceof CannotRetryError) {
+    error = errorFromRetry.originalError              // 解包真实错误
+    errorModel = errorFromRetry.retryContext.model    // 用重试时的模型
+  }
+  if (error instanceof APIError) extractQuotaStatusFromError(error)  // 限流配额
+
+  const requestId = streamRequestId
+    || (error instanceof APIError ? error.requestID : undefined)
+    || (error instanceof APIError ? error.error?.request_id : undefined)
+
+  logAPIError({ error, model: errorModel, ..., previousRequestId })
+
+  if (error instanceof APIUserAbortError) {
+    releaseStreamResources(); return     // 用户中止：不 yield 错误，中断由 query.ts 处理
+  }
+
+  yield getAssistantMessageFromError(error, errorModel, { messages, messagesForAPI })
+  releaseStreamResources()
+  return
+}</code></pre>
+<p>通用错误的归宿：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>步骤</th><th>动作</th></tr>
+<tr><td>解包</td><td><code>CannotRetryError</code> 包着真实错误，取出 <code>originalError</code> 和重试模型</td></tr>
+<tr><td>配额</td><td>限流错误从错误体提配额状态</td></tr>
+<tr><td>requestId</td><td>从流 / 错误头 / 错误体多源兜底提取</td></tr>
+<tr><td>日志</td><td><code>logAPIError</code>（带 <code>previousRequestId</code> 串链）</td></tr>
+<tr><td>用户中止</td><td><strong>不 yield 错误消息</strong>（中断由 query.ts 渲染），直接 return</td></tr>
+<tr><td>其他错误</td><td><code>getAssistantMessageFromError</code> 转成 assistant 错误消息 yield 给用户</td></tr>
+</table>
+</div>
+<p>每条 return 前都 <code>releaseStreamResources()</code>——内存防漏暗线。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、两层 catch 职责对照</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>维度</th><th>内层 catch（2883）</th><th>外层 catch（3080）</th></tr>
+<tr><td>捕获什么</td><td>单次流式尝试的错误</td><td>withRetry 整体耗尽的错误</td></tr>
+<tr><td>主要去向</td><td>非流式降级</td><td>上抛切模型 / 404 降级 / 转错误消息</td></tr>
+<tr><td>用户中止</td><td>抛 APIUserAbortError</td><td>return（不 yield 错误）</td></tr>
+<tr><td>关键守则</td><td>disableFallback 防工具重复执行</td><td>FallbackTriggeredError 绝不吞</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>内层 catch 开始</td><td><code>claude.ts:2883</code></td></tr>
+<tr><td>看门狗 error 路径打点</td><td><code>claude.ts:2889-2910</code></td></tr>
+<tr><td>用户中止 vs SDK 超时</td><td><code>claude.ts:2912-2940</code></td></tr>
+<tr><td>disableFallback（防工具重复）</td><td><code>claude.ts:2942-2982</code></td></tr>
+<tr><td>非流式降级 + 529 预算</td><td><code>claude.ts:2984-3051</code></td></tr>
+<tr><td><code>fallbackMessage = m</code></td><td><code>claude.ts:3075</code></td></tr>
+<tr><td>外层 catch 开始</td><td><code>claude.ts:3080</code></td></tr>
+<tr><td>FallbackTriggeredError 上抛</td><td><code>claude.ts:3084-3086</code></td></tr>
+<tr><td>404 流创建降级</td><td><code>claude.ts:3092-3232</code></td></tr>
+<tr><td>普通错误处理</td><td><code>claude.ts:3233-3290</code></td></tr>
+<tr><td>用户中止 return（不 yield）</td><td><code>claude.ts:3279-3282</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>两层 catch</strong>：内层=单次流式错误→非流式降级；外层=重试耗尽→切模型/404降级/转错误消息。</li>
+<li><strong>ESC vs 超时</strong>：同抛 APIUserAbortError，靠 <code>signal.aborted</code> 区分（true=用户，false=SDK 超时→改抛 ConnectionTimeout）。</li>
+<li><strong>disableFallback</strong>：流式工具已执行时关降级，防 tool_use 重复跑两遍（inc-4258）。</li>
+<li><strong>529 预算延续</strong>：流式的 529 计入连续预算，流式/非流式承受次数一致（#1513）。</li>
+<li><strong>FallbackTriggeredError 绝不吞</strong>：必须上抛 query.ts 才能真正切模型；404 降级的内层 catch 也要再抛。</li>
+<li><strong>用户中止不 yield 错误</strong>：直接 return，中断消息由 query.ts 处理；每条 return 前释放流资源。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

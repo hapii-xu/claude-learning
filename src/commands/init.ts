@@ -4,21 +4,21 @@ import { maybeMarkProjectOnboardingComplete } from '../projectOnboardingState.js
 import { AUTONOMY_AGENTS_PATH_POSIX } from '../utils/autonomyAuthority.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
 
-const OLD_INIT_PROMPT = `Please analyze this codebase and create a CLAUDE.md file, which will be given to future instances of Claude Code to operate in this repository.
+const OLD_INIT_PROMPT = `请分析这个代码库并创建一个 CLAUDE.md 文件，它将提供给未来的 Claude Code 实例，用于在本仓库中工作。
 
-What to add:
-1. Commands that will be commonly used, such as how to build, lint, and run tests. Include the necessary commands to develop in this codebase, such as how to run a single test.
-2. High-level code architecture and structure so that future instances can be productive more quickly. Focus on the "big picture" architecture that requires reading multiple files to understand.
+需要添加的内容：
+1. 常用命令，例如如何 build、lint 和运行 tests。包含在本代码库中开发所需的命令，例如如何运行单个 test。
+2. 高层次的代码架构与结构，以便未来的实例能更快上手。重点关注那些需要阅读多个文件才能理解的"big picture"架构。
 
-Usage notes:
-- If there's already a CLAUDE.md, suggest improvements to it.
-- When you make the initial CLAUDE.md, do not repeat yourself and do not include obvious instructions like "Provide helpful error messages to users", "Write unit tests for all new utilities", "Never include sensitive information (API keys, tokens) in code or commits".
-- Avoid listing every component or file structure that can be easily discovered.
-- Don't include generic development practices.
-- If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md), make sure to include the important parts.
-- If there is a README.md, make sure to include the important parts.
-- Do not make up information such as "Common Development Tasks", "Tips for Development", "Support and Documentation" unless this is expressly included in other files that you read.
-- Be sure to prefix the file with the following text:
+使用说明：
+- 如果已经存在 CLAUDE.md，请对它提出改进建议。
+- 创建初始 CLAUDE.md 时，不要重复啰嗦，也不要包含显而易见的指令，例如"为用户提供有用的错误信息"、"为所有新工具编写单元测试"、"绝不在代码或提交中包含敏感信息（API keys、tokens）"。
+- 避免罗列每一个组件或可以轻易发现的文件结构。
+- 不要包含通用的开发实践。
+- 如果存在 Cursor 规则（在 .cursor/rules/ 或 .cursorrules 中）或 Copilot 规则（在 .github/copilot-instructions.md 中），务必包含其中重要的部分。
+- 如果存在 README.md，务必包含其中重要的部分。
+- 不要编造诸如"Common Development Tasks"、"Tips for Development"、"Support and Documentation"之类的内容，除非你读到的其他文件中明确包含了这些信息。
+- 务必在文件开头加上以下文字：
 
 \`\`\`
 # CLAUDE.md
@@ -26,102 +26,102 @@ Usage notes:
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 \`\`\``
 
-const NEW_INIT_PROMPT = `Set up a minimal CLAUDE.md (and optionally skills and hooks) for this repo. CLAUDE.md is loaded into every Claude Code session, so it must be concise — only include what Claude would get wrong without it.
+const NEW_INIT_PROMPT = `为这个仓库设置一个精简的 CLAUDE.md（以及可选的 skills 和 hooks）。CLAUDE.md 会被加载进每一个 Claude Code 会话，所以它必须简洁 —— 只包含 Claude 如果没有它就会弄错的内容。
 
-## Phase 1: Ask what to set up
+## 阶段 1：询问要设置什么
 
-Use AskUserQuestion to find out what the user wants:
+使用 AskUserQuestion 弄清楚用户想要什么：
 
 - "Which CLAUDE.md files should /init set up?"
-  Options: "Project CLAUDE.md" | "Personal CLAUDE.local.md" | "Both project + personal"
-  Description for project: "Team-shared instructions checked into source control — architecture, coding standards, common workflows."
-  Description for personal: "Your private preferences for this project (gitignored, not shared) — your role, sandbox URLs, preferred test data, workflow quirks."
+  选项："Project CLAUDE.md" | "Personal CLAUDE.local.md" | "Both project + personal"
+  project 的描述："团队共享、纳入版本控制的指令 —— 架构、编码规范、常见工作流。"
+  personal 的描述："你对本项目的私有偏好（被 gitignore、不共享）—— 你的角色、sandbox URLs、偏好的测试数据、工作流怪癖。"
 
 - "Also set up skills and hooks?"
-  Options: "Skills + hooks" | "Skills only" | "Hooks only" | "Neither, just CLAUDE.md"
-  Description for skills: "On-demand capabilities you or Claude invoke with \`/skill-name\` — good for repeatable workflows and reference knowledge."
-  Description for hooks: "Deterministic shell commands that run on tool events (e.g., format after every edit). Claude can't skip them."
+  选项："Skills + hooks" | "Skills only" | "Hooks only" | "Neither, just CLAUDE.md"
+  skills 的描述："你或 Claude 用 \`/skill-name\` 按需调用的能力 —— 适合可复用工作流和参考知识。"
+  hooks 的描述："在工具事件上运行的确定性 shell 命令（例如每次编辑后格式化）。Claude 无法跳过它们。"
 
-## Phase 2: Explore the codebase
+## 阶段 2：探索代码库
 
-Launch a subagent to survey the codebase, and ask it to read key files to understand the project: manifest files (package.json, Cargo.toml, pyproject.toml, go.mod, pom.xml, etc.), README, Makefile/build configs, CI config, existing CLAUDE.md, .hclaude/rules/, ${AUTONOMY_AGENTS_PATH_POSIX}, .cursor/rules or .cursorrules, .github/copilot-instructions.md, .windsurfrules, .clinerules, .mcp.json.
+启动一个 subagent 来勘察代码库，让它阅读关键文件以理解项目：manifest 文件（package.json、Cargo.toml、pyproject.toml、go.mod、pom.xml 等）、README、Makefile/build 配置、CI 配置、已有的 CLAUDE.md、.hclaude/rules/、${AUTONOMY_AGENTS_PATH_POSIX}、.cursor/rules 或 .cursorrules、.github/copilot-instructions.md、.windsurfrules、.clinerules、.mcp.json。
 
-Detect:
-- Build, test, and lint commands (especially non-standard ones)
-- Languages, frameworks, and package manager
-- Project structure (monorepo with workspaces, multi-module, or single project)
-- Code style rules that differ from language defaults
-- Non-obvious gotchas, required env vars, or workflow quirks
-- Existing .hclaude/skills/ and .hclaude/rules/ directories
-- Formatter configuration (prettier, biome, ruff, black, gofmt, rustfmt, or a unified format script like \`npm run format\` / \`make fmt\`)
-- Git worktree usage: run \`git worktree list\` to check if this repo has multiple worktrees (only relevant if the user wants a personal CLAUDE.local.md)
+检测：
+- Build、test 和 lint 命令（尤其是非标准的）
+- 语言、框架和包管理器
+- 项目结构（带 workspaces 的 monorepo、多模块、或单一项目）
+- 与语言默认值不同的代码风格规则
+- 不显而易见的坑、必需的环境变量或工作流怪癖
+- 已有的 .hclaude/skills/ 和 .hclaude/rules/ 目录
+- Formatter 配置（prettier、biome、ruff、black、gofmt、rustfmt，或像 \`npm run format\` / \`make fmt\` 这样的统一 format 脚本）
+- Git worktree 使用情况：运行 \`git worktree list\` 检查本仓库是否有多个 worktree（仅当用户想要个人 CLAUDE.local.md 时才相关）
 
-Note what you could NOT figure out from code alone — these become interview questions.
+记下那些仅凭代码无法弄清楚的内容 —— 它们会成为访谈问题。
 
-## Phase 3: Fill in the gaps
+## 阶段 3：补齐空白
 
-Use AskUserQuestion to gather what you still need to write good CLAUDE.md files and skills. Ask only things the code can't answer.
+使用 AskUserQuestion 收集你写好 CLAUDE.md 文件和 skills 还缺少的信息。只问代码无法回答的问题。
 
-If the user chose project CLAUDE.md or both: ask about codebase practices — non-obvious commands, gotchas, branch/PR conventions, required env setup, testing quirks. Skip things already in README or obvious from manifest files. Do not mark any options as "recommended" — this is about how their team works, not best practices.
+如果用户选择了 project CLAUDE.md 或两者都选：询问代码库实践 —— 不显而易见的命令、坑、branch/PR 约定、必需的环境配置、测试怪癖。跳过 README 中已有或从 manifest 文件显而易见的内容。不要把任何选项标记为"recommended" —— 这是关于他们团队如何工作，而非最佳实践。
 
-If the user chose personal CLAUDE.local.md or both: ask about them, not the codebase. Do not mark any options as "recommended" — this is about their personal preferences, not best practices. Examples of questions:
-  - What's their role on the team? (e.g., "backend engineer", "data scientist", "new hire onboarding")
-  - How familiar are they with this codebase and its languages/frameworks? (so Claude can calibrate explanation depth)
-  - Do they have personal sandbox URLs, test accounts, API key paths, or local setup details Claude should know?
-  - Only if Phase 2 found multiple git worktrees: ask whether their worktrees are nested inside the main repo (e.g., \`.hclaude/worktrees/<name>/\`) or siblings/external (e.g., \`../myrepo-feature/\`). If nested, the upward file walk finds the main repo's CLAUDE.local.md automatically — no special handling needed. If sibling/external, the personal content should live in a home-directory file (e.g., \`~/.hclaude/<project-name>-instructions.md\`) and each worktree gets a one-line CLAUDE.local.md stub that imports it: \`@~/.hclaude/<project-name>-instructions.md\`. Never put this import in the project CLAUDE.md — that would check a personal reference into the team-shared file.
-  - Any communication preferences? (e.g., "be terse", "always explain tradeoffs", "don't summarize at the end")
+如果用户选择了 personal CLAUDE.local.md 或两者都选：询问关于他们本人的事，而非代码库。不要把任何选项标记为"recommended" —— 这是关于他们的个人偏好，而非最佳实践。问题示例：
+  - 他们在团队中的角色是什么？（例如"backend engineer"、"data scientist"、"new hire onboarding"）
+  - 他们对这个代码库及其语言/框架有多熟悉？（以便 Claude 校准解释的深度）
+  - 他们是否有 Claude 应当知道的个人 sandbox URLs、测试账号、API key 路径或本地配置细节？
+  - 仅当阶段 2 发现了多个 git worktree 时：询问他们的 worktree 是嵌套在主仓库内部（例如 \`.hclaude/worktrees/<name>/\`）还是兄弟/外部目录（例如 \`../myrepo-feature/\`）。如果是嵌套的，向上的文件查找会自动找到主仓库的 CLAUDE.local.md —— 无需特殊处理。如果是兄弟/外部目录，个人内容应放在 home 目录下的文件中（例如 \`~/.hclaude/<project-name>-instructions.md\`），每个 worktree 放一个一行的 CLAUDE.local.md 桩文件来导入它：\`@~/.hclaude/<project-name>-instructions.md\`。绝不要把这个 import 放进项目的 CLAUDE.md —— 那会把个人引用提交进团队共享文件。
+  - 任何沟通偏好？（例如"be terse"、"always explain tradeoffs"、"don't summarize at the end"）
 
-**Synthesize a proposal from Phase 2 findings** — e.g., format-on-edit if a formatter exists, a \`/verify\` skill if tests exist, a CLAUDE.md note for anything from the gap-fill answers that's a guideline rather than a workflow. For each, pick the artifact type that fits, **constrained by the Phase 1 skills+hooks choice**:
+**从阶段 2 的发现综合出一个提案** —— 例如，如果存在 formatter 就用 format-on-edit，如果存在 tests 就用 \`/verify\` skill，对补齐答案中属于准则（而非工作流）的内容用一条 CLAUDE.md note。对每一项，挑选合适的产物类型，**受阶段 1 的 skills+hooks 选择约束**：
 
-  - **Hook** (stricter) — deterministic shell command on a tool event; Claude can't skip it. Fits mechanical, fast, per-edit steps: formatting, linting, running a quick test on the changed file.
-  - **Skill** (on-demand) — you or Claude invoke \`/skill-name\` when you want it. Fits workflows that don't belong on every edit: deep verification, session reports, deploys.
-  - **CLAUDE.md note** (looser) — influences Claude's behavior but not enforced. Fits communication/thinking preferences: "plan before coding", "be terse", "explain tradeoffs".
+  - **Hook**（更严格）—— 在工具事件上运行的确定性 shell 命令；Claude 无法跳过。适合机械、快速、按编辑触发的步骤：格式化、lint、对改动的文件跑一个快速 test。
+  - **Skill**（按需）—— 你或 Claude 想用时用 \`/skill-name\` 调用。适合不该在每次编辑都触发的工作流：深度验证、会话报告、部署。
+  - **CLAUDE.md note**（更宽松）—— 影响 Claude 的行为但不强制执行。适合沟通/思考偏好："plan before coding"、"be terse"、"explain tradeoffs"。
 
-  **Respect Phase 1's skills+hooks choice as a hard filter**: if the user picked "Skills only", downgrade any hook you'd suggest to a skill or a CLAUDE.md note. If "Hooks only", downgrade skills to hooks (where mechanically possible) or notes. If "Neither", everything becomes a CLAUDE.md note. Never propose an artifact type the user didn't opt into.
+  **把阶段 1 的 skills+hooks 选择当作硬性过滤器**：如果用户选了"Skills only"，把你想建议的任何 hook 降级为 skill 或 CLAUDE.md note。如果选了"Hooks only"，把 skills 降级为 hooks（在机制上可行时）或 notes。如果选了"Neither"，一切都变成 CLAUDE.md note。绝不要提议用户没有选择的产物类型。
 
-**Show the proposal via AskUserQuestion's \`preview\` field, not as a separate text message** — the dialog overlays your output, so preceding text is hidden. The \`preview\` field renders markdown in a side-panel (like plan mode); the \`question\` field is plain-text-only. Structure it as:
+**通过 AskUserQuestion 的 \`preview\` 字段展示提案，而不是用单独的文本消息** —— 该对话框会覆盖在你的输出之上，所以前面的文字会被遮住。\`preview\` 字段会以 markdown 渲染在侧栏（类似 plan mode）；\`question\` 字段只支持纯文本。按如下方式组织：
 
-  - \`question\`: short and plain, e.g. "Does this proposal look right?"
-  - Each option gets a \`preview\` with the full proposal as markdown. The "Looks good — proceed" option's preview shows everything; per-item-drop options' previews show what remains after that drop.
-  - **Keep previews compact — the preview box truncates with no scrolling.** One line per item, no blank lines between items, no header. Example preview content:
+  - \`question\`：简短朴素，例如 "Does this proposal look right?"
+  - 每个选项配一个 \`preview\`，以 markdown 给出完整提案。"Looks good — proceed" 选项的 preview 展示全部内容；逐项删除选项的 preview 展示删除该项后剩下的内容。
+  - **保持 preview 紧凑 —— preview 框会截断且不能滚动。** 每项一行，项与项之间不留空行，无标题。preview 内容示例：
 
     • **Format-on-edit hook** (automatic) — \`ruff format <file>\` via PostToolUse
     • **/verify skill** (on-demand) — \`make lint && make typecheck && make test\`
     • **CLAUDE.md note** (guideline) — "run lint/typecheck/test before marking done"
 
-  - Option labels stay short ("Looks good", "Drop the hook", "Drop the skill") — the tool auto-adds an "Other" free-text option, so don't add your own catch-all.
+  - 选项标签保持简短（"Looks good"、"Drop the hook"、"Drop the skill"）—— 该工具会自动添加一个"Other"自由文本选项，所以不要自己再加兜底项。
 
-**Build the preference queue** from the accepted proposal. Each entry: {type: hook|skill|note, description, target file, any Phase-2-sourced details like the actual test/format command}. Phases 4-7 consume this queue.
+**从被采纳的提案构建偏好队列**。每个条目：{type: hook|skill|note, description, target file, 以及任何来自阶段 2 的细节，比如实际的 test/format 命令}。阶段 4-7 会消费这个队列。
 
-## Phase 4: Write CLAUDE.md (if user chose project or both)
+## 阶段 4：编写 CLAUDE.md（如果用户选了 project 或两者都选）
 
-Write a minimal CLAUDE.md at the project root. Every line must pass this test: "Would removing this cause Claude to make mistakes?" If no, cut it.
+在项目根目录写一个精简的 CLAUDE.md。每一行都必须通过这个测试："删掉这行会不会导致 Claude 出错？"如果不会，就删掉。
 
-**Consume \`note\` entries from the Phase 3 preference queue whose target is CLAUDE.md** (team-level notes) — add each as a concise line in the most relevant section. These are the behaviors the user wants Claude to follow but didn't need guaranteed (e.g., "propose a plan before implementing", "explain the tradeoffs when refactoring"). Leave personal-targeted notes for Phase 5.
+**消费阶段 3 偏好队列中目标为 CLAUDE.md 的 \`note\` 条目**（团队级 notes）—— 把每条作为简洁的一行加入最相关的章节。这些是用户希望 Claude 遵循、但不需要强制保证的行为（例如 "propose a plan before implementing"、"explain the tradeoffs when refactoring"）。把面向个人的 notes 留到阶段 5。
 
-Include:
-- Build/test/lint commands Claude can't guess (non-standard scripts, flags, or sequences)
-- Code style rules that DIFFER from language defaults (e.g., "prefer type over interface")
-- Testing instructions and quirks (e.g., "run single test with: pytest -k 'test_name'")
-- Repo etiquette (branch naming, PR conventions, commit style)
-- Required env vars or setup steps
-- Non-obvious gotchas or architectural decisions
-- Important parts from existing AI coding tool configs if they exist (${AUTONOMY_AGENTS_PATH_POSIX}, .cursor/rules, .cursorrules, .github/copilot-instructions.md, .windsurfrules, .clinerules)
+包含：
+- Claude 猜不到的 build/test/lint 命令（非标准脚本、flags 或步骤序列）
+- 与语言默认值**不同**的代码风格规则（例如 "prefer type over interface"）
+- 测试说明和怪癖（例如 "run single test with: pytest -k 'test_name'"）
+- 仓库礼仪（branch 命名、PR 约定、commit 风格）
+- 必需的环境变量或配置步骤
+- 不显而易见的坑或架构决策
+- 已有 AI 编码工具配置中的重要部分（如果存在）（${AUTONOMY_AGENTS_PATH_POSIX}、.cursor/rules、.cursorrules、.github/copilot-instructions.md、.windsurfrules、.clinerules）
 
-Exclude:
-- File-by-file structure or component lists (Claude can discover these by reading the codebase)
-- Standard language conventions Claude already knows
-- Generic advice ("write clean code", "handle errors")
-- Detailed API docs or long references — use \`@path/to/import\` syntax instead (e.g., \`@docs/api-reference.md\`) to inline content on demand without bloating CLAUDE.md
-- Information that changes frequently — reference the source with \`@path/to/import\` so Claude always reads the current version
-- Long tutorials or walkthroughs (move to a separate file and reference with \`@path/to/import\`, or put in a skill)
-- Commands obvious from manifest files (e.g., standard "npm test", "cargo test", "pytest")
+排除：
+- 逐个文件的结构或组件清单（Claude 可以通过阅读代码库自行发现）
+- Claude 已经知道的标准语言约定
+- 通用建议（"write clean code"、"handle errors"）
+- 详细的 API 文档或长篇参考 —— 改用 \`@path/to/import\` 语法（例如 \`@docs/api-reference.md\`），按需内联内容而不让 CLAUDE.md 臃肿
+- 频繁变化的信息 —— 用 \`@path/to/import\` 引用源文件，让 Claude 总是读到最新版本
+- 长篇教程或操作指南（移到单独的文件并用 \`@path/to/import\` 引用，或放进一个 skill）
+- 从 manifest 文件就显而易见的命令（例如标准的 "npm test"、"cargo test"、"pytest"）
 
-Be specific: "Use 2-space indentation in TypeScript" is better than "Format code properly."
+要具体："Use 2-space indentation in TypeScript" 比 "Format code properly" 更好。
 
-Do not repeat yourself and do not make up sections like "Common Development Tasks" or "Tips for Development" — only include information expressly found in files you read.
+不要重复啰嗦，也不要编造像 "Common Development Tasks" 或 "Tips for Development" 这样的章节 —— 只包含你读到的文件中明确存在的信息。
 
-Prefix the file with:
+在文件开头加上：
 
 \`\`\`
 # CLAUDE.md
@@ -129,47 +129,47 @@ Prefix the file with:
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 \`\`\`
 
-If CLAUDE.md already exists: read it, propose specific changes as diffs, and explain why each change improves it. Do not silently overwrite.
+如果 CLAUDE.md 已存在：读取它，以 diff 形式提出具体改动，并解释每处改动为何更好。不要静默覆盖。
 
-For projects with multiple concerns, suggest organizing instructions into \`.hclaude/rules/\` as separate focused files (e.g., \`code-style.md\`, \`testing.md\`, \`security.md\`). These are loaded automatically alongside CLAUDE.md and can be scoped to specific file paths using \`paths\` frontmatter.
+对于涉及多个关注点的项目，建议把指令组织进 \`.hclaude/rules/\` 中作为独立的聚焦文件（例如 \`code-style.md\`、\`testing.md\`、\`security.md\`）。这些文件会随 CLAUDE.md 自动加载，并可用 \`paths\` frontmatter 限定到特定文件路径。
 
-For projects with distinct subdirectories (monorepos, multi-module projects, etc.): mention that subdirectory CLAUDE.md files can be added for module-specific instructions (they're loaded automatically when Claude works in those directories). Offer to create them if the user wants.
+对于有明显子目录的项目（monorepos、多模块项目等）：提及可以为模块级指令添加子目录 CLAUDE.md 文件（当 Claude 在这些目录中工作时会自动加载）。如果用户需要，主动提议创建它们。
 
-## Phase 5: Write CLAUDE.local.md (if user chose personal or both)
+## 阶段 5：编写 CLAUDE.local.md（如果用户选了 personal 或两者都选）
 
-Write a minimal CLAUDE.local.md at the project root. This file is automatically loaded alongside CLAUDE.md. After creating it, add \`CLAUDE.local.md\` to the project's .gitignore so it stays private.
+在项目根目录写一个精简的 CLAUDE.local.md。这个文件会随 CLAUDE.md 自动加载。创建后，把 \`CLAUDE.local.md\` 加入项目的 .gitignore 以保持私有。
 
-**Consume \`note\` entries from the Phase 3 preference queue whose target is CLAUDE.local.md** (personal-level notes) — add each as a concise line. If the user chose personal-only in Phase 1, this is the sole consumer of note entries.
+**消费阶段 3 偏好队列中目标为 CLAUDE.local.md 的 \`note\` 条目**（个人级 notes）—— 把每条作为简洁的一行加入。如果用户在阶段 1 选了仅 personal，那么这里是 note 条目的唯一消费方。
 
-Include:
-- The user's role and familiarity with the codebase (so Claude can calibrate explanations)
-- Personal sandbox URLs, test accounts, or local setup details
-- Personal workflow or communication preferences
+包含：
+- 用户的角色及其对代码库的熟悉程度（以便 Claude 校准解释）
+- 个人 sandbox URLs、测试账号或本地配置细节
+- 个人工作流或沟通偏好
 
-Keep it short — only include what would make Claude's responses noticeably better for this user.
+保持简短 —— 只包含能让 Claude 对这位用户的回答明显更好的内容。
 
-If Phase 2 found multiple git worktrees and the user confirmed they use sibling/external worktrees (not nested inside the main repo): the upward file walk won't find a single CLAUDE.local.md from all worktrees. Write the actual personal content to \`~/.hclaude/<project-name>-instructions.md\` and make CLAUDE.local.md a one-line stub that imports it: \`@~/.hclaude/<project-name>-instructions.md\`. The user can copy this one-line stub to each sibling worktree. Never put this import in the project CLAUDE.md. If worktrees are nested inside the main repo (e.g., \`.hclaude/worktrees/\`), no special handling is needed — the main repo's CLAUDE.local.md is found automatically.
+如果阶段 2 发现了多个 git worktree，且用户确认他们使用兄弟/外部 worktree（不是嵌套在主仓库内部）：向上的文件查找无法从所有 worktree 找到同一个 CLAUDE.local.md。把实际的个人内容写到 \`~/.hclaude/<project-name>-instructions.md\`，并让 CLAUDE.local.md 成为一行的桩文件来导入它：\`@~/.hclaude/<project-name>-instructions.md\`。用户可以把这个一行桩文件复制到每个兄弟 worktree。绝不要把这个 import 放进项目的 CLAUDE.md。如果 worktree 是嵌套在主仓库内部（例如 \`.hclaude/worktrees/\`），无需特殊处理 —— 主仓库的 CLAUDE.local.md 会被自动找到。
 
-If CLAUDE.local.md already exists: read it, propose specific additions, and do not silently overwrite.
+如果 CLAUDE.local.md 已存在：读取它，提出具体的补充，且不要静默覆盖。
 
-## Phase 6: Suggest and create skills (if user chose "Skills + hooks" or "Skills only")
+## 阶段 6：建议并创建 skills（如果用户选了 "Skills + hooks" 或 "Skills only"）
 
-Skills add capabilities Claude can use on demand without bloating every session.
+Skills 为 Claude 增加可按需使用的能力，而不会让每个会话臃肿。
 
-**First, consume \`skill\` entries from the Phase 3 preference queue.** Each queued skill preference becomes a SKILL.md tailored to what the user described. For each:
-- Name it from the preference (e.g., "verify-deep", "session-report", "deploy-sandbox")
-- Write the body using the user's own words from the interview plus whatever Phase 2 found (test commands, report format, deploy target). If the preference maps to an existing bundled skill (e.g., \`/verify\`), write a project skill that adds the user's specific constraints on top — tell the user the bundled one still exists and theirs is additive.
-- Ask a quick follow-up if the preference is underspecified (e.g., "which test command should verify-deep run?")
+**首先，消费阶段 3 偏好队列中的 \`skill\` 条目。** 每个排队的 skill 偏好都变成一个针对用户描述定制的 SKILL.md。对每一个：
+- 根据偏好命名（例如 "verify-deep"、"session-report"、"deploy-sandbox"）
+- 用用户在访谈中的原话加上阶段 2 的发现（test 命令、报告格式、部署目标）来编写正文。如果这个偏好对应一个已内置的 skill（例如 \`/verify\`），就写一个项目 skill 在其之上叠加用户的具体约束 —— 告诉用户内置的那个仍然存在，他们的是附加的。
+- 如果偏好不够明确，快速追问一句（例如 "which test command should verify-deep run?"）
 
-**Then suggest additional skills** beyond the queue when you find:
-- Reference knowledge for specific tasks (conventions, patterns, style guides for a subsystem)
-- Repeatable workflows the user would want to trigger directly (deploy, fix an issue, release process, verify changes)
+**然后建议额外的 skills**，当你发现以下情况时（超出队列范围）：
+- 特定任务的参考知识（某子系统的约定、模式、风格指南）
+- 用户想直接触发的可复用工作流（部署、修复 issue、发布流程、验证改动）
 
-For each suggested skill, provide: name, one-line purpose, and why it fits this repo.
+对每个建议的 skill，给出：名称、一句话用途、以及为何适合这个仓库。
 
-If \`.hclaude/skills/\` already exists with skills, review them first. Do not overwrite existing skills — only propose new ones that complement what is already there.
+如果 \`.hclaude/skills/\` 已存在且已有 skills，先审阅它们。不要覆盖已有 skills —— 只提议能与已有内容互补的新 skill。
 
-Create each skill at \`.hclaude/skills/<skill-name>/SKILL.md\`:
+在 \`.hclaude/skills/<skill-name>/SKILL.md\` 创建每个 skill：
 
 \`\`\`yaml
 ---
@@ -180,49 +180,49 @@ description: <what the skill does and when to use it>
 <Instructions for Claude>
 \`\`\`
 
-Both the user (\`/<skill-name>\`) and Claude can invoke skills by default. For workflows with side effects (e.g., \`/deploy\`, \`/fix-issue 123\`), add \`disable-model-invocation: true\` so only the user can trigger it, and use \`$ARGUMENTS\` to accept input.
+默认情况下用户（\`/<skill-name>\`）和 Claude 都可以调用 skills。对于有副作用的工作流（例如 \`/deploy\`、\`/fix-issue 123\`），添加 \`disable-model-invocation: true\` 使其只能由用户触发，并用 \`$ARGUMENTS\` 来接收输入。
 
-## Phase 7: Suggest additional optimizations
+## 阶段 7：建议额外的优化
 
-Tell the user you're going to suggest a few additional optimizations now that CLAUDE.md and skills (if chosen) are in place.
+告诉用户，既然 CLAUDE.md 和 skills（如果选了的话）已就位，你将再建议几项额外的优化。
 
-Check the environment and ask about each gap you find (use AskUserQuestion):
+检查环境，并针对你发现的每个空白进行询问（使用 AskUserQuestion）：
 
-- **GitHub CLI**: Run \`which gh\` (or \`where gh\` on Windows). If it's missing AND the project uses GitHub (check \`git remote -v\` for github.com), ask the user if they want to install it. Explain that the GitHub CLI lets Claude help with commits, pull requests, issues, and code review directly.
+- **GitHub CLI**：运行 \`which gh\`（在 Windows 上是 \`where gh\`）。如果它缺失**且**项目使用 GitHub（检查 \`git remote -v\` 是否含 github.com），询问用户是否想安装它。说明 GitHub CLI 让 Claude 能直接帮助处理 commits、pull requests、issues 和 code review。
 
-- **Linting**: If Phase 2 found no lint config (no .eslintrc, ruff.toml, .golangci.yml, etc. for the project's language), ask the user if they want Claude to set up linting for this codebase. Explain that linting catches issues early and gives Claude fast feedback on its own edits.
+- **Linting**：如果阶段 2 没发现 lint 配置（针对项目语言没有 .eslintrc、ruff.toml、.golangci.yml 等），询问用户是否想让 Claude 为这个代码库设置 linting。说明 linting 能尽早发现问题，并为 Claude 自己的编辑提供快速反馈。
 
-- **Proposal-sourced hooks** (if user chose "Skills + hooks" or "Hooks only"): Consume \`hook\` entries from the Phase 3 preference queue. If Phase 2 found a formatter and the queue has no formatting hook, offer format-on-edit as a fallback. If the user chose "Neither" or "Skills only" in Phase 1, skip this bullet entirely.
+- **来自提案的 hooks**（如果用户选了 "Skills + hooks" 或 "Hooks only"）：消费阶段 3 偏好队列中的 \`hook\` 条目。如果阶段 2 发现了 formatter 而队列里没有格式化 hook，就把 format-on-edit 作为兜底提供。如果用户在阶段 1 选了 "Neither" 或 "Skills only"，则完全跳过这一条。
 
-  For each hook preference (from the queue or the formatter fallback):
+  对每个 hook 偏好（来自队列或 formatter 兜底）：
 
-  1. Target file: default based on the Phase 1 CLAUDE.md choice — project → \`.hclaude/settings.json\` (team-shared, committed); personal → \`.hclaude/settings.local.json\`. Only ask if the user chose "both" in Phase 1 or the preference is ambiguous. Ask once for all hooks, not per-hook.
+  1. 目标文件：根据阶段 1 的 CLAUDE.md 选择确定默认值 —— project → \`.hclaude/settings.json\`（团队共享、提交进库）；personal → \`.hclaude/settings.local.json\`。仅当用户在阶段 1 选了"both"或偏好含糊时才询问。对所有 hooks 一次性询问，而非逐个询问。
 
-  2. Pick the event and matcher from the preference:
-     - "after every edit" → \`PostToolUse\` with matcher \`Write|Edit\`
-     - "when Claude finishes" / "before I review" → \`Stop\` event (fires at the end of every turn — including read-only ones)
-     - "before running bash" → \`PreToolUse\` with matcher \`Bash\`
-     - "before committing" (literal git-commit gate) → **not a hooks.json hook.** Matchers can't filter Bash by command content, so there's no way to target only \`git commit\`. Route this to a git pre-commit hook (\`.git/hooks/pre-commit\`, husky, pre-commit framework) instead — offer to write one. If the user actually means "before I review and commit Claude's output", that's \`Stop\` — probe to disambiguate.
-     Probe if the preference is ambiguous.
+  2. 从偏好中挑选 event 和 matcher：
+     - "after every edit" → \`PostToolUse\`，matcher 为 \`Write|Edit\`
+     - "when Claude finishes" / "before I review" → \`Stop\` 事件（在每个回合结束时触发 —— 包括只读回合）
+     - "before running bash" → \`PreToolUse\`，matcher 为 \`Bash\`
+     - "before committing"（字面意义的 git-commit 关卡）→ **这不是 hooks.json hook。** Matcher 无法按命令内容过滤 Bash，所以没办法只针对 \`git commit\`。改为路由到 git pre-commit hook（\`.git/hooks/pre-commit\`、husky、pre-commit framework）—— 主动提议写一个。如果用户实际意思是"在我审阅并提交 Claude 的输出之前"，那是 \`Stop\` —— 追问以消除歧义。
+     如果偏好含糊就追问。
 
-  3. **Load the hook reference** (once per \`/init\` run, before the first hook): invoke the Skill tool with \`skill: 'update-config'\` and args starting with \`[hooks-only]\` followed by a one-line summary of what you're building — e.g., \`[hooks-only] Constructing a PostToolUse/Write|Edit format hook for .hclaude/settings.json using ruff\`. This loads the hooks schema and verification flow into context. Subsequent hooks reuse it — don't re-invoke.
+  3. **加载 hook 参考**（每次 \`/init\` 运行一次，在第一个 hook 之前）：调用 Skill 工具，\`skill: 'update-config'\`，args 以 \`[hooks-only]\` 开头，后跟一行你正在构建什么的摘要 —— 例如 \`[hooks-only] Constructing a PostToolUse/Write|Edit format hook for .hclaude/settings.json using ruff\`。这会把 hooks 的 schema 和验证流程加载进上下文。后续的 hooks 复用它 —— 不要重复调用。
 
-  4. Follow the skill's **"Constructing a Hook"** flow: dedup check → construct for THIS project → pipe-test raw → wrap → write JSON → \`jq -e\` validate → live-proof (for \`Pre|PostToolUse\` on triggerable matchers) → cleanup → handoff. Target file and event/matcher come from steps 1–2 above.
+  4. 遵循该 skill 的 **"Constructing a Hook"** 流程：dedup 检查 → 为**本**项目构建 → 原始 pipe-test → 包装 → 写入 JSON → \`jq -e\` 校验 → live-proof（针对可触发 matcher 上的 \`Pre|PostToolUse\`）→ 清理 → 交接。目标文件和 event/matcher 来自上面的步骤 1–2。
 
-Act on each "yes" before moving on.
+每个"yes"都要先落实再继续。
 
-## Phase 8: Summary and next steps
+## 阶段 8：总结与后续步骤
 
-Recap what was set up — which files were written and the key points included in each. Remind the user these files are a starting point: they should review and tweak them, and can run \`/init\` again anytime to re-scan.
+回顾设置了什么 —— 写了哪些文件，以及每个文件包含的要点。提醒用户这些文件只是起点：他们应当审阅并调整，并且随时可以再次运行 \`/init\` 重新扫描。
 
-Then tell the user that you'll be introducing a few more suggestions for optimizing their codebase and Claude Code setup based on what you found. Present these as a single, well-formatted to-do list where every item is relevant to this repo. Put the most impactful items first.
+然后告诉用户，你将基于你的发现再提出几项优化其代码库和 Claude Code 配置的建议。把它们以单个、排版良好的待办列表呈现，其中每一项都与这个仓库相关。把最有影响力的项放在最前面。
 
-When building the list, work through these checks and include only what applies:
-- If frontend code was detected (React, Vue, Svelte, etc.): \`/plugin install frontend-design@claude-plugins-official\` gives Claude design principles and component patterns so it produces polished UI; \`/plugin install playwright@claude-plugins-official\` lets Claude launch a real browser, screenshot what it built, and fix visual bugs itself.
-- If you found gaps in Phase 7 (missing GitHub CLI, missing linting) and the user said no: list them here with a one-line reason why each helps.
-- If tests are missing or sparse: suggest setting up a test framework so Claude can verify its own changes.
-- To help you create skills and optimize existing skills using evals, Claude Code has an official skill-creator plugin you can install. Install it with \`/plugin install skill-creator@claude-plugins-official\`, then run \`/skill-creator <skill-name>\` to create new skills or refine any existing skill. (Always include this one.)
-- Browse official plugins with \`/plugin\` — these bundle skills, agents, hooks, and MCP servers that you may find helpful. You can also create your own custom plugins to share them with others. (Always include this one.)`
+构建这个列表时，逐一过一遍以下检查，只包含适用的项：
+- 如果检测到前端代码（React、Vue、Svelte 等）：\`/plugin install frontend-design@claude-plugins-official\` 给 Claude 提供设计原则和组件模式，让它产出精致的 UI；\`/plugin install playwright@claude-plugins-official\` 让 Claude 能启动真实浏览器、对它构建的东西截图，并自行修复视觉 bug。
+- 如果你在阶段 7 发现了空白（缺少 GitHub CLI、缺少 linting）而用户说不要：在这里列出它们，并各用一行说明为何有帮助。
+- 如果 tests 缺失或稀少：建议设置一个 test 框架，让 Claude 能验证自己的改动。
+- 为帮你用 evals 创建和优化已有 skills，Claude Code 有一个官方 skill-creator plugin 可以安装。用 \`/plugin install skill-creator@claude-plugins-official\` 安装它，然后运行 \`/skill-creator <skill-name>\` 创建新 skill 或优化任何已有 skill。（这一项总是包含。）
+- 用 \`/plugin\` 浏览官方 plugins —— 它们打包了 skills、agents、hooks 和 MCP servers，你可能会用得上。你也可以创建自己的自定义 plugins 并分享给他人。（这一项总是包含。）`
 
 const command = {
   type: 'prompt',
@@ -231,8 +231,8 @@ const command = {
     return feature('NEW_INIT') &&
       (process.env.USER_TYPE === 'ant' ||
         isEnvTruthy(process.env.CLAUDE_CODE_NEW_INIT))
-      ? 'Initialize new CLAUDE.md file(s) and optional skills/hooks with codebase documentation'
-      : 'Initialize a new CLAUDE.md file with codebase documentation'
+      ? '初始化新的 CLAUDE.md 文件以及可选的 skills/hooks，并附带代码库文档'
+      : '初始化一个带有代码库文档的新 CLAUDE.md 文件'
   },
   contentLength: 0, // 动态内容
   progressMessage: 'analyzing your codebase',

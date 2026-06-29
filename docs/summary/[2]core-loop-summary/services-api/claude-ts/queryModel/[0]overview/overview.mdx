@@ -38,6 +38,8 @@ anthropic.beta.messages.create({ ...params, stream: true })
 
 > 一句话定位：**`queryModel` = "把一次 LLM 请求从参数变成消息流"的全过程**。它上面是"对话逻辑"，下面是"网络传输"。
 
+> 🔗 **交叉引用**：上面那两个"薄包装"入口（`queryModelWithStreaming` / `queryModelWithoutStreaming`）以及它们共享的 VCR 录放层、非流式降级引擎 `executeNonStreamingRequest`、一圈周边 helper，单独拆在姊妹系列 [`queryModelWrappers/`](../../queryModelWrappers/[0]overview/overview.mdx) 里详解。本系列只讲 `queryModel` 本体。
+
 ---
 
 ## 二、方法签名拆解

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流式空闲超时看门狗</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 12 节</div>
+  <h1>流式空闲超时看门狗</h1>
+  <p class="hero-sub">queryModel 在进入事件循环前架设的一个主动防护 —— 流式空闲超时看门狗。若 STREAM_IDLE_TIMEOUT_MS 内没收到任何 chunk，主动 abort 卡住的流，避免静默丢包的连接让会话无限期挂起（SDK 的请求超时只覆盖初始 fetch，不覆盖流式响应体）。本文讲清看门狗与停顿检测的区别、两级定时器（警告/超时）、每个 chunk 重置计时的机制、以及触发后如何降级（src/services/api/claude.ts:2245-2307）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:2245-2307</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、为什么需要看门狗</a></li>
+    <li><a href="#sec-2">二、看门狗 vs 停顿检测：两种不同机制</a></li>
+    <li><a href="#sec-3">三、配置与开关（2250-2255）</a></li>
+    <li><a href="#sec-4">四、两级定时器（2261-2304）</a></li>
+    <li><a href="#sec-5">五、startSessionActivity（2307）</a></li>
+    <li><a href="#sec-6">六、触发后的去向</a></li>
+    <li><a href="#sec-7">七、关键行号书签</a></li>
+    <li><a href="#sec-8">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">拿到流之后、进入事件大循环（<code>[13]</code>）之前，queryModel 架设一个<strong>空闲超时看门狗</strong>（<code>claude.ts:2245-2305</code>）。它解决一个隐蔽但致命的问题：<strong>SDK 的请求超时只覆盖初始的 <code>fetch()</code>，不覆盖流式响应体</strong>——一个静默丢包的连接会让会话<strong>无限期挂起</strong>。看门狗用 <code>setTimeout</code> 主动杀掉卡死的流。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、为什么需要看门狗</h2>
+<pre><code>anthropic.messages.create(...).withResponse()
+   ├─ fetch 阶段：SDK 超时覆盖 ✅
+   └─ 流式接收阶段：SDK 超时 ❌ 不管
+        └─ 若服务端/网络静默卡住 → for-await 永远等下一个 chunk → 会话冻结</code></pre>
+<p>普通的 HTTP 超时只保证"建立连接、拿到响应头"不会卡太久。但 SSE 流是<strong>长连接</strong>，响应头早就回来了，之后<strong>逐 chunk 推送</strong>。如果连接在中途<strong>静默死掉</strong>（不报错、不关闭，就是不再发数据），<code>for await</code> 会<strong>永远阻塞</strong>在等下一个 chunk。看门狗就是为这种"僵尸连接"兜底。</p>
+<div class="callout"><strong>类比</strong>：打电话接通后对方突然没声了——既没挂断也不说话。你不能永远举着听筒，得设个"30 秒没声音就挂"的规矩。看门狗就是这个规矩。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、看门狗 vs 停顿检测：两种不同机制</h2>
+<p>代码里有两套监控，别混淆：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>机制</th><th>触发方式</th><th>作用</th><th>位置</th></tr>
+<tr><td><strong>空闲超时看门狗</strong>（本文）</td><td><code>setTimeout</code> <strong>主动</strong>到点开火</td><td><strong>杀死</strong>卡住的流</td><td><code>[12]</code></td></tr>
+<tr><td><strong>停顿检测</strong>（stall）</td><td>下一个 chunk 到来时<strong>被动</strong>回看间隔</td><td>仅<strong>记录</strong>慢，不杀流</td><td><code>[13]</code></td></tr>
+</table>
+</div>
+<p>关键区别：注释说得明白——*与下面的停顿检测（只在下一个 chunk 到来时才触发）不同，这里使用 setTimeout 主动杀死卡住的流*。停顿检测要靠"下一个 chunk"才会触发，可如果根本没有下一个 chunk，它永远不触发；看门狗不依赖 chunk，到点就响。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、配置与开关（2250-2255）</h2>
+<pre><code>const streamWatchdogEnabled = isEnvTruthy(process.env.CLAUDE_ENABLE_STREAM_WATCHDOG)
+const STREAM_IDLE_TIMEOUT_MS = parseInt(process.env.CLAUDE_STREAM_IDLE_TIMEOUT_MS || '', 10) || 90_000
+const STREAM_IDLE_WARNING_MS = STREAM_IDLE_TIMEOUT_MS / 2
+let streamIdleAborted = false
+let streamWatchdogFiredAt: number | null = null   // 触发时刻快照，测 abort 传播延迟</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>配置</th><th>默认</th><th>含义</th></tr>
+<tr><td><code>CLAUDE_ENABLE_STREAM_WATCHDOG</code></td><td>关闭</td><td>看门狗总开关（<strong>默认不启用</strong>）</td></tr>
+<tr><td><code>CLAUDE_STREAM_IDLE_TIMEOUT_MS</code></td><td>90 秒</td><td>多久没 chunk 算超时</td></tr>
+<tr><td>warning</td><td>超时的一半（45 秒）</td><td>先发警告日志</td></tr>
+</table>
+</div>
+<p>注意看门狗<strong>默认关闭</strong>，需显式设环境变量开启——是个可选的健壮性增强。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、两级定时器（2261-2304）</h2>
+<pre><code>function clearStreamIdleTimers(): void {
+  if (streamIdleWarningTimer !== null) { clearTimeout(streamIdleWarningTimer); streamIdleWarningTimer = null }
+  if (streamIdleTimer !== null) { clearTimeout(streamIdleTimer); streamIdleTimer = null }
+}
+
+function resetStreamIdleTimer(): void {
+  clearStreamIdleTimers()
+  if (!streamWatchdogEnabled) return
+  // 第一级：警告
+  streamIdleWarningTimer = setTimeout(warnMs =&gt; {
+    logForDebugging(`Streaming idle warning: no chunks received for ${warnMs/1000}s`, { level: 'warn' })
+    logForDiagnosticsNoPII('warn', 'cli_streaming_idle_warning')
+  }, STREAM_IDLE_WARNING_MS, STREAM_IDLE_WARNING_MS)
+  // 第二级：超时 → abort
+  streamIdleTimer = setTimeout(() =&gt; {
+    streamIdleAborted = true
+    streamWatchdogFiredAt = performance.now()
+    logForDebugging(`Streaming idle timeout: ... aborting stream`, { level: 'error' })
+    logForDiagnosticsNoPII('error', 'cli_streaming_idle_timeout')
+    logEvent('tengu_streaming_idle_timeout', { model, request_id, timeout_ms })
+    releaseStreamResources()    // ← 杀流：取消 Response，for-await 会随之退出
+  }, STREAM_IDLE_TIMEOUT_MS)
+}
+resetStreamIdleTimer()</code></pre>
+<h3>4.1 两级递进</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>级别</th><th>时间</th><th>动作</th></tr>
+<tr><td>警告</td><td>45 秒无 chunk</td><td>记 warn 日志（还没杀，给个预警）</td></tr>
+<tr><td>超时</td><td>90 秒无 chunk</td><td>置 <code>streamIdleAborted=true</code>、打点、<strong><code>releaseStreamResources()</code> 杀流</strong></td></tr>
+</table>
+</div>
+<p>杀流的手段是 <code>releaseStreamResources()</code>（<code>[10]</code> 定义）——cancel 掉 Response body，<code>for await</code> 因底层流被取消而退出。</p>
+<h3>4.2 ⭐ 每个 chunk 重置计时</h3>
+<p><code>resetStreamIdleTimer()</code> 在两处调用：</p>
+<ol>
+<li><strong>进循环前</strong>调一次（本段末尾，启动看门狗）。</li>
+<li><strong><code>[13]</code> 每收到一个 chunk</strong> 调一次（<code>claude.ts:2323</code>）。</li>
+</ol>
+<p>这是"空闲"超时的精髓：<strong>只要还有数据流动就不断重置倒计时</strong>，只有真正"静默 N 秒"才触发。像汽车的"熄火延时"——你一踩油门计时就清零。</p>
+<h3>4.3 <code>streamWatchdogFiredAt</code>：测量 abort 传播延迟</h3>
+<p>记录看门狗开火的 <code>performance.now()</code> 时刻。<code>[14]</code> 会用它算 <code>exitDelayMs</code>——从"看门狗下令 abort"到"for-await 真正退出"隔了多久。0-10ms 说明 abort 立即生效；远超 1000ms 说明是别的东西唤醒了循环。这是验证看门狗<strong>真的有效</strong>的遥测。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、startSessionActivity（2307）</h2>
+<pre><code>startSessionActivity('api_call')</code></pre>
+<p>标记"会话正在进行 API 调用"（用于活动状态/防休眠等）。与 <code>[16]</code> finally 里的 <code>stopSessionActivity('api_call')</code> 成对。紧接着就进入 <code>[13]</code> 的 <code>for await</code> 事件循环。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、触发后的去向</h2>
+<p>看门狗 abort 后并非直接报错给用户，而是走<strong>降级</strong>：</p>
+<pre><code>看门狗 90s 开火
+  → releaseStreamResources() 杀流
+  → for-await 退出
+  → [14] 检测 streamIdleAborted=true
+  → throw new Error('Stream idle timeout...')
+  → 落入 [15] catch → 非流式降级重试</code></pre>
+<p>也就是说看门狗把"无限挂起"转化成"一个可被降级处理的错误"，让 <code>[15]</code> 的非流式兜底有机会救场。</p>
+</section>
+
+<section id="sec-7">
+<h2>七、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>看门狗 vs 停顿检测注释</td><td><code>claude.ts:2245-2249</code></td></tr>
+<tr><td>配置与开关</td><td><code>claude.ts:2250-2255</code></td></tr>
+<tr><td><code>clearStreamIdleTimers</code></td><td><code>claude.ts:2261-2270</code></td></tr>
+<tr><td><code>resetStreamIdleTimer</code>（两级定时器）</td><td><code>claude.ts:2271-2304</code></td></tr>
+<tr><td>超时回调 → <code>releaseStreamResources</code></td><td><code>claude.ts:2287-2303</code></td></tr>
+<tr><td>进循环前启动看门狗</td><td><code>claude.ts:2305</code></td></tr>
+<tr><td><code>startSessionActivity('api_call')</code></td><td><code>claude.ts:2307</code></td></tr>
+<tr><td>chunk 内重置计时（在 [13]）</td><td><code>claude.ts:2323</code></td></tr>
+<tr><td>触发后降级判定（在 [14]）</td><td><code>claude.ts:2781-2806</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-8">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>补 SDK 的盲区</strong>：SDK 超时只管初始 fetch，不管流式体；看门狗管"流中途静默卡死"。</li>
+<li><strong>主动 vs 被动</strong>：看门狗 setTimeout 到点主动杀流；停顿检测靠下一个 chunk 被动回看（没 chunk 就不触发）。</li>
+<li><strong>两级</strong>：45s 警告（只记日志）→ 90s 超时（杀流 + 打点）。</li>
+<li><strong>空闲=可重置</strong>：每个 chunk 都 <code>resetStreamIdleTimer()</code>，有数据就清零倒计时。</li>
+<li><strong>默认关闭</strong>：需 <code>CLAUDE_ENABLE_STREAM_WATCHDOG</code> 显式开启。</li>
+<li><strong>转成可降级错误</strong>：触发后 throw，交给 [15] 非流式兜底。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

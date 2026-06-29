@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>周边 helper：LSP 延迟 / requestId 回溯 / 媒体裁剪</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 5 节</div>
+  <h1>周边 <span>helper</span>：LSP 延迟 / requestId 回溯 / 媒体裁剪</h1>
+  <p class="hero-sub">包装层和 queryModel 之间散落着三个小而关键的纯逻辑 helper。<code>shouldDeferLspTool</code> 判断 LSP 工具是否因初始化未完成而需要延迟加载；<code>getPreviousRequestIdFromMessages</code> 从消息数组反向找上一条 assistant 的 requestId 做缓存关联；<code>stripExcessMediaItems</code> 把超过上限的图片/文档按"先删最旧"裁掉以控制上下文体积（src/services/api/claude.ts:1060-1292）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:1060-1292</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>3 个纯函数 helper</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、shouldDeferLspTool</a></li>
+    <li><a href="#sec-2">二、getPreviousRequestIdFromMessages</a></li>
+    <li><a href="#sec-3">三、stripExcessMediaItems</a></li>
+    <li><a href="#sec-4">四、三者的共性</a></li>
+    <li><a href="#sec-5">五、行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout">在两个入口和 <code>queryModel</code> 之间，<code>claude.ts</code> 还夹着三个不起眼但被频繁调用的 helper。它们都是<strong>纯逻辑</strong>（没有网络、没有副作用），但各自承担一个明确职责。本节一次讲清。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、<code>shouldDeferLspTool</code> —— LSP 工具的延迟加载判定</h2>
+<pre><code><span class="k">function</span> <span class="n">shouldDeferLspTool</span>(tool: Tool): <span class="t">boolean</span> {
+  <span class="k">if</span> (!(<span class="s">'isLsp'</span> <span class="k">in</span> tool) || !tool.isLsp) {
+    <span class="k">return false</span>
+  }
+  <span class="k">const</span> status = <span class="n">getInitializationStatus</span>()
+  <span class="c">// pending 或 not-started 时延迟</span>
+  <span class="k">return</span> status.status === <span class="s">'pending'</span> || status.status === <span class="s">'not-started'</span>
+}</code></pre>
+<h3>1.1 它解决什么</h3>
+<p>LSP（Language Server Protocol）工具依赖一个<strong>异步初始化</strong>的语言服务器。服务器还没起来时，把 LSP 工具完整塞进 API 请求是没意义的——模型可能调用一个此刻还不能工作的工具。于是这些工具先以 <code>defer_loading: true</code> 出现（延迟工具），等初始化完成再"转正"。</p>
+<h3>1.2 两道判断</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>判断</th><th>含义</th></tr>
+<tr><td><code>!('isLsp' in tool) || !tool.isLsp</code></td><td>不是 LSP 工具 → 不延迟（直接 <code>false</code>）</td></tr>
+<tr><td><code>status === 'pending' || 'not-started'</code></td><td>是 LSP 工具且初始化<strong>未完成</strong> → 延迟</td></tr>
+</table>
+</div>
+<p>只有"是 LSP 工具"<strong>且</strong>"初始化还没好"两个条件同时成立才返回 <code>true</code>。一旦 LSP 初始化进入 <code>ready</code>（或其它已完成状态），这个函数对同一个工具就返回 <code>false</code>，工具随即作为常规工具进入请求。</p>
+<div class="callout blue">它和 <code>queryModel</code> 的 <code>[4]search-tools</code> / <code>[8]system-prompt-and-cache-break</code> 一节配合：延迟工具不进 schema、从缓存检测哈希里排除，等就绪后再注入——既保护 prompt 缓存键稳定，又不让模型调用"半成品"工具。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、<code>getPreviousRequestIdFromMessages</code> —— 反向找上一条 requestId</h2>
+<pre><code><span class="k">function</span> <span class="n">getPreviousRequestIdFromMessages</span>(messages: Message[]): <span class="t">string</span> | <span class="k">undefined</span> {
+  <span class="k">for</span> (<span class="k">let</span> i = messages.length - <span class="num">1</span>; i &gt;= <span class="num">0</span>; i--) {
+    <span class="k">const</span> msg = messages[i]!
+    <span class="k">if</span> (msg.type === <span class="s">'assistant'</span> &amp;&amp; msg.requestId) {
+      <span class="k">return</span> msg.requestId <span class="k">as</span> <span class="t">string</span>
+    }
+  }
+  <span class="k">return</span> <span class="k">undefined</span>
+}</code></pre>
+<h3>2.1 用途：把连续请求串起来</h3>
+<p>每次 API 响应都带一个 <code>requestId</code>。把"上一次的 requestId"附到"这一次的请求"上，Anthropic 后端就能把同一会话的连续请求<strong>关联</strong>起来，用于：</p>
+<ul>
+<li><strong>缓存命中率分析</strong>：连续请求共享前缀，关联后能算出缓存到底省了多少。</li>
+<li><strong>增量 token 跟踪</strong>：每轮新增多少 token，需要知道"上一轮是谁"。</li>
+</ul>
+<h3>2.2 为什么从消息数组推导，而不是读全局 state</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>好处</th><th>解释</th></tr>
+<tr><td>各查询链独立</td><td>主线程、子 agent、队友各自有自己的消息数组 → 各自追踪自己的请求链，互不串味</td></tr>
+<tr><td>回滚/撤销自然生效</td><td>用户撤销几条消息后，数组变短，反向扫描自然找到"撤销后"的那条 requestId，无需手动维护全局值</td></tr>
+</table>
+</div>
+<div class="callout purple">全局可变状态在并发的多 agent 场景下极易串台。"从不可变的输入数组里现算"是更健壮的做法——<strong>数据在哪，真相就在哪</strong>。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、<code>stripExcessMediaItems</code> —— 媒体项裁剪（先删最旧）</h2>
+<pre><code><span class="k">export function</span> <span class="n">stripExcessMediaItems</span>(messages, limit) {
+  <span class="c">// 1) 数一共有多少媒体项（图片 + 文档），含 tool_result 里嵌套的</span>
+  <span class="k">let</span> toRemove = <span class="num">0</span>
+  <span class="k">for</span> (<span class="k">const</span> msg <span class="k">of</span> messages) { <span class="c">/* 累加 isMedia 命中 */</span> }
+  toRemove -= limit
+  <span class="k">if</span> (toRemove &lt;= <span class="num">0</span>) <span class="k">return</span> messages          <span class="c">// 没超限：原样返回</span>
+
+  <span class="c">// 2) 从最旧开始删，删够 toRemove 个就停</span>
+  <span class="k">return</span> messages.map(msg =&gt; { <span class="c">/* 优先删 tool_result 嵌套媒体，再删顶层媒体 */</span> })
+}</code></pre>
+<h3>3.1 解决什么</h3>
+<p>图片和文档在上下文里<strong>特别占 token</strong>。一段长对话如果塞了几十张截图，很容易把上下文撑爆。<code>stripExcessMediaItems</code> 给媒体项设一个上限 <code>limit</code>，超了就裁。</p>
+<h3>3.2 两个类型守卫</h3>
+<pre><code><span class="k">function</span> <span class="n">isMedia</span>(block): block <span class="k">is</span> BetaImageBlockParam | BetaRequestDocumentBlock {
+  <span class="k">return</span> block.type === <span class="s">'image'</span> || block.type === <span class="s">'document'</span>
+}
+<span class="k">function</span> <span class="n">isToolResult</span>(block): block <span class="k">is</span> BetaToolResultBlockParam {
+  <span class="k">return</span> block.type === <span class="s">'tool_result'</span>
+}</code></pre>
+<p>媒体不只出现在消息顶层，还会嵌在 <code>tool_result</code> 的 <code>content</code> 里（比如一个截图工具返回的图片）。所以计数和裁剪都要<strong>下钻一层</strong>到 tool_result 内部。</p>
+<h3>3.3 "先删最旧"的策略</h3>
+<div class="mermaid-box">统计全部媒体数 N（含 tool_result 嵌套）
+   └─ N > limit?
+        ├─ 否 ─▶ 原样返回，零拷贝
+        └─ 是 ─▶ toRemove = N - limit
+                  └─ 从最旧消息开始遍历
+                       ├─ 优先删 tool_result 嵌套媒体
+                       ├─ 再删顶层媒体
+                       └─ 删够 toRemove 个就停，保留最新的</div>
+<p>裁剪<strong>保留最新的媒体</strong>——因为最近的截图/文档通常和当前任务最相关，最旧的往往已经聊过去了。<code>toRemove</code> 是个递减计数器，删够数量立即停手，不会误伤新媒体。</p>
+<h3>3.4 不可变与短路优化</h3>
+<ul>
+<li><strong>没超限就原样返回</strong>（<code>if (toRemove &lt;= 0) return messages</code>）：绝大多数对话不会超限，这条早退避免任何拷贝。</li>
+<li><strong><code>map</code> 里逐 block 判断</strong>：只有真正需要删的 block 才重建对象（<code>{ ...block, content: filtered }</code>），其余原样保留引用——尽量少制造新对象。</li>
+<li>末尾用 <code>before === toRemove</code> 判断"这条消息有没有被改过"，没改过就返回原 <code>msg</code> 引用，进一步减少不必要的对象创建。</li>
+</ul>
+</section>
+
+<section id="sec-4">
+<h2>四、三个 helper 的共性</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>helper</th><th>输入</th><th>输出</th><th>副作用</th><th>关键设计</th></tr>
+<tr><td><code>shouldDeferLspTool</code></td><td>单个 tool</td><td>bool</td><td>无</td><td>两道与门，未就绪才延迟</td></tr>
+<tr><td><code>getPreviousRequestIdFromMessages</code></td><td>messages</td><td>requestId?</td><td>无</td><td>从输入数组现算，不读全局</td></tr>
+<tr><td><code>stripExcessMediaItems</code></td><td>messages + limit</td><td>messages</td><td>无</td><td>先删最旧、超限才动、尽量不拷贝</td></tr>
+</table>
+</div>
+<div class="callout green">三者都是<strong>纯函数</strong>：给定输入必得相同输出，没有网络/IO/全局可变状态。这让它们好测、好复用，也是 <code>[3]</code> 的 VCR 测试能稳定的前提之一——纯逻辑天然确定性，不需要 mock。</div>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>shouldDeferLspTool</code></td><td><code>claude.ts:1060</code></td></tr>
+<tr><td><code>getPreviousRequestIdFromMessages</code></td><td><code>claude.ts:1205</code></td></tr>
+<tr><td><code>isMedia</code> / <code>isToolResult</code> 类型守卫</td><td><code>claude.ts:1217-1227</code></td></tr>
+<tr><td><code>stripExcessMediaItems</code></td><td><code>claude.ts:1233</code></td></tr>
+<tr><td><code>lastAnnouncedDeferredTools</code>（延迟工具注入去重 Set）</td><td><code>claude.ts:1301</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong><code>shouldDeferLspTool</code></strong>：是 LSP 工具 + 初始化未完成（pending/not-started）才延迟，否则不延迟。</li>
+<li><strong><code>getPreviousRequestIdFromMessages</code></strong>：反向扫描找上一条 assistant 的 requestId，做缓存/增量关联；从消息数组现算，各查询链独立、回滚自然生效。</li>
+<li><strong><code>stripExcessMediaItems</code></strong>：图片/文档超 <code>limit</code> 才裁，先删最旧、保留最新；下钻 tool_result 嵌套；不超限零拷贝。</li>
+<li><strong>三者皆纯函数</strong>：无副作用、确定性，好测好复用。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

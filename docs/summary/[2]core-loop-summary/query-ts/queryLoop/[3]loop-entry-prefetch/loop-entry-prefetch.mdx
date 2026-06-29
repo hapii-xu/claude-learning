@@ -1,0 +1,88 @@
+---
+title: "[3] 循环入口与预取"
+description: 一次迭代开头的准备工作 —— using 声明的每轮一次内存预取（dispose 语义）、迭代开头对 state 的解构、并行启动的 skill/tool 发现预取（隐藏在流式输出与工具执行期间）、stream_request_start 事件与 queryCheckpoint、以及 queryTracking 查询链路（chainId 继承 + depth+1）（src/query.ts:628-712）。
+---
+
+# [3] 循环入口与预取
+
+> `while(true)` 进入后、真正预处理消息之前，有一段"启动准备"：声明每轮一次的内存预取、解构 state、并行启动 skill/tool 发现预取、初始化查询链追踪。这些**并行任务被故意放在最前面**，好让它们的耗时隐藏在后面 5–30s 的模型流式输出之下。
+
+---
+
+## 一、内存预取：每轮一次的 using 声明
+
+```ts
+using pendingMemoryPrefetch = startRelevantMemoryPrefetch(state.messages, state.toolUseContext)
+```
+
+注意它在 **`while` 之外**（每个用户轮次触发一次）：
+- prompt 在循环迭代之间不变，**每次迭代都触发会让 sideQuery 重复问 N 次相同问题**。
+- `using` 关键字：在所有 generator 退出路径上都会自动 `dispose`（含 telemetry）。
+- 消费点（[15]）轮询 `settledAt`，**永不阻塞**——预取在回合内有多少次迭代就有多少次被消费的机会。
+
+---
+
+## 二、迭代开头：解构 state
+
+```ts
+while (true) {
+  let { toolUseContext } = state           // ← 只有它会在迭代中被重新赋值
+  const { messages, autoCompactTracking, maxOutputTokensRecoveryCount,
+          hasAttemptedReactiveCompact, maxOutputTokensOverride,
+          pendingToolUseSummary, stopHookActive, turnCount } = state
+```
+
+`toolUseContext` 用 `let`（queryTracking、messages 会更新），其余字段在续轮点之间**只读**。这样循环体内读取时用裸名（`messages`、`turnCount`），代码干净。
+
+---
+
+## 三、并行启动 skill / tool 发现预取
+
+```ts
+const pendingSkillPrefetch = skillPrefetch?.startSkillDiscoveryPrefetch(null, messages, toolUseContext)
+const pendingToolPrefetch  = searchExtraToolsPrefetch?.startSearchExtraToolsPrefetch(
+  toolUseContext.options.tools ?? [], messages)
+```
+
+- **按迭代执行**（用 `findWritePivot` 守卫，非写入迭代提前返回）。
+- 发现在**模型流式输出 + 工具执行期间并行跑**，工具完成后（[15]）与 memory 预取一起消费。
+- 取代了原先 `getAttachmentMessages` 内的阻塞式 `assistant_turn` 路径（生产环境 97% 调用一无所获，却阻塞主流程）。
+- Turn-0 的用户输入发现仍在 `userInputAttachments` 中阻塞——那是唯一一个"没有先前工作可以隐藏在下面"的信号。
+
+---
+
+## 四、发出 stream_request_start + 检查点
+
+```ts
+yield { type: 'stream_request_start' }
+queryCheckpoint('query_fn_entry')
+if (!toolUseContext.agentId) headlessProfilerCheckpoint('query_started')   // 子 agent 跳过
+```
+
+`yield { type: 'stream_request_start' }` 通知 UI"新一轮请求要开始了"（清屏/显示 spinner 等）。`queryCheckpoint` / `headlessProfilerCheckpoint` 是性能埋点。
+
+---
+
+## 五、queryTracking：查询链路追踪
+
+```ts
+const queryTracking = toolUseContext.queryTracking
+  ? { chainId: toolUseContext.queryTracking.chainId, depth: toolUseContext.queryTracking.depth + 1 }
+  : { chainId: deps.uuid(), depth: 0 }
+
+toolUseContext = { ...toolUseContext, queryTracking }
+```
+
+- **首次**：新建 `chainId`（UUID），`depth = 0`。
+- **续轮/子 agent**：**继承** `chainId`，`depth + 1`。
+
+`chainId` 把一整条对话链（含子 agent 递归）串成一棵树，`depth` 标记递归深度。两者作为 analytics metadata 贯穿后续所有 `logEvent`（如 `tengu_auto_compact_succeeded` 都带 `queryChainId` / `queryDepth`），用于还原"哪次压缩/降级发生在链路的哪个位置"。
+
+> 注意 `queryChainIdForAnalytics` 用了一个长类型别名 `AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS`——这是埋点系统对"确认不含代码/路径的字符串"的强制标注。
+
+---
+
+## 速记口诀
+- **内存预取在 while 外**：每用户轮一次，`using` 保证 dispose，消费端永不阻塞。
+- **skill/tool 预取在 while 内**：并行启动，耗时藏在流式输出下，回合末消费。
+- **queryTracking**：chainId 继承、depth+1，串起整条链路供埋点归属。

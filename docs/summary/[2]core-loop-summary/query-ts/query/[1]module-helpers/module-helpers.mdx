@@ -1,0 +1,114 @@
+---
+title: "[1] 模块级辅助：扣留判定与结局反推"
+description: query() 之前的模块作用域里有两个为它服务的纯函数与一个常量 —— MAX_OUTPUT_TOKENS_RECOVERY_LIMIT（续写恢复上限）、isWithheldMaxOutputTokens（判定 max_output_tokens 错误是否应对 SDK 调用方扣留，避免中间态错误泄漏让 cowork/desktop 提前终止会话）、getAutonomyTurnOutcome（用 terminal.reason / thrownError 把本回合反推成 completed / cancelled / failed，喂给 finally 的 autonomy 收尾）。本节逐一拆解（src/query.ts:214-282）。
+---
+
+# [1] 模块级辅助：扣留判定与结局反推
+
+> 在 `query()` 函数定义之前，模块作用域里有几样**专为它服务**的小东西：一个常量 + 两个纯函数。它们体量小，却分别对应两条重要语义——**错误扣留**（不要把中间态错误泄漏给 SDK 调用方）和**结局反推**（把终止原因翻译成自动模式能理解的「成败」）。（`src/query.ts:214-282`）
+
+---
+
+## 一、常量 `MAX_OUTPUT_TOKENS_RECOVERY_LIMIT`
+
+```ts
+const MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3   // query.ts:214
+```
+
+- 当模型一次回复**写满了 max_output_tokens 上限**（输出被截断）时，循环会注入一条「请继续」的 meta 消息让模型续写。
+- 这个常量是**续写恢复的次数上限**（最多 3 次），防止模型陷入「写满→续写→又写满」的无限螺旋。
+- 它定义在模块级、被 `queryLoop` 的恢复逻辑读取。本系列只在此**建立概念**；具体的升级/续写流程在姊妹文档 [`queryLoop/[12]termination-recovery`](../../queryLoop/[12]termination-recovery/termination-recovery.mdx) 详解。
+
+---
+
+## 二、`isWithheldMaxOutputTokens(msg)` —— 错误扣留判定
+
+```ts
+function isWithheldMaxOutputTokens(
+  msg: Message | StreamEvent | undefined,
+): msg is AssistantMessage {
+  return msg?.type === 'assistant' && msg.apiError === 'max_output_tokens'
+}
+```
+
+这是一个**类型守卫**（`msg is AssistantMessage`），判定「这条消息是不是一个 max_output_tokens 错误消息」。
+
+### 2.1 为什么要「扣留」
+
+如果是 max_output_tokens 错误，流式循环应当对 **SDK 调用方扣留它**，直到我们知道恢复循环能否继续。
+
+> **核心风险**：提前 `yield` 会让**中间态错误**泄漏给 SDK 调用方（例如 cowork / desktop），它们一遇到任何 `error` 字段就**终止会话**——可恢复循环其实还在跑，只是没人监听了。
+
+所以「扣留」= 先按住这条错误消息不 `yield`，等恢复循环跑完：
+- 能续写成功 → 这条错误根本不该让调用方看到。
+- 续写也救不回来 → 那时才把真正的失败暴露出去。
+
+### 2.2 它的「姊妹判定」
+
+源码注释点明：本函数对应 `reactiveCompact.isWithheldPromptTooLong`——后者扣留的是 413 / prompt_too_long 错误。两者是**同一套「扣留机制」的两个分支**：
+
+| 扣留判定 | 扣留的错误 | 恢复手段 |
+|---|---|---|
+| `isWithheldMaxOutputTokens` | `max_output_tokens`（输出截断） | 注入续写 meta 消息 |
+| `reactiveCompact.isWithheldPromptTooLong` | `prompt_too_long`（413 超窗） | 反应式压缩 / collapse |
+
+> 这条暗线（扣留四源：collapse 413 / reactive 413 / media / max-output-tokens）在 `queryLoop` 里展开。本节只需记住：**扣留 = 错误先按住不外泄，给恢复循环一个机会**。
+
+---
+
+## 三、`getAutonomyTurnOutcome(params)` —— 结局反推
+
+```ts
+function getAutonomyTurnOutcome(params: {
+  terminal?: Terminal
+  thrownError?: unknown
+}): AutonomyTurnOutcome
+```
+
+它把「本回合是怎么结束的」翻译成自动模式（autonomy）能消费的**三态结局**：`completed` / `cancelled` / `failed`。`query()` 的 `finally` 块会调它（见 `[5]`），用结果决定下一步注入什么命令。
+
+### 3.1 反推规则全表
+
+输入有两个来源：正常结束给 `terminal`，异常结束给 `thrownError`。优先看 `thrownError`：
+
+```ts
+if (params.thrownError !== undefined) {
+  outcome = { type: 'failed', error: params.thrownError }   // 抛错 = 失败
+} else {
+  switch (params.terminal?.reason) {
+    case 'completed':                              // 正常完成
+      outcome = { type: 'completed' }; break
+    case undefined:
+    case 'aborted_streaming':                      // 流式期间被中断
+    case 'aborted_tools':                          // 工具执行期间被中断
+      outcome = { type: 'cancelled' }; break
+    case 'model_error':                            // 模型错误（携带 error）
+      outcome = { type: 'failed', error: terminal.error }; break
+    default:                                       // 其余终止原因
+      outcome = { type: 'failed',
+        message: `query ended without successful completion: ${reason}` }
+  }
+}
+```
+
+| terminal.reason / 输入 | 反推结局 | 含义 |
+|---|---|---|
+| `thrownError` 存在 | `failed`（带 error） | 抛错优先，直接判失败 |
+| `completed` | `completed` | 唯一的「成功」结局 |
+| `undefined` | `cancelled` | 没有终止对象（提前关闭等） |
+| `aborted_streaming` | `cancelled` | 流式期间用户中断 |
+| `aborted_tools` | `cancelled` | 工具执行期间用户中断 |
+| `model_error` | `failed`（带 error） | 模型层错误，附带真实 error |
+| 其余（`blocking_limit` / `prompt_too_long` / `max_turns` / `stop_hook_prevented` …） | `failed`（带 message） | 未成功完成，附带原因文本 |
+
+### 3.2 三态的设计意图
+
+> **为什么要区分 cancelled 和 failed**：自动模式据此决定「下一步」。`cancelled`（用户主动中断）通常意味着「停下，别自动推进」；`failed`（真错误）可能触发重试或错误上报；`completed` 才继续链式推进下一条命令。把这层语义判断收敛进一个纯函数，`finally` 才能保持简洁。
+
+---
+
+## 速记口诀
+
+- **常量**：`MAX_OUTPUT_TOKENS_RECOVERY_LIMIT = 3`，续写恢复最多 3 次，防无限螺旋。
+- **扣留**：`isWithheldMaxOutputTokens` = max_output_tokens 错误先按住不 yield，避免中间态错误让 SDK 调用方误终止；对应 `isWithheldPromptTooLong`（413）。
+- **反推**：`getAutonomyTurnOutcome` = 把 terminal/thrownError 翻成 completed / cancelled / failed；只有 `completed` 算成功，两种 `aborted_*` 算 cancelled，其余算 failed。

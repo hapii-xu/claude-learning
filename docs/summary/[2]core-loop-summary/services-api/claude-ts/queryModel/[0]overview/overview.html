@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>queryModel 方法总览</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 0 节</div>
+  <h1>queryModel 方法总览</h1>
+  <p class="hero-sub">queryModel 是 Claude Code 整条 API 传输管线的"最后一公里"—— 把一次性准备好的 messages/systemPrompt/tools 真正发给 Anthropic 流式端点，并把 SSE 事件翻译回内部消息类型。本文给出方法签名、它在 query 链中的位置、yield 的三类值、以及从上到下的"阶段地图"，作为 [1]~[16] 各分节文档的总索引（src/services/api/claude.ts:1303-3403）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1303-3403</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、它在调用链里的位置</a></li>
+    <li><a href="#sec-2">二、方法签名拆解</a></li>
+    <li><a href="#sec-3">三、⭐ 从上到下的阶段地图</a></li>
+    <li><a href="#sec-4">四、贯穿全程的几条"暗线"</a></li>
+    <li><a href="#sec-5">五、阅读建议</a></li>
+    <li><a href="#sec-6">六、关键行号书签</a></li>
+    <li><a href="#sec-7">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue"><code>queryModel()</code> 是 <code>src/services/api/claude.ts</code> 里最长、最核心的一个函数（约 <strong>2100 行</strong>，<code>claude.ts:1303-3403</code>）。它是 Claude Code 调用大模型的<strong>最底层传输函数</strong>——上层把消息、系统提示、工具都准备好后，由它负责"真正把请求发出去、把流式响应收回来、出错了怎么降级/重试"。<br/><br/>本系列文档把这 2100 行按<strong>代码从上到下的执行顺序</strong>切成 16 个小节（<code>[0]</code>~<code>[16]</code>），每节单独一个文件深入讲解。本文是<strong>总索引 + 阶段地图</strong>，先建立全局认知，再逐节深入。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、它在调用链里的位置</h2>
+<p><code>queryModel</code> 不是最外层入口，它被两个"包装函数"调用：</p>
+<pre><code>QueryEngine / query.ts （对话回合循环）
+        │
+        ▼
+queryModelWithStreaming()      ← claude.ts:1022  流式入口（REPL 用）
+queryModelWithoutStreaming()   ← claude.ts:963   非流式入口（compact/分析等用）
+        │  两者都 yield* 委托给
+        ▼
+queryModel()                   ← claude.ts:1303  ★本系列的主角
+        │  真正调用
+        ▼
+anthropic.beta.messages.create({ ...params, stream: true })</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>层</th><th>职责</th><th>文件</th></tr>
+<tr><td><code>query.ts</code></td><td>一个 user 回合内的"发请求 → 跑工具 → 再发请求"循环</td><td><code>src/query.ts</code></td></tr>
+<tr><td><code>queryModelWith(out)Streaming</code></td><td>薄包装，做日志和 abort 早退判断</td><td><code>claude.ts:963 / 1022</code></td></tr>
+<tr><td><strong><code>queryModel</code></strong></td><td><strong>构建请求体 + 发送 + 流式解析 + 错误降级</strong></td><td><code>claude.ts:1303</code></td></tr>
+<tr><td>Anthropic SDK</td><td>HTTP/SSE 传输</td><td><code>@anthropic-ai/sdk</code></td></tr>
+</table>
+</div>
+<div class="callout blue">一句话定位：<strong><code>queryModel</code> = "把一次 LLM 请求从参数变成消息流"的全过程</strong>。它上面是"对话逻辑"，下面是"网络传输"。</div>
+<div class="callout purple">🔗 <strong>交叉引用</strong>：上面那两个"薄包装"入口（<code>queryModelWithStreaming</code> / <code>queryModelWithoutStreaming</code>）以及它们共享的 VCR 录放层、非流式降级引擎 <code>executeNonStreamingRequest</code>、一圈周边 helper，单独拆在姊妹系列 <a href="../../queryModelWrappers/[0]overview/overview.html"><code>queryModelWrappers/</code></a> 里详解。本系列只讲 <code>queryModel</code> 本体。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、方法签名拆解</h2>
+<pre><code>async function* queryModel(
+  messages: Message[],          // 完整对话历史（已在上层组装好）
+  systemPrompt: SystemPrompt,   // 系统提示（字符串数组）
+  thinkingConfig: ThinkingConfig, // 思考预算配置
+  tools: Tools,                 // 全量工具列表（含延迟工具）
+  signal: AbortSignal,          // 用户中止信号（ESC 键）
+  options: Options,             // 模型、querySource、回调等一大包配置
+): AsyncGenerator&lt;
+  StreamEvent | AssistantMessage | SystemAPIErrorMessage,  // ← yield 的三类值
+  void
+&gt;</code></pre>
+<h3>2.1 为什么是 <code>async function*</code>（异步生成器）</h3>
+<p>返回 <code>AsyncGenerator</code> 而不是 <code>Promise</code>，是因为<strong>流式响应本质是"边到边吐"</strong>：</p>
+<ul>
+<li>模型每生成一段 token，就 <code>yield</code> 一次，UI 立刻渲染——用户看到逐字打字效果。</li>
+<li>调用方用 <code>for await (const x of queryModel(...))</code> 消费，<strong>不必等整条回复生成完</strong>。</li>
+<li>生成器天然支持<strong>提前终止</strong>：消费者跳出 <code>for await</code>（或调 <code>.return()</code>），<code>queryModel</code> 内部的 <code>finally</code> 会触发资源清理（见 <code>[16]</code>）。</li>
+</ul>
+<h3>2.2 yield 出去的三类值（关键）</h3>
+<p>消费方会收到三种东西，必须分别处理：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>类型</th><th>含义</th><th>何时 yield</th></tr>
+<tr><td><strong><code>StreamEvent</code></strong></td><td>原始 SSE 事件（<code>{ type: 'stream_event', event }</code>）</td><td>每个 chunk 都吐一次，驱动实时 UI（<code>claude.ts:2770</code>）</td></tr>
+<tr><td><strong><code>AssistantMessage</code></strong></td><td>累积好的完整内容块（一段 text / 一个 tool_use / 一段 thinking）</td><td><code>content_block_stop</code> 时（<code>claude.ts:2643</code>）</td></tr>
+<tr><td><strong><code>SystemAPIErrorMessage</code></strong></td><td>API 错误（限流、超 max_tokens、拒答等）</td><td>出错或异常停止时</td></tr>
+</table>
+</div>
+<div class="callout"><strong>类比</strong>：StreamEvent 像电视的"逐帧信号"，AssistantMessage 像"录好的完整片段"。同一段内容会既有逐帧信号、又在结束时给一个完整片段——上层据此既能实时渲染，又能拿到结构化结果存档。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、⭐ 从上到下的阶段地图</h2>
+<p>把 2100 行按执行顺序分成 <strong>6 大阶段</strong>，每个阶段又细分为本系列的小节文件：</p>
+<div class="mermaid">graph TD
+    A["① 前置准备&lt;br/&gt;1303-1672"] --&gt; B["② Provider 分流&lt;br/&gt;1621-1662"]
+    B --&gt; C["③ 请求体构建&lt;br/&gt;1674-2135"]
+    C --&gt; D["④ 发送 + 流式接收&lt;br/&gt;2153-2882"]
+    D --&gt; E["⑤ 错误处理 / 降级&lt;br/&gt;2883-3290"]
+    E --&gt; F["⑥ finally + 收尾&lt;br/&gt;3291-3402"]
+
+    style A fill:#ffe0cc,stroke:#d77757
+    style C fill:#dde0fe,stroke:#5769f7
+    style D fill:#d2f0e3,stroke:#22a766
+    style E fill:#fde0e0,stroke:#e05757</div>
+<h3>阶段 ① 前置准备（1303-1672）</h3>
+<p>请求发出去<strong>之前</strong>的所有计算。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[1]off-switch</code></td><td>Opus 应急容量关闭开关</td><td>1324-1342</td></tr>
+<tr><td><code>[2]previous-request-id</code></td><td>previousRequestId 推导 + bedrock 模型解析</td><td>1347-1354</td></tr>
+<tr><td><code>[3]betas-and-advisor</code></td><td>isAgenticQuery、betas 合并、advisor 模型解析</td><td>1356-1406</td></tr>
+<tr><td><code>[4]search-tools</code>（已存在）</td><td>工具延迟加载 / 过滤</td><td>1408-1561</td></tr>
+<tr><td><code>[5]cache-and-tool-schemas</code></td><td>cachedMC 闸门、全局缓存、toolSchemas 构建</td><td>1480-1563</td></tr>
+<tr><td><code>[6]message-normalization</code></td><td>消息归一化、后处理、指纹</td><td>1565-1672</td></tr>
+</table>
+</div>
+<h3>阶段 ② Provider 分流（1621-1662）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[7]provider-routing</code></td><td>OpenAI / Gemini / Grok 兼容层提前 return</td><td>1621-1662</td></tr>
+</table>
+</div>
+<h3>阶段 ③ 请求体构建（1674-2135）</h3>
+<p>把所有材料拼成最终 API 请求参数。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[8]system-prompt-and-cache-break</code></td><td>延迟工具注入、system prompt 组装、break-cache nonce</td><td>1674-1762</td></tr>
+<tr><td><code>[9]beta-latching</code></td><td>beta 头粘性锁存、缓存打破检测、llmSpan</td><td>1781-1871</td></tr>
+<tr><td><code>[10]params-from-context</code></td><td>paramsFromContext 闭包（thinking/temperature/cache breakpoints）</td><td>1906-2135</td></tr>
+</table>
+</div>
+<h3>阶段 ④ 发送 + 流式接收（2153-2882）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[11]send-request</code></td><td>withRetry、客户端创建、发起流式请求</td><td>2137-2233</td></tr>
+<tr><td><code>[12]stream-watchdog</code></td><td>空闲超时看门狗 + stall 检测</td><td>2245-2305</td></tr>
+<tr><td><code>[13]stream-events</code></td><td>流事件处理大循环（核心）</td><td>2307-2775</td></tr>
+<tr><td><code>[14]post-stream-validation</code></td><td>流后校验、空响应降级判定、配额头</td><td>2776-2882</td></tr>
+</table>
+</div>
+<h3>阶段 ⑤ 错误处理 / 降级（2883-3290）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[15]error-fallback</code></td><td>流式错误→非流式降级、404 降级、外层 catch</td><td>2883-3290</td></tr>
+</table>
+</div>
+<h3>阶段 ⑥ finally + 收尾（3291-3402）</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>小节文件</th><th>内容</th><th>行号</th></tr>
+<tr><td><code>[16]finally-and-teardown</code></td><td>资源释放、降级成本、langfuse、成功日志</td><td>3291-3402</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-4">
+<h2>四、贯穿全程的几条"暗线"</h2>
+<p>读 queryModel 时有几个反复出现的主题，理解它们能让 16 个小节串起来：</p>
+<h3>4.1 暗线 A：Prompt 缓存保护</h3>
+<p>Anthropic 的 prompt 缓存按<strong>前缀精确匹配</strong>，请求体里任何"早出现"的东西一变，缓存就失效、要重新付全价（一次对话可能涉及 5-7 万 token）。所以 queryModel 里有大量代码专门为"<strong>别让缓存键抖动</strong>"服务：</p>
+<ul>
+<li>工具数组保持稳定（<code>[4]</code>）</li>
+<li>beta 头一旦发送就<strong>粘性锁存</strong>，会话中途切换不改缓存键（<code>[9]</code>）</li>
+<li>defer_loading 工具从缓存检测哈希里排除（<code>[9]</code>）</li>
+<li>全局缓存作用域（<code>[5]</code>）</li>
+</ul>
+<h3>4.2 暗线 B：内存泄漏防护</h3>
+<p><code>Response</code> 对象持有 V8 堆外的 TLS/socket 缓冲区（GH #32920）。queryModel 反复强调 <code>releaseStreamResources()</code> 必须在 <code>finally</code> 里调用，因为生成器可能被 <code>.return()</code> 提前终止（<code>[11]</code> <code>[16]</code>）。</p>
+<h3>4.3 暗线 C：多层降级</h3>
+<p>一次请求失败有多条退路，层层兜底（<code>[15]</code>）：</p>
+<pre><code>流式请求
+ ├─ 用户 ESC          → 直接抛 APIUserAbortError
+ ├─ SDK 超时          → APIConnectionTimeoutError
+ ├─ 空闲看门狗触发     → throw → 非流式降级
+ ├─ 流中途出错        → 非流式降级（除非 flag 禁用）
+ ├─ 404 流端点        → 非流式降级
+ └─ withRetry 耗尽    → FallbackTriggeredError → 上抛给 query.ts 切模型</code></pre>
+<h3>4.4 暗线 D：闭包捕获与性能</h3>
+<p><code>paramsFromContext</code> 是个会被多次调用的闭包（日志、重试各调一次），代码刻意把<strong>标量预算出来</strong>传给 <code>.then()</code>，避免闭包 pin 住整个 <code>messagesForAPI</code>/<code>system</code>/<code>allTools</code>（<code>[10]</code> <code>[16]</code>）。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、阅读建议</h2>
+<ol>
+<li><strong>先读本文</strong>建立全局阶段地图。</li>
+<li><strong>新手路线</strong>：<code>[1]→[3]→[6]→[10]→[11]→[13]</code> 走主干（off-switch、betas、归一化、参数构建、发送、流处理），能完整理解一次正常请求的生命周期。</li>
+<li><strong>进阶路线</strong>：补 <code>[4][5][8][9]</code>（缓存与工具）、<code>[12][14][15][16]</code>（健壮性与降级）。</li>
+<li>每个小节文档结尾都有<strong>行号书签</strong>和<strong>速记口诀</strong>，便于回查。</li>
+</ol>
+</section>
+
+<section id="sec-6">
+<h2>六、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>queryModel</code> 函数定义</td><td><code>claude.ts:1303</code></td></tr>
+<tr><td>流式入口 <code>queryModelWithStreaming</code></td><td><code>claude.ts:1022</code></td></tr>
+<tr><td>非流式入口 <code>queryModelWithoutStreaming</code></td><td><code>claude.ts:963</code></td></tr>
+<tr><td>Provider 分流（OpenAI/Gemini/Grok）</td><td><code>claude.ts:1624 / 1639 / 1652</code></td></tr>
+<tr><td><code>paramsFromContext</code> 闭包</td><td><code>claude.ts:1906</code></td></tr>
+<tr><td>发起流式请求 <code>.create({stream:true})</code></td><td><code>claude.ts:2198</code></td></tr>
+<tr><td>流事件大循环 <code>for await (part of stream)</code></td><td><code>claude.ts:2322</code></td></tr>
+<tr><td>流式错误 catch</td><td><code>claude.ts:2883</code></td></tr>
+<tr><td>外层 catch（404/FallbackTriggered）</td><td><code>claude.ts:3080</code></td></tr>
+<tr><td>finally（资源释放）</td><td><code>claude.ts:3291</code></td></tr>
+<tr><td>函数结束</td><td><code>claude.ts:3403</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-7">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>一句话</strong>：queryModel = 把一次 LLM 请求从参数变成消息流的全过程。</li>
+<li><strong>三类 yield</strong>：StreamEvent（逐帧）· AssistantMessage（完整块）· SystemAPIErrorMessage（错误）。</li>
+<li><strong>六阶段</strong>：前置准备 → Provider 分流 → 请求构建 → 发送/流接收 → 错误降级 → finally 收尾。</li>
+<li><strong>四暗线</strong>：缓存保护 · 内存防漏 · 多层降级 · 闭包防 pin。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

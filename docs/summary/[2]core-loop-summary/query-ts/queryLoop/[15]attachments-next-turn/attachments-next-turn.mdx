@@ -1,0 +1,125 @@
+---
+title: "[15] 附件注入与续轮闭环"
+description: 一次迭代的收尾 —— 排队命令快照与认领（getCommandsByMaxPriority、sleepRan、isMainThread、agent 作用域、slash 命令排除、claimConsumableQueuedAutonomyCommands）、getAttachmentMessages 注入、memory/skill/tool 预取三连消费、refreshTools 让新 MCP 可用、BG_SESSIONS 周期任务摘要、max_turns 终止，以及 next_turn 的 state 整体替换与 while 闭环（src/query.ts:2228-2457）。
+---
+
+# [15] 附件注入与续轮闭环
+
+> 工具跑完、没被中断、hook 放行。最后一段把"排队命令 + 预取发现 + 文件变更"拼成附件追加到 `toolResults`，然后构造下一轮 `state` 完成 `while` 闭环。这是 [3] 启动的预取的**消费点**。
+
+---
+
+## 一、为什么附件要在工具之后处理
+
+> API 会报错，如果交错 `tool_result` 消息和普通 `user` 消息。所以附件（普通 user 消息）必须等所有 `tool_result` 都生成后再追加。
+
+---
+
+## 二、排队命令快照与认领
+
+```ts
+const sleepRan = toolUseBlocks.some(b => b.name === SLEEP_TOOL_NAME)
+const isMainThread = querySource.startsWith('repl_main_thread') || querySource === 'sdk'
+const queuedCommandsSnapshot = getCommandsByMaxPriority(sleepRan ? 'later' : 'next').filter(cmd => {
+  if (isSlashCommand(cmd)) return false                       // slash 命令走轮次后流程
+  if (isMainThread) return cmd.agentId === undefined
+  return cmd.mode === 'task-notification' && cmd.agentId === currentAgentId
+})
+const queuedAutonomyClaim = await claimConsumableQueuedAutonomyCommands(queuedCommandsSnapshot)
+if (queuedAutonomyClaim.staleCommands.length > 0) removeFromQueue(queuedAutonomyClaim.staleCommands)
+```
+
+| 维度 | 规则 |
+|---|---|
+| 优先级 | `sleepRan` ? `'later'` : `'next'`（Sleep 工具跑过才排空 later 队列） |
+| slash 命令 | **排除**——必须走轮次后的 `processSlashCommand`，不能当文本发给模型 |
+| agent 作用域 | 队列是进程全局单例：主线程排空 `agentId===undefined`；子 agent 只排空自己的 `task-notification`，绝不排空用户 prompt |
+
+认领的 prompt/task-notification 命令记入 `consumedAutonomyCommands` 并 `notifyCommandLifecycle('started')`。
+
+---
+
+## 三、getAttachmentMessages + 预取三连消费
+
+```ts
+for await (const attachment of getAttachmentMessages(null, updatedToolUseContext, null,
+    queuedAutonomyClaim.attachmentCommands, messagesForQuery.concat(assistantMessages, toolResults), querySource)) {
+  yield attachment; toolResults.push(attachment)
+}
+```
+
+随后**消费 [3] 启动的三个预取**（都已在流式+工具期间并行算完）：
+
+```ts
+// 1. memory 预取（仅 settle 且本回合未消费过）
+if (pendingMemoryPrefetch?.settledAt !== null && pendingMemoryPrefetch.consumedOnIteration === -1) {
+  const memoryAttachments = filterDuplicateMemoryAttachments(await pendingMemoryPrefetch.promise, toolUseContext.readFileState)
+  for (const m of memoryAttachments) { const msg = createAttachmentMessage(m); yield msg; toolResults.push(msg) }
+  pendingMemoryPrefetch.consumedOnIteration = turnCount - 1
+}
+// 2. skill 发现预取
+if (skillPrefetch && pendingSkillPrefetch) { /* collectSkillDiscoveryPrefetch → yield + push */ }
+// 3. tool 发现预取
+if (searchExtraToolsPrefetch && pendingToolPrefetch) { /* collectSearchExtraToolsPrefetch → yield + push */ }
+```
+
+> memory 消费用 `readFileState`（跨迭代累计）过滤掉模型已 Read/Wrote/Edited 的记忆——包括早期迭代的，这是 per-iteration `toolUseBlocks` 会漏掉的。未 settle 就跳过（零等待），下次迭代再试。
+
+---
+
+## 四、refreshTools + BG_SESSIONS 任务摘要
+
+```ts
+if (updatedToolUseContext.options.refreshTools) {
+  const refreshedTools = updatedToolUseContext.options.refreshTools()   // 轮次间让新连接的 MCP server 可用
+  if (refreshedTools !== updatedToolUseContext.options.tools) updatedToolUseContext = { ...with new tools }
+}
+
+if (feature('BG_SESSIONS') && !toolUseContext.agentId && taskSummaryModule!.shouldGenerateTaskSummary()) {
+  taskSummaryModule!.maybeGenerateTaskSummary({ ... })   // `claude ps` 的周期性任务摘要
+}
+```
+
+---
+
+## 五、max_turns 终止
+
+```ts
+const nextTurnCount = turnCount + 1
+if (maxTurns && nextTurnCount > maxTurns) {
+  yield createAttachmentMessage({ type: 'max_turns_reached', maxTurns, turnCount: nextTurnCount })
+  return { reason: 'max_turns', turnCount: nextTurnCount }
+}
+```
+
+---
+
+## 六、next_turn：state 整体替换，闭合 while
+
+```ts
+const next: State = {
+  messages: messagesForQuery.concat(assistantMessages, toolResults),   // 拼下一轮历史
+  toolUseContext: toolUseContextWithQueryTracking,
+  autoCompactTracking: tracking,
+  turnCount: nextTurnCount,
+  maxOutputTokensRecoveryCount: 0,        // 重置恢复计数
+  hasAttemptedReactiveCompact: false,     // 重置（新一轮干净开始）
+  pendingToolUseSummary: nextPendingToolUseSummary,   // 传递给下一轮（[11] 消费）
+  maxOutputTokensOverride: undefined,
+  stopHookActive,
+  transition: { reason: 'next_turn' },
+}
+state = next
+// while 回到顶部
+```
+
+这就是 [0] 讲的"单个 state 整体替换"的正常续轮点：把本轮的 assistant 回复 + 工具结果拼进 `messages`，重置恢复相关计数，带上工具摘要 Promise，`transition` 标记 `next_turn`，回到 `while` 顶部开始下一轮。
+
+---
+
+## 速记口诀
+- 附件必须在工具之后（API 不许交错 tool_result 与普通 user 消息）。
+- 排队命令：`sleepRan` 决定优先级、slash 排除、agent 作用域过滤、认领后 `notifyCommandLifecycle('started')`。
+- **预取三连消费**：memory（readFileState 去重）/ skill / tool，[3] 启动、这里收割，零等待。
+- `refreshTools` 让新 MCP 可用；`max_turns` 终止。
+- **next_turn**：`messages` 拼 assistant+toolResults、重置恢复计数、传工具摘要、`state = next` 闭合循环。

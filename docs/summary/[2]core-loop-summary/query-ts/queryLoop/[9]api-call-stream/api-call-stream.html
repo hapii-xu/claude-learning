@@ -1,0 +1,469 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 调用与流式消费 — queryLoop 主干</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* 鈹€鈹€ Hero 鈹€鈹€ */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* 鈹€鈹€ Code 鈹€鈹€ */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* 鈹€鈹€ Callout 鈹€鈹€ */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* 鈹€鈹€ Tables 鈹€鈹€ */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* 鈹€鈹€ Flow card 鈹€鈹€ */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* 鈹€鈹€ Card grid 鈹€鈹€ */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* 鈹€鈹€ Arch layers 鈹€鈹€ */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* 鈹€鈹€ Mode cards 鈹€鈹€ */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* 鈹€鈹€ Mermaid placeholder box 鈹€鈹€ */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 9 节</div>
+  <h1>API 调用 <span>与流式消费</span></h1>
+  <p class="hero-sub"><strong>queryLoop 的主干</strong> —— attemptWithFallback while + <code>deps.callModel</code> 参数装配，流式 for-await 中的 tombstone 清理、<code>backfillObservableInput</code> 克隆 yield（保 prompt 缓存）、withheld 四源扣留、累积置 needsFollowUp、streamingToolExecutor 边流边跑、pendingCacheEdits 延迟边界消息。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>query.ts:1224–1472</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>主干 ★</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>withheld 四源</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>边流边跑工具</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、attemptWithFallback</a></li>
+    <li><a href="#sec-2">二、参数装配</a></li>
+    <li><a href="#sec-3">三、流内五件事</a></li>
+    <li><a href="#sec-4">四、延迟边界消息</a></li>
+  </ul>
+</div>
+<div class="page-wrap">
+<section id="sec-1">
+  <h2>一、外层 while：attemptWithFallback</h2>
+<pre><code><span class="k">let</span> <span class="n">attemptWithFallback</span> <span class="p">=</span> <span class="k">true</span>
+<span class="k">try</span> {
+  <span class="k">while</span> (<span class="n">attemptWithFallback</span>) {
+    <span class="n">attemptWithFallback</span> <span class="p">=</span> <span class="k">false</span>
+    <span class="k">try</span> {
+      <span class="k">let</span> <span class="n">streamingFallbackOccured</span> <span class="p">=</span> <span class="k">false</span>
+      <span class="k">for await</span> (<span class="k">const</span> <span class="n">message</span> <span class="k">of</span> <span class="n">deps</span>.<span class="n">callModel</span>({ ... })) { <span class="c">/* 消费流 */</span> }
+    } <span class="k">catch</span> (<span class="n">innerError</span>) { <span class="c">/* fallback 重试 或 rethrow，见 [10] */</span> }
+  }
+} <span class="k">catch</span> (<span class="n">error</span>) { <span class="c">/* 外层错误处理，见 [10] */</span> }</code></pre>
+  <p><code>attemptWithFallback</code> 是<strong>单次重试开关</strong>：正常只跑一遍；遇 <code>FallbackTriggeredError</code>（[10]）时置回 <code>true</code> 并 continue，用兜底模型重跑整请求。</p>
+</section>
+<section id="sec-2">
+  <h2>二、deps.callModel 参数装配</h2>
+<pre><code><span class="k">for await</span> (<span class="k">const</span> <span class="n">message</span> <span class="k">of</span> <span class="n">deps</span>.<span class="n">callModel</span>({
+  <span class="n">messages</span><span class="p">:</span> <span class="n">prependUserContext</span>(<span class="n">messagesForQuery</span>, <span class="n">userContext</span>),   <span class="c">// 拼用户上下文到最前</span>
+  <span class="n">systemPrompt</span><span class="p">:</span> <span class="n">fullSystemPrompt</span>,
+  <span class="n">tools</span><span class="p">:</span> <span class="n">toolUseContext</span>.<span class="n">options</span>.<span class="n">tools</span>,
+  <span class="n">signal</span><span class="p">:</span> <span class="n">toolUseContext</span>.<span class="n">abortController</span>.<span class="n">signal</span>,
+  <span class="n">options</span><span class="p">:</span> {
+    <span class="n">model</span><span class="p">:</span> <span class="n">currentModel</span>, <span class="n">fallbackModel</span>,
+    <span class="n">onStreamingFallback</span><span class="p">:</span> () <span class="p">=&gt;</span> { <span class="n">streamingFallbackOccured</span> <span class="p">=</span> <span class="k">true</span> },
+    <span class="n">querySource</span>, <span class="n">queryTracking</span>, <span class="n">skipCacheWrite</span>, <span class="n">fetchOverride</span><span class="p">:</span> <span class="n">dumpPromptsFetch</span>,
+    ...(<span class="n">params</span>.<span class="n">taskBudget</span> <span class="p">&amp;&amp;</span> { <span class="n">taskBudget</span><span class="p">:</span> { <span class="n">total</span>, ...(<span class="n">taskBudgetRemaining</span> !== <span class="k">undefined</span> <span class="p">&amp;&amp;</span> { <span class="n">remaining</span><span class="p">:</span> <span class="n">taskBudgetRemaining</span> }) } }),
+  },
+})) { ... }</code></pre>
+  <ul>
+    <li><code>prependUserContext</code> 把 CWD/shell/日期拼到最前——<strong>每次请求都拼</strong>（动态上下文）。</li>
+    <li><code>taskBudget.remaining</code> 只在 <code>!== undefined</code> 时带（首次压缩前不带，见 [2]）。</li>
+    <li><code>fetchOverride: dumpPromptsFetch</code> 注入 [7] 的单例调试 fetch。</li>
+  </ul>
+</section>
+<section id="sec-3">
+  <h2>三、流式 for-await 内部：五件事</h2>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">tombstone 清理</div><div class="flow-desc"><code>streamingFallbackOccured</code> 时给孤儿消息 yield tombstone（thinking 块签名失效会 400），清空累积 + 重建 executor</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">backfill 克隆 yield ⭐</div><div class="flow-desc"><code>backfillObservableInput</code> 只作用在克隆副本上再 yield；原 message 不动以保 prompt 缓存字节；仅"新增字段"才克隆</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">withheld 扣留</div><div class="flow-desc">413 / 媒体超限 / 输出截断四源先扣留、不 yield，仍 push 进 assistantMessages 供恢复检查（[12]）</div></div></div>
+    <div class="flow-step"><span class="flow-num">4</span><div class="flow-body"><div class="flow-title">累积置 needsFollowUp</div><div class="flow-desc">出现 tool_use 块即 <code>needsFollowUp=true</code>，并 <code>streamingToolExecutor.addTool</code> 立即开跑</div></div></div>
+    <div class="flow-step"><span class="flow-num">5</span><div class="flow-body"><div class="flow-title">streaming 收割</div><div class="flow-desc"><code>getCompletedResults()</code> 把已跑完的工具结果当场 yield + 收进 toolResults</div></div></div>
+  </div>
+  <h3>3.2 backfill：克隆后再 yield（保 prompt 缓存）</h3>
+<pre><code><span class="k">let</span> <span class="n">yieldMessage</span> <span class="p">=</span> <span class="n">message</span>
+<span class="k">if</span> (<span class="n">message</span>.<span class="n">type</span> <span class="p">===</span> <span class="s">'assistant'</span>) {
+  <span class="c">// 对 tool_use 块调 backfillObservableInput，仅当"新增字段"时才克隆</span>
+  <span class="k">if</span> (<span class="n">clonedContent</span>) <span class="n">yieldMessage</span> <span class="p">=</span> { ...<span class="n">message</span>, <span class="n">message</span><span class="p">:</span> { ...<span class="n">assistantMsg</span>.<span class="n">message</span>, <span class="n">content</span><span class="p">:</span> <span class="n">clonedContent</span> } }
+}</code></pre>
+  <div class="callout green"><strong>原始 message 保持不变</strong>——它会回流到 API，改它会破坏 prompt 缓存（字节不匹配）。只在 backfill <strong>新增字段</strong>时克隆；仅覆盖已有字段则跳过（覆盖会改 transcript、破坏 resume 的 VCR 固件哈希）。</div>
+  <h3>3.3 withheld：错误扣留四源</h3>
+<pre><code><span class="k">let</span> <span class="n">withheld</span> <span class="p">=</span> <span class="k">false</span>
+<span class="k">if</span> (<span class="n">feature</span>(<span class="s">'CONTEXT_COLLAPSE'</span>)) { <span class="k">if</span> (<span class="n">contextCollapse</span>?.<span class="n">isWithheldPromptTooLong</span>(...)) <span class="n">withheld</span> <span class="p">=</span> <span class="k">true</span> }
+<span class="k">if</span> (<span class="n">reactiveCompact</span>?.<span class="n">isWithheldPromptTooLong</span>(<span class="n">message</span>)) <span class="n">withheld</span> <span class="p">=</span> <span class="k">true</span>
+<span class="k">if</span> (<span class="n">mediaRecoveryEnabled</span> <span class="p">&amp;&amp;</span> <span class="n">reactiveCompact</span>?.<span class="n">isWithheldMediaSizeError</span>(<span class="n">message</span>)) <span class="n">withheld</span> <span class="p">=</span> <span class="k">true</span>
+<span class="k">if</span> (<span class="n">isWithheldMaxOutputTokens</span>(<span class="n">message</span>)) <span class="n">withheld</span> <span class="p">=</span> <span class="k">true</span>
+<span class="k">if</span> (!<span class="n">withheld</span>) <span class="k">yield</span> <span class="n">yieldMessage</span>     <span class="c">// 扣留的不 yield</span></code></pre>
+  <div class="callout blue">可恢复错误<strong>先扣留</strong>，等流结束的恢复检查（[12]）决定能否救回；仍 push 进 <code>assistantMessages</code> 让恢复检查找得到。四源相互独立。feature() 只能用在 if/三元条件（bun:bundle 约束），所以 collapse 检查嵌套而非组合。</div>
+</section>
+<section id="sec-4">
+  <h2>四、流结束：pendingCacheEdits 延迟边界消息</h2>
+<pre><code><span class="k">if</span> (<span class="n">feature</span>(<span class="s">'CACHED_MICROCOMPACT'</span>) <span class="p">&amp;&amp;</span> <span class="n">pendingCacheEdits</span>) {
+  <span class="k">const</span> <span class="n">cumulativeDeleted</span> <span class="p">=</span> <span class="n">usage</span>?.<span class="n">cache_deleted_input_tokens</span> ?? <span class="num">0</span>
+  <span class="k">const</span> <span class="n">deletedTokens</span> <span class="p">=</span> <span class="t">Math</span>.<span class="n">max</span>(<span class="num">0</span>, <span class="n">cumulativeDeleted</span> <span class="p">-</span> <span class="n">pendingCacheEdits</span>.<span class="n">baselineCacheDeletedTokens</span>)
+  <span class="k">if</span> (<span class="n">deletedTokens</span> <span class="p">&gt;</span> <span class="num">0</span>) <span class="k">yield</span> <span class="n">createMicrocompactBoundaryMessage</span>(...)
+}</code></pre>
+  <p>[5] 的 microcompact 把边界消息延迟到这里——现在能拿到 API 返回的<strong>真实</strong> <code>cache_deleted_input_tokens</code>（API 字段累计，减请求前基线得增量）。</p>
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>attemptWithFallback</strong>：单次重试开关，fallback 时重跑整请求。</li>
+    <li><code>prependUserContext</code> 每次拼动态上下文；<code>taskBudget.remaining</code> 首次压缩前不带。</li>
+    <li>流内五件事：<strong>tombstone → backfill 克隆 → withheld 扣留 → 累积 needsFollowUp → streaming 收割</strong>。</li>
+    <li>backfill 不动原消息（保缓存）；withheld 四源不 yield 等恢复。</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

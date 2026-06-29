@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流式入口 queryModelWithStreaming</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 1 节</div>
+  <h1>流式入口 <span>queryModelWithStreaming</span></h1>
+  <p class="hero-sub">REPL "逐字打字"效果的源头。它是个 <code>async function*</code>，函数体只有两行：打一条开始日志，然后 <code>return yield*</code> 把 <code>withStreamingVCR</code> 包裹的 <code>queryModel</code> 生成器原样透传给调用方。本文拆解 <code>return yield*</code> 的语义、为什么用箭头生成器工厂把 <code>queryModel</code> 懒包一层、以及它和非流式入口的根本差异（src/services/api/claude.ts:1022-1054）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:1022-1054</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>流式生成器入口</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、完整代码</a></li>
+    <li><a href="#sec-2">二、签名与三类 yield</a></li>
+    <li><a href="#sec-3">三、return yield* 拆解</a></li>
+    <li><a href="#sec-4">四、它没做什么</a></li>
+    <li><a href="#sec-5">五、abort 信号去哪了</a></li>
+    <li><a href="#sec-6">六、行号书签</a></li>
+    <li><a href="#sec-7">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout green">这是 REPL "逐字打字"效果的源头。<code>query.ts</code> 的回合循环里，主线程查询和子 agent 的实时输出都从这里进入传输层。函数体短到只有两行实质代码，但每一处写法都有讲究。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、完整代码</h2>
+<pre><code><span class="k">export async function</span>* <span class="n">queryModelWithStreaming</span>({
+  messages, systemPrompt, thinkingConfig, tools, signal, options,
+}: {
+  messages: Message[]
+  systemPrompt: SystemPrompt
+  thinkingConfig: ThinkingConfig
+  tools: Tools
+  signal: AbortSignal
+  options: Options
+}): <span class="t">AsyncGenerator</span>&lt;
+  StreamEvent | AssistantMessage | SystemAPIErrorMessage,
+  <span class="k">void</span>
+&gt; {
+  <span class="n">logForDebugging</span>(
+    <span class="s">`-------------- queryModelWithStreaming 开始 ... source=${options.querySource}`</span>,
+    { level: <span class="s">'info'</span> },
+  )
+  <span class="k">return yield</span>* <span class="n">withStreamingVCR</span>(messages, <span class="k">async function</span>* () {
+    <span class="k">yield</span>* <span class="n">queryModel</span>(
+      messages, systemPrompt, thinkingConfig, tools, signal, options,
+    )
+  })
+}</code></pre>
+<p>就这些。一条开始日志 + 一行 <code>return yield*</code>。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、签名：<code>async function*</code> 与三类 yield</h2>
+<p>入口本身也是<strong>异步生成器</strong>，因为它要把 <code>queryModel</code> 逐个 yield 的事件原封不动传出去：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>yield 类型</th><th>含义</th><th>谁来用</th></tr>
+<tr><td><code>StreamEvent</code></td><td>原始 SSE 事件（逐帧信号）</td><td>UI 实时渲染</td></tr>
+<tr><td><code>AssistantMessage</code></td><td>累积好的完整内容块</td><td>存档 / 解析 tool_use</td></tr>
+<tr><td><code>SystemAPIErrorMessage</code></td><td>API 错误（限流、拒答等）</td><td>错误展示 / 降级</td></tr>
+</table>
+</div>
+<p>返回类型第二个泛型参数是 <code>void</code>——生成器的 <code>return</code> 值不携带信息，所有有用数据都通过 <code>yield</code> 流出。调用方写 <code>for await (const ev of queryModelWithStreaming(...))</code> 消费。</p>
+<div class="callout">对照 <code>[0]</code> 的总览：三类 yield 的定义和 <code>queryModel</code> 完全一致，因为这一层<strong>什么都不改、只透传</strong>。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、<code>return yield* withStreamingVCR(...)</code> 逐字拆解</h2>
+<p>这一行密度很高，拆成三个语法点：</p>
+<h3>3.1 <code>yield*</code>（委托生成器）</h3>
+<p><code>yield*</code> 把"迭代另一个生成器"这件事整个委托出去：<code>withStreamingVCR(...)</code> 每 yield 一个值，当前函数就替它 yield 一个同样的值，直到内层结束。等价于手写：</p>
+<pre><code><span class="k">for await</span> (<span class="k">const</span> ev <span class="k">of</span> <span class="n">withStreamingVCR</span>(messages, gen)) {
+  <span class="k">yield</span> ev
+}</code></pre>
+<p>但 <code>yield*</code> 更短、且能正确转发 <code>return</code> 值和 <code>.throw()</code>/<code>.return()</code> 信号——生成器的提前终止（调用方 break）能穿透到内层，触发 <code>queryModel</code> 的 <code>finally</code> 清理。</p>
+<h3>3.2 <code>return yield*</code>（把委托结果当返回值）</h3>
+<p><code>yield*</code> 表达式本身会"求值为"内层生成器的 <code>return</code> 值。这里内层返回 <code>void</code>，所以 <code>return</code> 没有实际数据意义。写成 <code>return yield*</code> 是一种<strong>惯用法</strong>，表达"委托完这个生成器，本函数也就结束了，后面没有别的事"。</p>
+<div class="callout">等价于 <code>yield* ...; return</code>。用 <code>return yield*</code> 只是更紧凑地声明"这是最后一件事"。</div>
+<h3>3.3 箭头里的 <code>async function* () { yield* queryModel(...) }</code></h3>
+<p>为什么不直接 <code>withStreamingVCR(messages, queryModel(...))</code>？因为 <code>withStreamingVCR</code> 的第二个参数签名是<strong>一个生成器工厂</strong>，不是生成器本身：</p>
+<pre><code><span class="n">withStreamingVCR</span>(
+  messages: Message[],
+  f: () =&gt; <span class="t">AsyncGenerator</span>&lt;StreamEvent | AssistantMessage | SystemAPIErrorMessage, <span class="k">void</span>&gt;,
+)</code></pre>
+<p>传<strong>工厂函数 <code>f</code></strong> 而不是<strong>已经启动的生成器</strong>，是为了让 VCR <strong>决定要不要真的调用它</strong>：</p>
+<ul>
+<li>回放命中 fixture 时，<code>withStreamingVCR</code> 根本不会调用 <code>f()</code>——<code>queryModel</code> 一次都不执行，更不会发网络请求。</li>
+<li>只有需要"录制"或非测试透传时，才调用 <code>f()</code> 真正启动 <code>queryModel</code>。</li>
+</ul>
+<p>如果直接传 <code>queryModel(...)</code>，那它<strong>已经被调用、生成器已创建</strong>，懒加载就失效了。包一层箭头生成器工厂，才能把"是否执行"的决定权交给 VCR 层（详见 <code>[3]</code>）。</p>
+<div class="mermaid-box">queryModelWithStreaming
+   └─ 传工厂 f（不立即调用）──▶ withStreamingVCR
+                                  ├─ 非测试 / 需录制 ─▶ f()  ─▶ queryModel 真正执行
+                                  └─ 回放命中 fixture ─▶ f 永不调用，queryModel 不执行</div>
+</section>
+
+<section id="sec-4">
+<h2>四、它没做什么（和非流式入口的对照）</h2>
+<p>流式入口的"克制"恰恰是重点。对比 <code>[2]</code> 的非流式入口：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>行为</th><th>流式入口</th><th>非流式入口</th></tr>
+<tr><td>消费生成器</td><td>❌ 不消费，透传给调用方</td><td>✅ 自己 <code>for await</code> 吃光</td></tr>
+<tr><td>abort 特殊处理</td><td>❌ 不管，透传</td><td>✅ 判断 <code>signal.aborted</code> 抛 <code>APIUserAbortError</code></td></tr>
+<tr><td>"no assistant message" 兜底</td><td>❌ 没有</td><td>✅ 有</td></tr>
+<tr><td>结束日志</td><td>只有开始日志</td><td>开始 + 三种结束日志</td></tr>
+</table>
+</div>
+<p>为什么流式入口这么"懒"？因为<strong>它把控制权交给了调用方</strong>。调用方（<code>query.ts</code> / REPL）在 <code>for await</code> 循环里自己处理 abort、自己决定何时 break、自己累积消息。流式入口只需保证"事件能逐个流出来"。</p>
+<div class="callout purple"><strong>类比</strong>：流式入口像一根<strong>透明水管</strong>——水（事件）从 <code>queryModel</code> 那头进来，原样从这头流出，水管本身不蓄水、不过滤。非流式入口则像一个<strong>接水的桶</strong>——自己把水接满，最后把桶递出去。</div>
+</section>
+
+<section id="sec-5">
+<h2>五、abort 信号去哪了</h2>
+<p>注意 <code>signal: AbortSignal</code> 被原样传给了内层 <code>queryModel</code>，但流式入口<strong>自己不检查 <code>signal.aborted</code></strong>。这是合理的分工：</p>
+<ul>
+<li><code>queryModel</code> 内部会把 <code>signal</code> 传给 Anthropic SDK，用户 ESC 时 SDK 直接抛 <code>APIUserAbortError</code>，沿生成器冒泡出来。</li>
+<li>调用方在 <code>for await</code> 里捕获这个错误，或调用方主动 break/<code>.return()</code>，都会触发内层 <code>finally</code>。</li>
+</ul>
+<p>所以流式路径的 abort 是<strong>靠异常和生成器终止天然传播</strong>的，不需要入口层显式判断。非流式入口之所以要显式判断，是因为它"吃光生成器后发现一条 assistant 都没有"时，需要区分"是被中止了"还是"真的出了别的错"（详见 <code>[2]</code>）。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>queryModelWithStreaming</code> 定义</td><td><code>claude.ts:1022</code></td></tr>
+<tr><td>开始日志 <code>logForDebugging</code></td><td><code>claude.ts:1040</code></td></tr>
+<tr><td><code>return yield* withStreamingVCR(...)</code></td><td><code>claude.ts:1044</code></td></tr>
+<tr><td>箭头生成器工厂内 <code>yield* queryModel(...)</code></td><td><code>claude.ts:1045-1052</code></td></tr>
+<tr><td><code>withStreamingVCR</code> 定义</td><td><code>vcr.ts:352</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-7">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>身份</strong>：REPL 逐字打字的源头，流式查询的入口。</li>
+<li><strong>两行而已</strong>：开始日志 + <code>return yield* withStreamingVCR(() =&gt; queryModel(...))</code>。</li>
+<li><strong>透明水管</strong>：不消费、不蓄水、不过滤，事件原样流给调用方。</li>
+<li><strong>传工厂不传生成器</strong>：让 VCR 决定 <code>queryModel</code> 要不要真的执行（回放命中就不执行）。</li>
+<li><strong>abort 靠传播</strong>：<code>signal</code> 透传给 <code>queryModel</code>，异常/生成器终止天然冒泡，入口层不显式判断。</li>
+<li><strong><code>return yield*</code></strong>：惯用法，等价 <code>yield*; return</code>，声明"委托完即结束"。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

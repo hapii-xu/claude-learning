@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>previousRequestId 与模型解析</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 2 节</div>
+  <h1>previousRequestId 与模型解析</h1>
+  <p class="hero-sub">queryModel 在熔断检查之后做的两件"请求溯源"准备 —— 从消息数组推导上一个 request ID（按消息数组作用域隔离，天然支持并发 agent 与回滚），以及 Bedrock application-inference-profile 的真实底层模型解析。本文讲清为什么按消息数组而非全局单例来追踪请求链，以及推理配置档解析的用途（src/services/api/claude.ts:1344-1354）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1344-1354</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、previousRequestId：请求链追踪</a></li>
+    <li><a href="#sec-2">二、resolvedModel：Bedrock 推理配置档解析</a></li>
+    <li><a href="#sec-3">三、两段代码的共同点</a></li>
+    <li><a href="#sec-4">四、关键行号书签</a></li>
+    <li><a href="#sec-5">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">通过 <code>[1]</code> 的应急开关后，queryModel 做两件很短但很讲究的"请求溯源"准备： 1. <strong><code>previousRequestId</code></strong>：本查询链上一个请求的 ID（<code>claude.ts:1347</code>）。 2. <strong><code>resolvedModel</code></strong>：把 Bedrock 的"推理配置档"翻译成真实底层模型名（<code>claude.ts:1349-1354</code>）。<br/><br/>两段代码都不到 10 行，但背后的并发隔离与多 provider 适配的考量值得单独讲。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、previousRequestId：请求链追踪</h2>
+<h3>1.1 代码</h3>
+<pre><code>// 从本查询链中最后一条 assistant 消息推导出上一个 request ID。
+// 按消息数组做作用域隔离（主线程、子 agent、队友各自独立），这样并发 agent
+// 之间不会相互覆盖对方的请求链跟踪。
+// 同时天然支持回滚/撤销——被删除的消息不会出现在数组里。
+const previousRequestId = getPreviousRequestIdFromMessages(messages)</code></pre>
+<h3>1.2 它是什么、做什么用</h3>
+<p>每次 Anthropic API 响应都带一个 <strong>request ID</strong>（服务端日志的关联键）。Claude Code 把"上一个请求的 ID"一路传到日志/遥测里（最终在 <code>logAPIQuery</code> / <code>logAPISuccessAndDuration</code> / <code>logAPIError</code> 中使用，见 <code>[10][11][15][16]</code>）。</p>
+<p>作用是<strong>把同一条对话链上的连续请求串起来</strong>：当出问题排查时，运维能顺着 <code>previousRequestId → requestId</code> 的链路还原整个回合序列，而不是看到一堆孤立的请求。</p>
+<h3>1.3 ⭐ 关键设计：为什么从 <code>messages</code> 推导，而不是全局变量</h3>
+<p>最直觉的实现是搞一个模块级变量 <code>let lastRequestId</code>，每次请求完就更新它。但代码<strong>故意不这么做</strong>，而是 <code>getPreviousRequestIdFromMessages(messages)</code>——<strong>从传入的消息数组里</strong>找最后一条 assistant 消息，读它的 <code>requestId</code>。</p>
+<p>注释点出两个理由：</p>
+<h3>理由 A：并发 agent 隔离</h3>
+<p>Claude Code 可以同时跑<strong>多条独立的对话链</strong>：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>链</th><th>例子</th></tr>
+<tr><td>主线程</td><td>你在 REPL 里的对话</td></tr>
+<tr><td>子 agent</td><td>Task/Agent 工具派生的子任务</td></tr>
+<tr><td>队友（teammate）</td><td>协作模式下的其他 agent</td></tr>
+</table>
+</div>
+<p>它们<strong>并行</strong>调用 queryModel。如果用一个全局 <code>lastRequestId</code>，A 链的请求会<strong>覆盖</strong> B 链的追踪值，request ID 链路就乱套了。</p>
+<p>而每条链各自持有<strong>自己的 <code>messages</code> 数组</strong>，从数组里推导 → 天然按链隔离，互不干扰。</p>
+<pre><code>全局单例（错）：           按消息数组（对）：
+  lastRequestId            主线程.messages → 自己的链
+   ↑ 主线程写             子agent.messages → 自己的链
+   ↑ 子agent又写（覆盖！）  队友.messages   → 自己的链</code></pre>
+<h3>理由 B：天然支持回滚/撤销</h3>
+<p>用户可能 <code>/rewind</code> 撤销几条消息，或编辑历史重发。被删除的消息<strong>不在数组里</strong>，所以从数组推导出的 <code>previousRequestId</code> <strong>自动反映回滚后的真实状态</strong>——指向"现在这条链上真正的上一个请求"，而不是某个已被撤销的幽灵请求。</p>
+<div class="callout"><strong>类比</strong>：与其在墙上挂一块"最近办的事"的公共白板（全局变量，谁都能擦），不如每个人各自拿自己的工作笔记本（messages 数组）翻到上一页——既不会被别人擦掉，撕掉的页（回滚）也自然不在了。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、resolvedModel：Bedrock 推理配置档解析</h2>
+<h3>2.1 代码</h3>
+<pre><code>const resolvedModel =
+  getAPIProvider() === 'bedrock' &amp;&amp;
+  options.model.includes('application-inference-profile')
+    ? ((await getInferenceProfileBackingModel(options.model)) ??
+      options.model)
+    : options.model</code></pre>
+<h3>2.2 解决什么问题</h3>
+<p>AWS Bedrock 有个概念叫 <strong>application inference profile（应用推理配置档）</strong>：用户配置的不是直接的模型 ID，而是一个<strong>配置档 ARN</strong>，它在 AWS 侧映射到某个真实底层模型（还能附带成本分摊标签等）。</p>
+<p>例如 <code>options.model</code> 可能是：</p>
+<pre><code>arn:aws:bedrock:us-east-1:123456789:application-inference-profile/abc123</code></pre>
+<p>这个字符串<strong>不是真实模型名</strong>。而后续代码里有很多地方需要<strong>真实模型</strong>才能正确工作——尤其是<strong>成本计算</strong> <code>calculateUSDCost(resolvedModel, ...)</code>（见 <code>[13][16]</code>），用 ARN 算不出价格。</p>
+<h3>2.3 逻辑拆解</h3>
+<pre><code>是 bedrock provider？ ── 否 ──→ resolvedModel = options.model（原样）
+        │ 是
+        ▼
+model 含 'application-inference-profile'？ ── 否 ──→ 原样
+        │ 是
+        ▼
+await getInferenceProfileBackingModel(model)
+        │
+        ├─ 拿到真实底层模型 → 用它
+        └─ 拿不到（?? 兜底）  → 退回 options.model</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>条件</th><th>resolvedModel 取值</th></tr>
+<tr><td>非 Bedrock</td><td><code>options.model</code>（绝大多数情况，零开销）</td></tr>
+<tr><td>Bedrock 但非配置档</td><td><code>options.model</code></td></tr>
+<tr><td>Bedrock + 配置档，解析成功</td><td>真实底层模型名</td></tr>
+<tr><td>Bedrock + 配置档，解析失败</td><td><code>?? options.model</code> 兜底</td></tr>
+</table>
+</div>
+<h3>2.4 <code>resolvedModel</code> vs <code>options.model</code>：别用错</h3>
+<p>这之后代码里会同时存在两个"模型变量"，用途不同：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>变量</th><th>用途</th></tr>
+<tr><td><strong><code>options.model</code></strong></td><td>发给 API 的模型标识、日志展示、特性判断 —— 保持用户/上层指定的原值（可能是 ARN）</td></tr>
+<tr><td><strong><code>resolvedModel</code></strong></td><td><strong>仅用于成本计算</strong>（<code>calculateUSDCost</code>），需要真实模型才能查到单价</td></tr>
+</table>
+</div>
+<div class="callout blue">这是个容易踩的坑：成本计算必须用 <code>resolvedModel</code>，否则 Bedrock 配置档用户的费用会算错。其余地方仍用 <code>options.model</code>。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、两段代码的共同点</h2>
+<p>虽然功能不同，但 <code>previousRequestId</code> 和 <code>resolvedModel</code> 都属于"<strong>进 API 前的溯源/标识准备</strong>"，且都体现了同一类工程审慎：</p>
+<ul>
+<li><strong>previousRequestId</strong>：在追踪粒度上做隔离（按链，不污染并发）。</li>
+<li><strong>resolvedModel</strong>：在标识语义上做归一（把 ARN 还原成真实模型，避免下游算错）。</li>
+<li>两者都有<strong>兜底</strong>：找不到上一个 ID 就没有；解析不出底层模型就退回原值。</li>
+</ul>
+</section>
+
+<section id="sec-4">
+<h2>四、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>getPreviousRequestIdFromMessages</code> 调用</td><td><code>claude.ts:1347</code></td></tr>
+<tr><td>resolvedModel 三元表达式</td><td><code>claude.ts:1349-1354</code></td></tr>
+<tr><td><code>getInferenceProfileBackingModel</code></td><td>Bedrock 适配相关模块</td></tr>
+<tr><td>resolvedModel 的实际消费点（成本）</td><td><code>claude.ts:2685 / 3309</code>（<code>calculateUSDCost</code>）</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-5">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>previousRequestId</strong>：从 <code>messages</code> 数组推导，不用全局变量 —— 并发 agent 各自隔离 + 回滚天然生效。</li>
+<li><strong>resolvedModel</strong>：Bedrock 推理配置档（ARN）→ 真实底层模型，<strong>只为算对成本</strong>。</li>
+<li><strong>两个模型变量别混</strong>：<code>options.model</code> 发请求/打日志，<code>resolvedModel</code> 算钱。</li>
+<li>都带兜底：拿不到就退回原值，绝不因解析失败而崩。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

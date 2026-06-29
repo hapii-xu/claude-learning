@@ -162,6 +162,21 @@
 			}
 		},
 		{
+			"name": "🔬 Debug queryModel 当前分节文件 (.isolated.ts)",
+			"type": "bun",
+			"request": "launch",
+			"runtime": "bun",
+			"runtimeArgs": ["run"],
+			"args": ["${file}"],
+			"cwd": "${workspaceFolder}",
+			"stopOnEntry": false,
+			"internalConsoleOptions": "openOnSessionStart",
+			"presentation": {
+				"group": "4-queryModel",
+				"order": 1
+			}
+		},
+		{
 			"name": "🌐 Debug RCS Web UI (Chrome)",
 			"type": "chrome",
 			"request": "launch",

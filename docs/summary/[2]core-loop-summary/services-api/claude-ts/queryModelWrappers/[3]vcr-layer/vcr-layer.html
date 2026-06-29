@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VCR 录放层 withStreamingVCR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 3 节</div>
+  <h1>VCR <span>录放层</span> withStreamingVCR</h1>
+  <p class="hero-sub">两个入口都穿过这一层。VCR（Video Cassette Recorder）模式让测试"录一次真实 API 响应、之后从 fixture 回放"，CI 里永不真打 Anthropic。本文讲 <code>shouldUseVCR</code> 的三态判定（生产零开销）、<code>withStreamingVCR</code> 的 buffer 录放、<code>withVCR</code> 的 fixture 哈希与命中、以及核心难点"脱水/水合"——为什么哈希前要把路径/UUID/时间戳/成本换成占位符（src/services/vcr.ts:26-383）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>vcr.ts:26-383</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>测试录放 / 跨机 fixture</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、VCR 解决什么</a></li>
+    <li><a href="#sec-2">二、shouldUseVCR</a></li>
+    <li><a href="#sec-3">三、withStreamingVCR</a></li>
+    <li><a href="#sec-4">四、withVCR</a></li>
+    <li><a href="#sec-5">五、脱水与水合</a></li>
+    <li><a href="#sec-6">六、withFixture</a></li>
+    <li><a href="#sec-7">七、行号书签</a></li>
+    <li><a href="#sec-8">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout purple">两个入口（<code>[1]</code> <code>[2]</code>）的函数体里都有这一行：<code>withStreamingVCR(messages, () =&gt; queryModel(...))</code>。它不在 <code>claude.ts</code> 而在 <code>src/services/vcr.ts</code>。VCR 取自磁带录像机的缩写——<strong>第一次跑真实请求时把响应"录"进 fixture 文件，之后的测试直接"放"录像，不再打网络</strong>。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、VCR 模式解决什么问题</h2>
+<p>单元/集成测试里调真实 Anthropic API 有三宗罪：<strong>慢、要花钱、不确定</strong>（同样输入每次输出还不一样）。VCR 模式的思路：</p>
+<ol>
+<li><strong>录制（record）</strong>：第一次运行，真的调 API，把请求+响应序列化进 <code>fixtures/*.json</code>。</li>
+<li><strong>回放（replay）</strong>：之后运行，用请求的哈希找到 fixture，直接返回录好的响应——不碰网络。</li>
+<li><strong>CI 守门</strong>：CI 里如果 fixture 缺失且没开 <code>VCR_RECORD</code>，直接报错"fixture missing，请本地录制后提交"。</li>
+</ol>
+<div class="mermaid-box">withStreamingVCR(messages, f)
+   │
+   └─ shouldUseVCR()?
+        ├─ 否（生产）─▶ return yield* f()           零开销直通
+        └─ 是（测试）─▶ 按 messages 哈希找 fixture
+                          ├─ 命中   ─▶ 回放录好的响应，不调 f()
+                          └─ 未命中 ─▶ 调 f() 真打 API，把响应写进 fixture</div>
+</section>
+
+<section id="sec-2">
+<h2>二、<code>shouldUseVCR()</code> —— 三态判定与生产零开销</h2>
+<pre><code><span class="k">function</span> <span class="n">shouldUseVCR</span>(): <span class="t">boolean</span> {
+  <span class="k">if</span> (process.env.NODE_ENV === <span class="s">'test'</span>) <span class="k">return true</span>
+  <span class="k">if</span> (process.env.USER_TYPE === <span class="s">'ant'</span> &amp;&amp; <span class="n">isEnvTruthy</span>(process.env.FORCE_VCR)) <span class="k">return true</span>
+  <span class="k">return false</span>
+}</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>触发条件</th><th>谁会命中</th></tr>
+<tr><td><code>NODE_ENV === 'test'</code></td><td>所有自动化测试</td></tr>
+<tr><td><code>USER_TYPE === 'ant'</code> 且 <code>FORCE_VCR</code> 真值</td><td>内部用户手动录制 fixture 时</td></tr>
+<tr><td>其它</td><td><strong>生产 / 普通用户 → 返回 false</strong></td></tr>
+</table>
+</div>
+<div class="callout green">这是 <code>[0]</code> 提到的<strong>暗线 B</strong>：生产环境 <code>shouldUseVCR()</code> 返回 <code>false</code>，<code>withStreamingVCR</code> 第一行就直接透传，<strong>不产生任何 buffer、哈希、文件 IO</strong>。VCR 的所有开销只存在于测试。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、<code>withStreamingVCR</code> —— 流式录放</h2>
+<pre><code><span class="k">export async function</span>* <span class="n">withStreamingVCR</span>(messages, f) {
+  <span class="k">if</span> (!<span class="n">shouldUseVCR</span>()) <span class="k">return yield</span>* <span class="n">f</span>()         <span class="c">// ① 生产：直通</span>
+
+  <span class="k">const</span> buffer = []
+  <span class="k">const</span> cachedBuffer = <span class="k">await</span> <span class="n">withVCR</span>(messages, <span class="k">async</span> () =&gt; {
+    <span class="k">for await</span> (<span class="k">const</span> message <span class="k">of</span> <span class="n">f</span>()) buffer.push(message)   <span class="c">// ② 流灌进 buffer</span>
+    <span class="k">return</span> buffer
+  })
+
+  <span class="k">if</span> (cachedBuffer.length &gt; <span class="num">0</span>) { <span class="k">yield</span>* cachedBuffer; <span class="k">return</span> }  <span class="c">// ③ 命中：回放录像</span>
+  <span class="k">yield</span>* buffer                                              <span class="c">// ④ 刚录的：回放 buffer</span>
+}</code></pre>
+<h3>逐段理解</h3>
+<ul>
+<li><strong>①</strong> 非测试直通，对照 <code>[1]</code>：这就是为什么入口要传"工厂函数 <code>f</code>"而不是已启动的生成器——这里要么不调 <code>f</code>，要么在受控时机调。</li>
+<li><strong>②</strong> 测试模式下，流式生成器<strong>不能边到边回放</strong>（要先有完整录像才能算哈希、写文件），所以先用 <code>for await</code> 把 <code>f()</code> 的全部事件<strong>收进 <code>buffer</code></strong>。这一步把"流"暂时变成"数组"。</li>
+<li><strong>③④</strong> <code>withVCR</code> 要么返回<strong>命中的缓存数组</strong>，要么返回<strong>刚录的 <code>buffer</code> 本身</strong>。两种情况都用 <code>yield*</code> 把数组重新"流式"地吐出去，对上层完全透明。</li>
+</ul>
+<div class="callout"><strong>流 → 数组 → 流</strong> 的往返是流式 VCR 的本质：录像必须是完整的数组才能哈希和持久化，但对入口和调用方，进出都还是生成器。</div>
+</section>
+
+<section id="sec-4">
+<h2>四、<code>withVCR</code> —— fixture 命中、读写、计费</h2>
+<p><code>withStreamingVCR</code> 把脏活都委托给 <code>withVCR</code>（<code>vcr.ts:91</code>）。它做四件事：</p>
+<h3>4.1 算 fixture 文件名（按消息内容哈希）</h3>
+<pre><code><span class="k">const</span> messagesForAPI = <span class="n">normalizeMessagesForAPI</span>(
+  messages.filter(_ =&gt; !(_.type === <span class="s">'user'</span> &amp;&amp; _.isMeta)),   <span class="c">// 过滤 meta 用户消息</span>
+)
+<span class="k">const</span> dehydratedInput = <span class="n">mapMessages</span>(messagesForAPI.map(_ =&gt; _.message.content), dehydrateValue)  <span class="c">// ★ 脱水</span>
+<span class="k">const</span> filename = <span class="s">`fixtures/${dehydratedInput
+  .map(_ =&gt; sha1(jsonStringify(_)).slice(0, 6)).join('-')}.json`</span></code></pre>
+<p>文件名是<strong>每条消息内容各取 sha1 前 6 位、用 <code>-</code> 拼起来</strong>。输入消息一变，文件名就变，自然定位到不同 fixture。注意哈希前先 <code>dehydrateValue</code>（见第五节），这是跨机命中的关键。</p>
+<h3>4.2 命中缓存：水合 + 计费</h3>
+<pre><code><span class="k">const</span> cached = <span class="n">jsonParse</span>(<span class="k">await</span> <span class="n">readFile</span>(filename))
+cached.output.forEach(addCachedCostToTotalSessionCost)          <span class="c">// 把缓存响应成本计回会话</span>
+<span class="k">return</span> cached.output.map((m, i) =&gt; <span class="n">mapMessage</span>(m, hydrateValue, i, <span class="n">randomUUID</span>()))  <span class="c">// ★ 水合 + 新 UUID</span></code></pre>
+<ul>
+<li><strong>水合</strong>：把 fixture 里的占位符换回当前机器的真实值。</li>
+<li><strong>发新 UUID</strong>：每条回放消息分配新 <code>randomUUID()</code>，模拟真实响应每次都带新 ID。</li>
+<li><strong>计费</strong>：即使是回放，也把录好的 token 成本累加进会话总成本——让测试里的成本统计逻辑也能被验证。</li>
+</ul>
+<h3>4.3 未命中 + CI 守门</h3>
+<pre><code><span class="k">if</span> (env.isCI &amp;&amp; !<span class="n">isEnvTruthy</span>(process.env.VCR_RECORD)) {
+  <span class="k">throw new</span> <span class="t">Error</span>(<span class="s">`Anthropic API fixture missing: ${filename}. Re-run with VCR_RECORD=1, then commit.`</span>)
+}</code></pre>
+<p>CI 里<strong>绝不允许临时真打 API</strong>。fixture 缺了就报错，提示开发者本地用 <code>VCR_RECORD=1</code> 录好再提交。</p>
+<h3>4.4 录制：跑 f() + 写 fixture</h3>
+<pre><code><span class="k">const</span> results = <span class="k">await</span> <span class="n">f</span>()                    <span class="c">// 真打 API</span>
+<span class="k">await</span> <span class="n">writeFile</span>(filename, <span class="n">jsonStringify</span>({
+  input: dehydratedInput,
+  output: results.map((m, i) =&gt; <span class="n">mapMessage</span>(m, dehydrateValue, i)),  <span class="c">// ★ 写入前也脱水</span>
+}))</code></pre>
+<p>写文件时 input 和 output 都<strong>脱水后</strong>存——这样 fixture 文件本身不含机器特定路径/UUID，可以安全提交到仓库、跨机复用。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、⭐ 核心难点：脱水（dehydrate）与水合（hydrate）</h2>
+<p>这是整个 VCR 最精巧的部分，也是 <code>[0]</code> 暗线 C。</p>
+<h3>5.1 问题：为什么不能直接哈希原始消息</h3>
+<p>系统提示和消息里嵌着<strong>机器/运行特定的易变值</strong>：当前工作目录 <code>cwd</code>、配置目录、消息 UUID、时间戳、耗时、成本……同一段对话在两台机器（或同一台机器两次运行）上，这些值都不同。若直接哈希，<strong>每次哈希都不一样，fixture 永远命不中</strong>，CI 里只会不停报"fixture missing"。</p>
+<h3>5.2 <code>dehydrateValue</code>：把易变值换成占位符</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>易变值</th><th>占位符</th></tr>
+<tr><td>文件数 / 耗时 / 成本</td><td><code>[NUM]</code> <code>[DURATION]</code> <code>[COST]</code></td></tr>
+<tr><td>配置目录 / 工作目录</td><td><code>[CONFIG_HOME]</code> <code>[CWD]</code></td></tr>
+<tr><td>可用命令列表</td><td><code>[COMMANDS]</code></td></tr>
+<tr><td>"Files modified by user: …" 整行</td><td>直接折叠成固定串</td></tr>
+</table>
+</div>
+<p>Windows 还要额外处理三种路径形态：正斜杠变体、JSON 里转义的 <code>\\</code>、以及占位符后路径分隔符统一成 <code>/</code>——否则 Win 和 Unix 的 fixture 哈希对不上。</p>
+<h3>5.3 <code>hydrateValue</code>：回放时换回真实值</h3>
+<pre><code>s.<span class="n">replaceAll</span>(<span class="s">'[NUM]'</span>, <span class="s">'1'</span>)
+ .<span class="n">replaceAll</span>(<span class="s">'[DURATION]'</span>, <span class="s">'100'</span>)
+ .<span class="n">replaceAll</span>(<span class="s">'[CONFIG_HOME]'</span>, <span class="n">getClaudeConfigHomeDir</span>())
+ .<span class="n">replaceAll</span>(<span class="s">'[CWD]'</span>, <span class="n">getCwd</span>())</code></pre>
+<p>水合是脱水的逆操作（部分）：路径占位符换回<strong>当前机器</strong>的真实路径；<code>[NUM]</code>/<code>[DURATION]</code> 换成无害的固定值（<code>1</code>/<code>100</code>，反正测试不关心具体数字）。</p>
+<div class="callout blue"><strong>对称性</strong>：脱水让"不同机器的相同对话"产出<strong>相同哈希</strong> → 命中同一个 fixture；水合让"回放的响应"看起来像是在<strong>当前机器</strong>上真实产生的。一进一出，缓存就能跨机复用。</div>
+</section>
+
+<section id="sec-6">
+<h2>六、<code>withFixture</code> —— 通用 fixture 辅助</h2>
+<p><code>withVCR</code> 是给"流式消息数组"定制的；还有一个泛型版 <code>withFixture&lt;T&gt;</code>（<code>vcr.ts:42</code>）给任意数据用（如 token 计数 <code>withTokenCountVCR</code>）：</p>
+<pre><code><span class="k">async function</span> <span class="n">withFixture</span>&lt;T&gt;(input, fixtureName, f): <span class="t">Promise</span>&lt;T&gt; {
+  <span class="k">if</span> (!<span class="n">shouldUseVCR</span>()) <span class="k">return await</span> <span class="n">f</span>()
+  <span class="k">const</span> hash = <span class="n">sha1</span>(<span class="n">jsonStringify</span>(input)).slice(<span class="num">0</span>, <span class="num">12</span>)
+  <span class="k">const</span> filename = <span class="s">`fixtures/${fixtureName}-${hash}.json`</span>
+  <span class="c">// try 读缓存 → 命中返回；ENOENT → CI 守门 / 录制写文件</span>
+}</code></pre>
+<p>同样的"哈希输入 → 读缓存 → 命中即返回 / 未命中则录制"骨架，只是不带消息特有的脱水/水合和计费逻辑。</p>
+</section>
+
+<section id="sec-7">
+<h2>七、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>shouldUseVCR</code></td><td><code>vcr.ts:26</code></td></tr>
+<tr><td><code>withFixture</code>（泛型）</td><td><code>vcr.ts:42</code></td></tr>
+<tr><td><code>withVCR</code>（消息数组）</td><td><code>vcr.ts:91</code></td></tr>
+<tr><td><code>addCachedCostToTotalSessionCost</code></td><td><code>vcr.ts:166</code></td></tr>
+<tr><td><code>dehydrateValue</code>（脱水）</td><td><code>vcr.ts:~290</code></td></tr>
+<tr><td><code>hydrateValue</code>（水合）</td><td><code>vcr.ts:341</code></td></tr>
+<tr><td><code>withStreamingVCR</code>（流式）</td><td><code>vcr.ts:352</code></td></tr>
+<tr><td><code>withTokenCountVCR</code></td><td><code>vcr.ts:385</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-8">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>VCR = 录像机</strong>：第一次真打 API 录进 fixture，之后回放，不碰网络。</li>
+<li><strong>生产零开销</strong>：<code>shouldUseVCR()</code> 仅在 <code>NODE_ENV=test</code> 或内部 <code>FORCE_VCR</code> 时为真，否则第一行直通。</li>
+<li><strong>流 → 数组 → 流</strong>：流式录放先把生成器灌进 buffer 才能哈希/持久化，回放再 <code>yield*</code> 成流。</li>
+<li><strong>脱水/水合是关键</strong>：哈希前把 cwd/UUID/时间戳/成本换占位符（dehydrate），回放再换回真实值（hydrate），否则跨机永远命不中。</li>
+<li><strong>CI 守门</strong>：fixture 缺失且无 <code>VCR_RECORD</code> → 直接报错，逼你本地录好再提交。</li>
+<li><strong>回放也计费</strong>：缓存响应的 token 成本照样累加进会话，让成本逻辑可测。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

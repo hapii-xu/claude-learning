@@ -1,0 +1,85 @@
+---
+title: "[10] 模型降级与错误处理"
+description: API 调用的两层错误处理 —— 内层 catch 处理 FallbackTriggeredError（切 currentModel、yieldMissingToolResultBlocks、清空累积、ant 模式 stripSignatureBlocks、埋点、系统警告消息、continue 重试），内层其余错误 rethrow；外层 catch 处理 ImageSizeError/ImageResizeError→image_error，其余→补齐缺失 tool_result + 真实错误消息 + model_error（src/query.ts:1473-1597）。
+---
+
+# [10] 模型降级与错误处理
+
+> [9] 的流式消费包在两层 `try/catch` 里。**内层**处理 fallback 重试，**外层**处理无法恢复的错误并返回 terminal。理解这两层的分工，就理解了"请求失败时回合怎么收场"。
+
+---
+
+## 一、内层 catch：FallbackTriggeredError 重试
+
+```ts
+} catch (innerError) {
+  if (innerError instanceof FallbackTriggeredError && fallbackModel) {
+    currentModel = fallbackModel
+    attemptWithFallback = true                          // ← 重开 while
+
+    yield* yieldMissingToolResultBlocks(assistantMessages, 'Model fallback triggered')
+    assistantMessages.length = 0; toolResults.length = 0; toolUseBlocks.length = 0; needsFollowUp = false
+
+    if (streamingToolExecutor) { streamingToolExecutor.discard(); streamingToolExecutor = new StreamingToolExecutor(...) }
+
+    toolUseContext.options.mainLoopModel = fallbackModel
+
+    if (process.env.USER_TYPE === 'ant') messagesForQuery = stripSignatureBlocks(messagesForQuery)
+
+    logEvent('tengu_model_fallback_triggered', { original_model, fallback_model, ... })
+    yield createSystemMessage(`Switched to ${...} due to high demand for ${...}`, 'warning')
+    continue
+  }
+  throw innerError                                       // ← 其余错误：rethrow 给外层
+}
+```
+
+| 步骤 | 作用 |
+|---|---|
+| 切 `currentModel = fallbackModel` + `attemptWithFallback = true` | 用兜底模型重跑整个请求 |
+| `yieldMissingToolResultBlocks` | 为已发出但没结果的 tool_use 补齐占位 tool_result（否则 API 报"孤儿 tool_use"） |
+| 清空四容器 + 丢弃重建 executor | 防带旧 `tool_use_id` 的孤儿结果泄漏到重试 |
+| `stripSignatureBlocks`（仅 ant） | thinking 签名与模型绑定：把受保护 thinking（capybara）回放给未受保护 fallback（opus）会 400，重试前剥离 |
+| `createSystemMessage(..., 'warning')` | 'warning' 级别让用户无需 verbose 也能看到切换通知 |
+
+> 非 `FallbackTriggeredError` 的内层错误直接 `throw`，交给外层 catch 处理。
+
+---
+
+## 二、外层 catch：无法恢复的错误
+
+```ts
+} catch (error) {
+  logError(error)
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  logEvent('tengu_query_error', { assistantMessages: ..., toolUses: ... })
+
+  // 2.1 图片错误 → image_error
+  if (error instanceof ImageSizeError || error instanceof ImageResizeError) {
+    yield createAssistantAPIErrorMessage({ content: error.message })
+    return { reason: 'image_error' }
+  }
+
+  // 2.2 其余 → 补齐缺失 tool_result + 真实错误 → model_error
+  yield* yieldMissingToolResultBlocks(assistantMessages, errorMessage)
+  yield createAssistantAPIErrorMessage({ content: errorMessage })
+  logAntError('Query error', error)
+  return { reason: 'model_error', error }
+}
+```
+
+### 2.1 图片尺寸/调整错误
+`ImageSizeError` / `ImageResizeError` 用友好消息呈现，返回 `image_error`。
+
+### 2.2 其余错误
+- 通常 `queryModelWithStreaming` 不抛错而是把错误作为合成 assistant 消息 yield。但若因 bug 抛了，可能处于"已发 tool_use 块但没发 tool_result"的状态——`yieldMissingToolResultBlocks` 补齐。
+- **抛真实错误而非误导性的 "[Request interrupted by user]"**：这条路径是模型/运行时失败、不是用户操作。SDK 消费者过去会看到幻影中断（如 Node 18 缺 `Array.prototype.with()`），掩盖真正原因。
+- 返回 `model_error` 并附 `error`。
+
+---
+
+## 速记口诀
+- **两层 catch**：内层管 fallback 重试，外层管不可恢复错误。
+- **fallback**：切模型 + 补孤儿 tool_result + 清空重建 + ant 剥离 thinking 签名 + 警告消息 + continue。
+- **外层**：图片错 → `image_error`；其余 → 补齐 tool_result + 真实错误消息 + `model_error`。
+- 永远抛真实错误，不伪装成用户中断。

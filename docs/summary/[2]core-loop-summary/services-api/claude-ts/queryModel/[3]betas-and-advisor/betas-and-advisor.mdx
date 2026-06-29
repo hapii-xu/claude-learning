@@ -58,6 +58,96 @@ const betas = getMergedBetas(options.model, { isAgenticQuery })
 
 > 把 `betas` 想成一个**逐步累积的购物车**：这里放进基础款，后面各段按条件再往里加，发送前结一次账（过滤空串）。
 
+### 1.5 querySource 全表：每个来源是谁、在干什么
+
+`querySource` 类型本身就是 `string`（`src/constants/querySource.ts`）—— 它是一条**自由文本标签**，随功能增长不断扩展，所以没有 enum，而是散落在各调用点的字面量。下面按"是不是 agentic"把目前代码里出现的来源**全部**列出来，方便对照学习。
+
+> 判定口径就是 1.1 的那段：`startsWith('repl_main_thread')`、`startsWith('agent:')`、`=== 'sdk'`、`=== 'hook_agent'`、`=== 'verification_agent'` 这五条命中任意一条 → **agentic**；其余全是**非 agentic**。
+
+#### A. Agentic —— 主线工作（`isAgenticQuery = true`）
+
+这些是"用户在等结果、带工具、会多轮"的真正干活的查询。
+
+| querySource | 谁在用 | 含义 / 示例 | 来源 |
+|---|---|---|---|
+| `repl_main_thread` | **主 agent** | 用户在交互 REPL 里直接对话的主循环（默认输出样式时就是这个值）。`getQuerySourceForREPL()` 返回。 | `promptCategory.ts` |
+| `repl_main_thread:outputStyle:<style>` | 主 agent + 非默认输出样式 | 用户切了输出样式时带上样式名后缀，如 `repl_main_thread:outputStyle:Learning`、`:Explanatory`、`:custom`。因为是 `startsWith` 判定，仍算主线。 | `promptCategory.ts` |
+| `agent:default` | **子 agent**（无类型内置） | Task 工具派生、但未指定具体类型的子 agent。 | `promptCategory.ts` |
+| `agent:builtin:<agentType>` | **内置子 agent** | 内置子 agent，类型拼在后面，如 `agent:builtin:Explore`、`agent:builtin:Plan`。 | `promptCategory.ts` |
+| `agent:custom` | **自定义子 agent** | 用户/插件定义的 agent，或 slash command 派生出来的 agent。 | `processSlashCommand.tsx` |
+| `sdk` | **编程式 SDK 调用** | 通过 Claude Agent SDK / `QueryEngine` 以代码驱动的查询（无人手动输入，但等价于主线）。 | `QueryEngine.ts` |
+| `hook_agent` | **agent 类 hook** | hook 配置里以 agent 形式运行的钩子。 | `execAgentHook.ts` |
+| `verification_agent` | **验证 agent** | 计划执行后校验结果是否达标的 agent（`VERIFICATION_AGENT` feature）。 | `query.ts` 等 |
+
+#### B. 非 Agentic —— 后台辅助任务（`isAgenticQuery = false`）
+
+这些是"一次性后台处理、通常无工具、用户看不到、失败也无所谓"的辅助查询。**默认不会因 529 重试**（见 `[9]` / `withRetry.ts`），只有少数被显式加入 `FOREGROUND_529_RETRY_SOURCES`（下表标 ⏳）。
+
+**压缩 / 记忆类**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `compact` ⏳ | 上下文压缩：把过长历史摘要成短文，腾出窗口。 | `compact.ts` / `reactiveCompact.ts` |
+| `session_memory` | 生成会话记忆。 | `sessionMemory.ts` |
+| `extract_memories` | 从对话抽取长期记忆。 | `extractMemories.ts` |
+| `memdir_relevance` | 判断哪些已存记忆与当前任务相关。 | `findRelevantMemories.ts` |
+| `auto_dream` | 后台"做梦"式整理/沉淀。 | `autoDream.ts` |
+| `marble_origami` | context-collapse 的 ctx-agent（上下文坍缩）。 | `contextCollapse/` |
+
+**摘要 / 标题类**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `side_question` ⏳ | 侧问：在主对话之外问模型一个一次性问题（用户会等，故会重试，但不带主线能力）。 | `sideQuestion.ts` |
+| `agent_summary` | 子 agent 运行结果摘要。 | `agentSummary.ts` |
+| `away_summary` | 用户离开期间的总结 / recap。 | `awaySummary.ts` / `generateRecap.ts` |
+| `tool_use_summary_generation` | 工具调用过程摘要。 | `toolUseSummaryGenerator.ts` |
+| `generate_session_title` | 生成会话标题。 | `sessionTitle.ts` |
+| `rename_generate_name` | 重命名会话时生成名字。 | `generateSessionName.ts` |
+| `teleport_generate_title` | teleport 功能的标题生成。 | `teleport.tsx` |
+| `insights` | 洞察 / 使用统计分析。 | `insights.ts` |
+
+**建议 / 推测类**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `prompt_suggestion` | 给用户的下一步提示建议（仅主线 `repl_main_thread` 时才跑）。 | `promptSuggestion.ts` |
+| `speculation` | 推测性预取（提前猜用户要什么）。 | `speculation.ts` |
+
+**技能 / 搜索 / 文档类**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `skill_search_intent` | 技能搜索的意图归一化。 | `intentNormalize.ts` |
+| `skill_improvement_apply` | 应用技能改进。 | `skillImprovement.ts` |
+| `skill_learning_observer` | 技能学习的运行观察。 | `llmObserverBackend.ts` |
+| `session_search` | 在会话内容里做语义搜索。 | `agenticSessionSearch.ts` |
+| `magic_docs` | Magic Docs 自动更新。 | `magicDocs.ts` |
+
+**权限 / 分类 / 自动模式**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `auto_mode` ⏳ | auto/yolo 模式的安全分类器（必须完成以保证正确性，故重试）。 | `yoloClassifier.ts` |
+| `auto_mode_critique` | auto mode 的自我批判。 | `autoMode.ts` |
+| `permission_explainer` | 给用户解释某个权限请求。 | `permissionExplainer.ts` |
+| `bash_classifier` ⏳ | bash 命令安全分类（仅 ant 构建，feature-gated）。 | `withRetry.ts` |
+| `bash_extract_prefix` | 提取 bash 命令前缀（用于权限匹配）。 | `commands.ts` |
+
+**hook / 工具 / 其它**
+
+| querySource | 含义 | 来源 |
+|---|---|---|
+| `hook_prompt` | prompt 类 hook（注意：≠ `hook_agent`，**不**算 agentic）。 | `execPromptHook.ts` |
+| `agent_creation` | `/agents` 创建时生成 agent 定义。 | `generateAgent.ts` |
+| `model_validation` | 模型可用性探针（`max_tokens:1` 发个 "Hi"）。 | `validateModel.ts` |
+| `mcp_datetime_parse` | MCP 的日期时间解析。 | `dateTimeParser.ts` |
+| `chrome_mcp` | Claude in Chrome 的 MCP 查询。 | `mcpServer.ts` |
+| `feedback` | 处理用户反馈。 | `Feedback.tsx` |
+| `workflow` | 工作流后端驱动的查询。 | `claudeCodeBackend.ts` |
+
+> **易混点**：`hook_agent`（agentic）vs `hook_prompt`（非 agentic）只差一个词，闸控结果却相反——前者是"以 agent 身份干活"，后者只是"跑个 prompt 钩子"。
+
 ---
 
 ## 二、advisor beta 头：先于模型解析

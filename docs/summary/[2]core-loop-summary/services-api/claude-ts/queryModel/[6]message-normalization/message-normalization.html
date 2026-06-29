@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>消息归一化、后处理与指纹</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 6 节</div>
+  <h1>消息归一化、后处理与指纹</h1>
+  <p class="hero-sub">queryModel 把对话历史变成 API 能接受的消息数组的全过程 —— normalizeMessagesForAPI 归一化、模型切换时剔除工具搜索专用字段、修复 tool_use/tool_result 配对错位、剔除 advisor 块与超量媒体，最后从首条 user 消息算出归因指纹。本文讲清每一道清洗为何存在、以及它们都是为了避免 API 400 与恢复远端会话的健壮性（src/services/api/claude.ts:1565-1672）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1565-1672</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、为什么需要"归一化"</a></li>
+    <li><a href="#sec-2">二、第 ① 道：normalizeMessagesForAPI（1567-1573）</a></li>
+    <li><a href="#sec-3">三、第 ② 道：模型切换的工具搜索字段剔除（1575-1601）</a></li>
+    <li><a href="#sec-4">四、第 ③ 道：修复 tool_use/tool_result 配对（1603-1606）</a></li>
+    <li><a href="#sec-5">五、第 ④ 道：剔除 advisor 块（1608-1611）</a></li>
+    <li><a href="#sec-6">六、第 ⑤ 道：剔除超量媒体（1613-1619）</a></li>
+    <li><a href="#sec-7">七、（此处插入 Provider 分流 → 见 [7]）</a></li>
+    <li><a href="#sec-8">八、第 ⑥ 道：归因指纹（1664-1672）</a></li>
+    <li><a href="#sec-9">九、六道清洗全景</a></li>
+    <li><a href="#sec-10">十、关键行号书签</a></li>
+    <li><a href="#sec-11">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">工具准备好后（<code>[5]</code>），轮到<strong>消息</strong>。这一段（<code>claude.ts:1565-1672</code>）把上层传入的 <code>messages</code> 反复"清洗"成 API 真正能接受的 <code>messagesForAPI</code>。核心目标只有一个：<strong>别让 API 报 400</strong>——尤其是在模型切换、会话恢复、媒体超量这些边缘场景下。<br/><br/>⚠️ 顺序提示：本段中间（媒体剔除之后、after_normalize 日志之前）插着 <strong>Provider 分流</strong>（<code>[7]</code>，<code>claude.ts:1621-1662</code>）。本文按"消息处理"主题连续讲，把那段分流单独留给 <code>[7]</code>。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、为什么需要"归一化"</h2>
+<p>上层的 <code>messages</code> 数组是 Claude Code <strong>内部格式</strong>，里面混着各种东西：内部元数据、UI 专用字段、不同来源（远端/teleport/恢复）拼接的历史、跨模型遗留的字段……而 Anthropic API 只接受<strong>严格规范</strong>的消息结构。</p>
+<div class="callout"><strong>类比</strong>：<code>messages</code> 是你随手记的草稿（有涂改、有便利贴、有别人加的批注），<code>messagesForAPI</code> 是要寄出去的正式公文——寄之前必须誊清、去掉所有不该出现的东西，否则邮局（API）直接退回（400）。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、第 ① 道：normalizeMessagesForAPI（1567-1573）</h2>
+<pre><code>logEvent('tengu_api_before_normalize', { preNormalizedMessageCount: messages.length })
+
+queryCheckpoint('query_message_normalization_start')
+let messagesForAPI = normalizeMessagesForAPI(messages, filteredTools)
+queryCheckpoint('query_message_normalization_end')</code></pre>
+<ul>
+<li>主归一化：把内部消息类型转成 API 的 <code>user</code>/<code>assistant</code> 消息结构，规整内容块。</li>
+<li>传入 <code>filteredTools</code> 让归一化知道当前有效工具集。</li>
+<li>前后各一个 <code>logEvent</code>/<code>queryCheckpoint</code>，框出归一化耗时并记录消息数变化。</li>
+<li>之后 <code>messagesForAPI</code> 用 <code>let</code> 声明，因为下面还要被多道清洗<strong>反复重写</strong>。</li>
+</ul>
+</section>
+
+<section id="sec-3">
+<h2>三、第 ② 道：模型切换的工具搜索字段剔除（1575-1601）</h2>
+<pre><code>if (!useSearchExtraTools) {
+  messagesForAPI = messagesForAPI.map(msg =&gt; {
+    switch (msg.type) {
+      case 'user':
+        return stripToolReferenceBlocksFromUserMessage(msg)   // 剔除 tool_reference 块
+      case 'assistant':
+        return stripCallerFieldFromAssistantMessage(msg)      // 剔除 'caller' 字段
+      default:
+        return msg
+    }
+  })
+}</code></pre>
+<h3>3.1 解决的问题：对话中途换模型</h3>
+<p>注释解释了这道清洗为何不能只靠 <code>normalizeMessagesForAPI</code>：</p>
+<ul>
+<li><code>normalizeMessagesForAPI</code> 用的是 <code>isSearchExtraToolsEnabledNoModelCheck()</code>——<strong>不带模型检查</strong>的版本。因为它被约 20 处调用（分析、反馈、分享等），很多没有模型上下文，给它加 <code>model</code> 参数是大重构。</li>
+<li><strong>这里</strong>用的是带模型支持检查的 <code>isSearchExtraToolsEnabled()</code>（即 <code>useSearchExtraTools</code>）。</li>
+</ul>
+<p>为什么重要？<strong>对话中途切换模型</strong>（例如 Sonnet → Haiku）时，历史消息里可能残留上一个模型产生的<strong>工具搜索专用字段</strong>（<code>tool_reference</code> 块、<code>caller</code> 字段）。如果新模型不支持工具搜索，带着这些字段发请求会<strong>导致 400</strong>。所以当 <code>!useSearchExtraTools</code> 时，把它们全部剔掉。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>消息类型</th><th>剔除什么</th><th>函数</th></tr>
+<tr><td>user</td><td>tool_result 内容里的 <code>tool_reference</code> 块</td><td><code>stripToolReferenceBlocksFromUserMessage</code></td></tr>
+<tr><td>assistant</td><td>tool_use 块里的 <code>caller</code> 字段</td><td><code>stripCallerFieldFromAssistantMessage</code></td></tr>
+</table>
+</div>
+<p>注释补充：assistant 的 tool 输入已被 <code>normalizeMessagesForAPI</code> 归一化过，所以这里<strong>只需移除 <code>caller</code></strong>，不必再次归一化输入。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、第 ③ 道：修复 tool_use/tool_result 配对（1603-1606）</h2>
+<pre><code>// 修复恢复远端/teleport 会话时可能出现的 tool_use/tool_result 配对错位。
+messagesForAPI = ensureToolResultPairing(messagesForAPI)</code></pre>
+<h3>4.1 API 的硬约束</h3>
+<p>Anthropic API 要求 <strong>每个 <code>tool_use</code> 必须有对应的 <code>tool_result</code></strong>，反之亦然——它们必须<strong>成对出现</strong>。破坏这个配对会 400。</p>
+<h3>4.2 哪里会破坏配对</h3>
+<p>会话<strong>恢复（resume）/远端/teleport</strong> 场景：历史可能在某次工具调用中间被截断、或拼接了不完整的片段，导致：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>错位</th><th><code>ensureToolResultPairing</code> 的修复</th></tr>
+<tr><td><strong>孤立 tool_use</strong>（有调用无结果）</td><td>插入一条<strong>合成的 error tool_result</strong> 补齐</td></tr>
+<tr><td><strong>孤立 tool_result</strong>（有结果无调用）</td><td><strong>剔除</strong>这个引用了不存在 tool_use 的结果</td></tr>
+</table>
+</div>
+<div class="callout blue">这是典型的<strong>防御性修复</strong>：与其相信恢复来的历史一定完整，不如主动补全/裁剪，保证发出去的一定是合法配对。</div>
+</section>
+
+<section id="sec-5">
+<h2>五、第 ④ 道：剔除 advisor 块（1608-1611）</h2>
+<pre><code>if (!betas.includes(ADVISOR_BETA_HEADER)) {
+  messagesForAPI = stripAdvisorBlocks(messagesForAPI)
+}</code></pre>
+<p>与 <code>[3]</code> 呼应：advisor 产生的块只有在带 <code>ADVISOR_BETA_HEADER</code> 时 API 才认识。如果这次请求<strong>没带</strong>该 beta 头（advisor 功能关闭），历史里残留的 advisor 块就会被拒——所以<strong>没带头就把块删掉</strong>。</p>
+<div class="callout red">注意 <code>[3]</code> 里"只要 advisor 启用就无条件加 beta 头"正是为了让这道删除<strong>尽量少触发</strong>——能解析就别删。两段是一对。</div>
+</section>
+
+<section id="sec-6">
+<h2>六、第 ⑤ 道：剔除超量媒体（1613-1619）</h2>
+<pre><code>// API 会拒绝超过 100 个媒体项的请求，但返回的错误信息晦涩难懂。
+messagesForAPI = stripExcessMediaItems(messagesForAPI, API_MAX_MEDIA_PER_REQUEST)</code></pre>
+<ul>
+<li>API 单次请求<strong>最多 100 个媒体项</strong>（图片等），超了会 400，且错误信息<strong>很难懂</strong>。</li>
+<li>在 Cowork/CCD 里一旦报这个错<strong>很难恢复</strong>。</li>
+<li>所以<strong>静默剔除最旧的媒体项</strong>，保持在限制内——宁可悄悄丢几张老图，也不让整个请求挂掉。</li>
+</ul>
+<div class="callout blue">这是"<strong>优雅降级</strong>"而非"报错中断"：用户体验优先。</div>
+</section>
+
+<section id="sec-7">
+<h2>七、（此处插入 Provider 分流 → 见 [7]）</h2>
+<p>媒体剔除之后，代码检查 <code>getAPIProvider()</code>，若是 OpenAI/Gemini/Grok 就<strong>提前 <code>return</code></strong>，交给对应兼容层。详见 <code>[7]provider-routing</code>。<strong>只有第一方（Anthropic）/Bedrock 路径</strong>才会继续往下走到下面的指纹计算。</p>
+</section>
+
+<section id="sec-8">
+<h2>八、第 ⑥ 道：归因指纹（1664-1672）</h2>
+<pre><code>logEvent('tengu_api_after_normalize', { postNormalizedMessageCount: messagesForAPI.length })
+
+// 从第一条 user 消息计算指纹用于归因。
+// 必须在注入合成消息（例如延迟工具名）之前进行，使指纹反映真实的用户输入。
+const fingerprint = computeFingerprintFromMessages(messagesForAPI)</code></pre>
+<h3>8.1 指纹是什么</h3>
+<p><code>fingerprint</code> 是从<strong>第一条 user 消息</strong>算出的一个哈希，用于<strong>归因（attribution）</strong>——后面会通过 <code>getAttributionHeader(fingerprint)</code> 拼进 system prompt 前缀（见 <code>[8]</code>），让请求可被关联到原始用户输入。</p>
+<h3>8.2 ⭐ 时机很关键："注入合成消息之前"</h3>
+<p>注释强调指纹<strong>必须在注入合成消息之前</strong>算：</p>
+<ul>
+<li>后面会往 <code>messagesForAPI</code> 里追加<strong>合成消息</strong>（如 <code>&lt;available-deferred-tools&gt;</code> 注入，见 <code>[8]</code>）。</li>
+<li>如果指纹在那之后算，就会把"系统注入的内容"也算进去，<strong>污染</strong>了"真实用户输入"的归因。</li>
+<li>所以在所有清洗完成、但任何注入开始前，<strong>抢在这个时间点</strong>定格指纹。</li>
+</ul>
+<pre><code>normalize → strip → pairing → strip advisor → strip media
+   → [provider 分流] → after_normalize 日志
+   → ★ 此刻算 fingerprint（纯净的用户输入）★
+   → 之后才注入合成消息（[8]）</code></pre>
+<p><code>tengu_api_after_normalize</code> 与开头的 <code>tengu_api_before_normalize</code>（第二节）成对，记录归一化前后的消息数变化。</p>
+</section>
+
+<section id="sec-9">
+<h2>九、六道清洗全景</h2>
+<div class="mermaid">graph TD
+    A["messages（内部草稿）"] --&gt; B["① normalizeMessagesForAPI&lt;br/&gt;转 API 结构"]
+    B --&gt; C["② 模型切换剔除&lt;br/&gt;tool_reference / caller"]
+    C --&gt; D["③ ensureToolResultPairing&lt;br/&gt;补/删孤立工具块"]
+    D --&gt; E["④ stripAdvisorBlocks&lt;br/&gt;无 beta 头则删"]
+    E --&gt; F["⑤ stripExcessMediaItems&lt;br/&gt;&gt;100 媒体静默剔旧"]
+    F --&gt; G{"Provider?"}
+    G --&gt;|OpenAI/Gemini/Grok| H["return → [7]兼容层"]
+    G --&gt;|firstParty/Bedrock| I["⑥ computeFingerprint&lt;br/&gt;定格纯净用户输入"]
+    I --&gt; J["messagesForAPI（正式公文）"]
+
+    style B fill:#ffe0cc,stroke:#d77757
+    style I fill:#d2f0e3,stroke:#22a766</div>
+<p>每一道都在回答"<strong>这种情况下不洗会怎样</strong>"：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>道</th><th>不洗的后果</th></tr>
+<tr><td>① 归一化</td><td>内部结构 API 不认</td></tr>
+<tr><td>② 模型切换剔除</td><td>换模型后残留字段 → 400</td></tr>
+<tr><td>③ 配对修复</td><td>恢复会话工具块错位 → 400</td></tr>
+<tr><td>④ advisor 剔除</td><td>无 beta 头带 advisor 块 → 400</td></tr>
+<tr><td>⑤ 媒体剔除</td><td>&gt;100 媒体 → 难懂的 400，难恢复</td></tr>
+<tr><td>⑥ 指纹</td><td>时机错了 → 归因被合成消息污染</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-10">
+<h2>十、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>tengu_api_before_normalize</code></td><td><code>claude.ts:1567</code></td></tr>
+<tr><td><code>normalizeMessagesForAPI</code></td><td><code>claude.ts:1572</code></td></tr>
+<tr><td>模型切换剔除（tool_reference/caller）</td><td><code>claude.ts:1588-1601</code></td></tr>
+<tr><td><code>ensureToolResultPairing</code></td><td><code>claude.ts:1606</code></td></tr>
+<tr><td><code>stripAdvisorBlocks</code></td><td><code>claude.ts:1609-1611</code></td></tr>
+<tr><td><code>stripExcessMediaItems</code></td><td><code>claude.ts:1616-1619</code></td></tr>
+<tr><td><code>tengu_api_after_normalize</code></td><td><code>claude.ts:1665</code></td></tr>
+<tr><td><code>computeFingerprintFromMessages</code></td><td><code>claude.ts:1672</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-11">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>六道清洗</strong>：归一化 → 模型切换剔除 → 配对修复 → advisor 剔除 → 媒体剔除 →（分流）→ 指纹。</li>
+<li><strong>主题</strong>：全部为了<strong>防 400</strong>，尤其在换模型 / 恢复会话 / 媒体超量这些边缘场景。</li>
+<li><strong>配对硬约束</strong>：tool_use 与 tool_result 必须成对，孤立的补合成 error / 删掉。</li>
+<li><strong>指纹抢时机</strong>：在注入合成消息<strong>之前</strong>算，保证归因反映纯净用户输入。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

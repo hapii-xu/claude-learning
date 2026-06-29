@@ -1,0 +1,119 @@
+---
+title: "[2] 输入与状态契约：QueryParams 与 State"
+description: query() 的输入是不可变的 QueryParams（13 个字段：messages / systemPrompt / userContext / systemContext / canUseTool / toolUseContext / fallbackModel / querySource / maxOutputTokensOverride / maxTurns / skipCacheWrite / taskBudget / deps），其中 toolUseContext.langfuseTrace 决定 [3] 的 ownsTrace、querySource 决定持久化与 trace 归属；queryLoop 跨迭代携带的可变状态是 State（10 个字段，重点是 transition——让测试能断言恢复路径）。本节讲清「params 不可变 vs state 副本更新」的契约边界（src/query.ts:284-335）。
+---
+
+# [2] 输入与状态契约：QueryParams 与 State
+
+> `query()` 与 `queryLoop()` 之间有两份数据契约：**`QueryParams`**（外部传入、整轮不可变）与 **`State`**（循环内部、跨迭代可变）。理解它们的字段与「谁可变、谁不可变」，是读懂后续每一节的前提。（`src/query.ts:284-335`）
+
+---
+
+## 一、`QueryParams`：不可变的输入契约（13 字段）
+
+```ts
+export type QueryParams = {           // query.ts:284-317
+  messages: Message[]
+  systemPrompt: SystemPrompt
+  userContext: { [k: string]: string }
+  systemContext: { [k: string]: string }
+  canUseTool: CanUseToolFn
+  toolUseContext: ToolUseContext
+  fallbackModel?: string
+  querySource: QuerySource
+  maxOutputTokensOverride?: number
+  maxTurns?: number
+  skipCacheWrite?: boolean
+  taskBudget?: { total: number }
+  deps?: QueryDeps
+}
+```
+
+| 字段 | 作用 | 与本系列的关联 |
+|---|---|---|
+| `messages` | 对话历史。每轮把新 assistant 回复 + 工具结果追加进**副本** | `query()` 透传，循环里改副本 |
+| `systemPrompt` | 基础系统提示（不含 CLAUDE.md / git 动态上下文） | — |
+| `userContext` | 用户侧动态上下文（CWD/shell/日期），调 API 前拼到 messages 前 | — |
+| `systemContext` | 系统侧动态上下文（CLAUDE.md / git status），拼到 systemPrompt 后 | — |
+| `canUseTool` | 工具权限回调，每次工具调用前判定是否放行 | — |
+| `toolUseContext` | 工具执行上下文：agentId / mainLoopModel / 权限模式 / AppState / **langfuseTrace** | ⭐ 决定 `[3]` 的 `ownsTrace` |
+| `fallbackModel?` | 兜底模型名，主模型限流/不可用时切它重试 | queryLoop 降级用 |
+| `querySource` | 来源标签（`repl_main_thread` / `agent:*`） | ⭐ 决定持久化 + trace 归属 + 埋点 |
+| `maxOutputTokensOverride?` | 输出 token 上限覆盖值（限流恢复 / 超窗重试用） | 进入 `State` 副本 |
+| `maxTurns?` | 循环最大迭代轮数，未设为 ∞（防 agent 无限工具调用） | queryLoop 终止判定 |
+| `skipCacheWrite?` | 跳过 prompt cache 写入（仅读），避免大查询污染命中率 | — |
+| `taskBudget?` | API task_budget（beta），`total` 是整轮预算 | queryLoop 每轮算 remaining |
+| `deps?` | 依赖注入（microcompact / autocompact 等实现），测试替 mock | 未提供时用 `productionDeps()` |
+
+> **关键点**：`query()` 几乎原样透传 `QueryParams`——它**唯一**对入参做的修改，是在有 trace 时浅拷贝出 `paramsWithTrace`，把 trace 挂进 `toolUseContext`（见 `[3]`）。除此之外，params 在整个回合里**不可变**。
+
+---
+
+## 二、`State`：循环内部的可变状态（10 字段）
+
+`State` 不是 `query()` 的入参，而是 **`queryLoop` 跨迭代携带的可变状态**。`query()` 不直接碰它，但理解它有助于看清「为什么 query 的善后逻辑能放在外层」。
+
+```ts
+type State = {                              // query.ts:322-335
+  messages: Message[]
+  toolUseContext: ToolUseContext
+  autoCompactTracking: AutoCompactTrackingState | undefined
+  maxOutputTokensRecoveryCount: number
+  hasAttemptedReactiveCompact: boolean
+  maxOutputTokensOverride: number | undefined
+  pendingToolUseSummary: Promise<ToolUseSummaryMessage | null> | undefined
+  stopHookActive: boolean | undefined
+  turnCount: number
+  // 上一次迭代为什么继续。首次迭代为 undefined。
+  transition: Continue | undefined
+}
+```
+
+| 字段 | 含义 |
+|---|---|
+| `messages` | 当前迭代要发给 API 的消息（每轮重建副本） |
+| `toolUseContext` | 工具上下文（唯一会被循环内重赋值的 params 衍生物） |
+| `autoCompactTracking` | 自动压缩的跨边界追踪状态 |
+| `maxOutputTokensRecoveryCount` | 续写恢复已用次数（对照 `[1]` 的 LIMIT=3） |
+| `hasAttemptedReactiveCompact` | 是否已尝试过反应式压缩（防死亡螺旋的守卫） |
+| `maxOutputTokensOverride` | 当前输出上限覆盖（escalate 时升级） |
+| `pendingToolUseSummary` | 上一轮 haiku 工具摘要的 Promise（本轮流式期间解析） |
+| `stopHookActive` | stop hook 是否激活 |
+| `turnCount` | 已迭代轮数（对照 `maxTurns`） |
+| **`transition`** | ⭐ 上一次迭代「为什么继续」（首轮 undefined） |
+
+### 2.1 `transition` 为什么重要
+
+> `transition` 记录上一次迭代的**续轮原因**（`next_turn` / `collapse_drain_retry` / `reactive_compact_retry` / …）。它存在的唯一目的：**让测试可以断言恢复路径已触发**，而不必去检查消息内容。这是「把控制流显式化、便于测试」的典型设计。
+
+---
+
+## 三、params 不可变 vs state 副本更新
+
+这是整个 `query.ts` 的核心设计模式：
+
+```mermaid
+graph LR
+    P["QueryParams<br/>(不可变 · 外部契约)"] -->|浅拷贝挂 trace| PT["paramsWithTrace"]
+    PT -->|首轮初始化| S0["State #0"]
+    S0 -->|"state = { ...next }"| S1["State #1"]
+    S1 -->|"state = { ...next }"| S2["State #2 ..."]
+    style P fill:#ffe0cc,stroke:#d77757
+    style S0 fill:#dde0fe,stroke:#5769f7
+    style S1 fill:#d2f0e3,stroke:#22a766
+    style S2 fill:#d2f0e3,stroke:#22a766
+```
+
+- **`QueryParams` 不可变**：作为外部契约，整轮只读，保证 `query()` 的善后逻辑（trace 归属、命令收尾）能基于稳定的输入推理。
+- **`State` 整体副本更新**：`queryLoop` 每次迭代结束用 `state = { ...变更 }` **整体替换**，而非 10 个独立赋值——这样新增续轮路径时只改一处构造，不会漏掉某个字段，也不会污染多个续轮点。
+
+> 这种「不可变入参 + 整体副本状态」的分工，让 `query()` 能把**生命周期善后**（trace、内存、命令）安全地放在循环**之外**的 `try/finally` 里——因为它依赖的全是不可变的 params 与最终的 `terminal`，不受循环内部状态变迁影响。State 的逐字段细节交给姊妹文档 [`queryLoop/[2]params-state-deps`](../../queryLoop/[2]params-state-deps/params-state-deps.mdx)。
+
+---
+
+## 速记口诀
+
+- **QueryParams（13 字段，不可变）**：query() 几乎原样透传，唯一改动是浅拷贝挂 trace。
+- **两个关键字段**：`toolUseContext.langfuseTrace`→决定 ownsTrace；`querySource`→决定持久化 + trace 归属。
+- **State（10 字段，可变）**：queryLoop 跨迭代携带，`state = { ...next }` 整体副本更新。
+- **transition**：记录续轮原因，专为测试断言恢复路径而存在。

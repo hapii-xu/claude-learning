@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>isAgenticQuery、beta 头合并与 advisor 模型解析</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    h4 {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      margin: 16px 0 8px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 3 节</div>
+  <h1>isAgenticQuery、beta 头合并与 advisor 模型解析</h1>
+  <p class="hero-sub">queryModel 在工具处理之前做的请求"身份与能力"准备 —— 用 querySource 判定这是不是 agentic 查询、据此合并 beta 头集合，以及（启用 advisor 时）解析出服务端 advisor 工具要用的模型。本文讲清 agentic vs 非 agentic 的区别为何影响 betas、advisor server tool 的三道校验门、以及实验配置如何覆盖用户选择（src/services/api/claude.ts:1356-1406）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1356-1406</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、isAgenticQuery：请求的"身份"判定</a></li>
+    <li><a href="#sec-2">二、advisor beta 头：先于模型解析</a></li>
+    <li><a href="#sec-3">三、advisor 模型解析：三道校验门</a></li>
+    <li><a href="#sec-4">四、整段的两层"宽严"对比</a></li>
+    <li><a href="#sec-5">五、关键行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout red">这一段（<code>claude.ts:1356-1406</code>）回答两个问题： 1. <strong>这次请求是什么"身份"</strong> → <code>isAgenticQuery</code>，并据此算出要带哪些 <strong>beta 头</strong>。 2. <strong>要不要启用 advisor 服务端工具</strong>，用哪个模型当 advisor。<br/><br/>它紧接在 <code>tool schema build</code> 计时检查点之后、工具过滤（<code>[4]</code>）之前。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、isAgenticQuery：请求的"身份"判定</h2>
+<h3>1.1 代码</h3>
+<pre><code>queryCheckpoint('query_tool_schema_build_start')
+const isAgenticQuery =
+  options.querySource.startsWith('repl_main_thread') ||
+  options.querySource.startsWith('agent:') ||
+  options.querySource === 'sdk' ||
+  options.querySource === 'hook_agent' ||
+  options.querySource === 'verification_agent'
+const betas = getMergedBetas(options.model, { isAgenticQuery })</code></pre>
+<h3>1.2 什么叫 "agentic 查询"</h3>
+<p><code>querySource</code> 标记了"<strong>这次 LLM 调用是为谁发的</strong>"。Claude Code 内部会为各种目的调模型，大致分两类：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>类别</th><th>querySource 例子</th><th>特点</th></tr>
+<tr><td><strong>Agentic（主线工作）</strong></td><td><code>repl_main_thread*</code>、<code>agent:*</code>、<code>sdk</code>、<code>hook_agent</code>、<code>verification_agent</code></td><td>真正在"干活"——有工具、会多轮、用户在等</td></tr>
+<tr><td><strong>非 Agentic（辅助任务）</strong></td><td><code>compact</code>、<code>side_question</code>、<code>extract_memories</code>、分享、反馈、分类等</td><td>一次性后台处理，通常无工具、不需要主线能力</td></tr>
+</table>
+</div>
+<p><code>isAgenticQuery</code> 就是这个二分类的布尔结果。</p>
+<h3>1.3 为什么这个区分重要</h3>
+<p>很多<strong>能力/beta 头/实验</strong>只对主线工作有意义，对后台辅助任务反而是<strong>浪费甚至有害</strong>：</p>
+<ul>
+<li>后台任务带上 agentic 专属 beta 头 → 可能打破它们自己的 prompt 缓存（它们有独立的稳定 header 集合，见 <code>[9]</code>）。</li>
+<li>像 advisor（下文）、AFK mode beta（<code>[10]</code>）这类只对"用户正在交互的主线"有意义的功能，都用 <code>isAgenticQuery</code> 闸控。</li>
+</ul>
+<div class="callout blue">注释（在 <code>[9]</code> 那段）说得直接：*"按调用维度的闸门（isAgenticQuery）……使非 agentic 查询拥有自己稳定的 header 集合"*——核心还是为了<strong>缓存键稳定</strong>这条暗线。</div>
+<h3>1.4 getMergedBetas</h3>
+<pre><code>const betas = getMergedBetas(options.model, { isAgenticQuery })</code></pre>
+<p><code>betas</code> 是一个<strong>字符串数组</strong>，最终会变成 HTTP 请求头 <code>anthropic-beta</code>，告诉 API "我要启用哪些 beta 功能"。<code>getMergedBetas</code> 根据模型 + 是否 agentic，合并出基础 beta 集合。后面还会<strong>继续往这个数组 push</strong> 更多动态 beta（advisor、工具搜索、1M 上下文、fast mode、cache editing……分散在 <code>[4][9][10]</code> 各处），最后在 <code>paramsFromContext</code> 里过滤空串后真正发送。</p>
+<div class="callout blue">把 <code>betas</code> 想成一个<strong>逐步累积的购物车</strong>：这里放进基础款，后面各段按条件再往里加，发送前结一次账（过滤空串）。</div>
+<h3>1.5 querySource 全表：每个来源是谁、在干什么</h3>
+<p><code>querySource</code> 类型本身就是 <code>string</code>（<code>src/constants/querySource.ts</code>）—— 它是一条<strong>自由文本标签</strong>，随功能增长不断扩展，所以没有 enum，而是散落在各调用点的字面量。下面按"是不是 agentic"把目前代码里出现的来源<strong>全部</strong>列出来，方便对照学习。</p>
+<div class="callout blue">判定口径就是 1.1 的那段：<code>startsWith('repl_main_thread')</code>、<code>startsWith('agent:')</code>、<code>=== 'sdk'</code>、<code>=== 'hook_agent'</code>、<code>=== 'verification_agent'</code> 这五条命中任意一条 → <strong>agentic</strong>；其余全是<strong>非 agentic</strong>。</div>
+<h4>A. Agentic —— 主线工作（<code>isAgenticQuery = true</code>）</h4>
+<p>这些是"用户在等结果、带工具、会多轮"的真正干活的查询。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>谁在用</th><th>含义 / 示例</th><th>来源</th></tr>
+<tr><td><code>repl_main_thread</code></td><td><strong>主 agent</strong></td><td>用户在交互 REPL 里直接对话的主循环（默认输出样式时就是这个值）。<code>getQuerySourceForREPL()</code> 返回。</td><td><code>promptCategory.ts</code></td></tr>
+<tr><td><code>repl_main_thread:outputStyle:&lt;style&gt;</code></td><td>主 agent + 非默认输出样式</td><td>用户切了输出样式时带上样式名后缀，如 <code>repl_main_thread:outputStyle:Learning</code>、<code>:Explanatory</code>、<code>:custom</code>。因为是 <code>startsWith</code> 判定，仍算主线。</td><td><code>promptCategory.ts</code></td></tr>
+<tr><td><code>agent:default</code></td><td><strong>子 agent</strong>（无类型内置）</td><td>Task 工具派生、但未指定具体类型的子 agent。</td><td><code>promptCategory.ts</code></td></tr>
+<tr><td><code>agent:builtin:&lt;agentType&gt;</code></td><td><strong>内置子 agent</strong></td><td>内置子 agent，类型拼在后面，如 <code>agent:builtin:Explore</code>、<code>agent:builtin:Plan</code>。</td><td><code>promptCategory.ts</code></td></tr>
+<tr><td><code>agent:custom</code></td><td><strong>自定义子 agent</strong></td><td>用户/插件定义的 agent，或 slash command 派生出来的 agent。</td><td><code>processSlashCommand.tsx</code></td></tr>
+<tr><td><code>sdk</code></td><td><strong>编程式 SDK 调用</strong></td><td>通过 Claude Agent SDK / <code>QueryEngine</code> 以代码驱动的查询（无人手动输入，但等价于主线）。</td><td><code>QueryEngine.ts</code></td></tr>
+<tr><td><code>hook_agent</code></td><td><strong>agent 类 hook</strong></td><td>hook 配置里以 agent 形式运行的钩子。</td><td><code>execAgentHook.ts</code></td></tr>
+<tr><td><code>verification_agent</code></td><td><strong>验证 agent</strong></td><td>计划执行后校验结果是否达标的 agent（<code>VERIFICATION_AGENT</code> feature）。</td><td><code>query.ts</code> 等</td></tr>
+</table>
+</div>
+<h4>B. 非 Agentic —— 后台辅助任务（<code>isAgenticQuery = false</code>）</h4>
+<p>这些是"一次性后台处理、通常无工具、用户看不到、失败也无所谓"的辅助查询。<strong>默认不会因 529 重试</strong>（见 <code>[9]</code> / <code>withRetry.ts</code>），只有少数被显式加入 <code>FOREGROUND_529_RETRY_SOURCES</code>（下表标 ⏳）。</p>
+<p><strong>压缩 / 记忆类</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>compact</code> ⏳</td><td>上下文压缩：把过长历史摘要成短文，腾出窗口。</td><td><code>compact.ts</code> / <code>reactiveCompact.ts</code></td></tr>
+<tr><td><code>session_memory</code></td><td>生成会话记忆。</td><td><code>sessionMemory.ts</code></td></tr>
+<tr><td><code>extract_memories</code></td><td>从对话抽取长期记忆。</td><td><code>extractMemories.ts</code></td></tr>
+<tr><td><code>memdir_relevance</code></td><td>判断哪些已存记忆与当前任务相关。</td><td><code>findRelevantMemories.ts</code></td></tr>
+<tr><td><code>auto_dream</code></td><td>后台"做梦"式整理/沉淀。</td><td><code>autoDream.ts</code></td></tr>
+<tr><td><code>marble_origami</code></td><td>context-collapse 的 ctx-agent（上下文坍缩）。</td><td><code>contextCollapse/</code></td></tr>
+</table>
+</div>
+<p><strong>摘要 / 标题类</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>side_question</code> ⏳</td><td>侧问：在主对话之外问模型一个一次性问题（用户会等，故会重试，但不带主线能力）。</td><td><code>sideQuestion.ts</code></td></tr>
+<tr><td><code>agent_summary</code></td><td>子 agent 运行结果摘要。</td><td><code>agentSummary.ts</code></td></tr>
+<tr><td><code>away_summary</code></td><td>用户离开期间的总结 / recap。</td><td><code>awaySummary.ts</code> / <code>generateRecap.ts</code></td></tr>
+<tr><td><code>tool_use_summary_generation</code></td><td>工具调用过程摘要。</td><td><code>toolUseSummaryGenerator.ts</code></td></tr>
+<tr><td><code>generate_session_title</code></td><td>生成会话标题。</td><td><code>sessionTitle.ts</code></td></tr>
+<tr><td><code>rename_generate_name</code></td><td>重命名会话时生成名字。</td><td><code>generateSessionName.ts</code></td></tr>
+<tr><td><code>teleport_generate_title</code></td><td>teleport 功能的标题生成。</td><td><code>teleport.tsx</code></td></tr>
+<tr><td><code>insights</code></td><td>洞察 / 使用统计分析。</td><td><code>insights.ts</code></td></tr>
+</table>
+</div>
+<p><strong>建议 / 推测类</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>prompt_suggestion</code></td><td>给用户的下一步提示建议（仅主线 <code>repl_main_thread</code> 时才跑）。</td><td><code>promptSuggestion.ts</code></td></tr>
+<tr><td><code>speculation</code></td><td>推测性预取（提前猜用户要什么）。</td><td><code>speculation.ts</code></td></tr>
+</table>
+</div>
+<p><strong>技能 / 搜索 / 文档类</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>skill_search_intent</code></td><td>技能搜索的意图归一化。</td><td><code>intentNormalize.ts</code></td></tr>
+<tr><td><code>skill_improvement_apply</code></td><td>应用技能改进。</td><td><code>skillImprovement.ts</code></td></tr>
+<tr><td><code>skill_learning_observer</code></td><td>技能学习的运行观察。</td><td><code>llmObserverBackend.ts</code></td></tr>
+<tr><td><code>session_search</code></td><td>在会话内容里做语义搜索。</td><td><code>agenticSessionSearch.ts</code></td></tr>
+<tr><td><code>magic_docs</code></td><td>Magic Docs 自动更新。</td><td><code>magicDocs.ts</code></td></tr>
+</table>
+</div>
+<p><strong>权限 / 分类 / 自动模式</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>auto_mode</code> ⏳</td><td>auto/yolo 模式的安全分类器（必须完成以保证正确性，故重试）。</td><td><code>yoloClassifier.ts</code></td></tr>
+<tr><td><code>auto_mode_critique</code></td><td>auto mode 的自我批判。</td><td><code>autoMode.ts</code></td></tr>
+<tr><td><code>permission_explainer</code></td><td>给用户解释某个权限请求。</td><td><code>permissionExplainer.ts</code></td></tr>
+<tr><td><code>bash_classifier</code> ⏳</td><td>bash 命令安全分类（仅 ant 构建，feature-gated）。</td><td><code>withRetry.ts</code></td></tr>
+<tr><td><code>bash_extract_prefix</code></td><td>提取 bash 命令前缀（用于权限匹配）。</td><td><code>commands.ts</code></td></tr>
+</table>
+</div>
+<p><strong>hook / 工具 / 其它</strong></p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>含义</th><th>来源</th></tr>
+<tr><td><code>hook_prompt</code></td><td>prompt 类 hook（注意：≠ <code>hook_agent</code>，<strong>不</strong>算 agentic）。</td><td><code>execPromptHook.ts</code></td></tr>
+<tr><td><code>agent_creation</code></td><td><code>/agents</code> 创建时生成 agent 定义。</td><td><code>generateAgent.ts</code></td></tr>
+<tr><td><code>model_validation</code></td><td>模型可用性探针（<code>max_tokens:1</code> 发个 "Hi"）。</td><td><code>validateModel.ts</code></td></tr>
+<tr><td><code>mcp_datetime_parse</code></td><td>MCP 的日期时间解析。</td><td><code>dateTimeParser.ts</code></td></tr>
+<tr><td><code>chrome_mcp</code></td><td>Claude in Chrome 的 MCP 查询。</td><td><code>mcpServer.ts</code></td></tr>
+<tr><td><code>feedback</code></td><td>处理用户反馈。</td><td><code>Feedback.tsx</code></td></tr>
+<tr><td><code>workflow</code></td><td>工作流后端驱动的查询。</td><td><code>claudeCodeBackend.ts</code></td></tr>
+</table>
+</div>
+<div class="callout blue"><strong>易混点</strong>：<code>hook_agent</code>（agentic）vs <code>hook_prompt</code>（非 agentic）只差一个词，闸控结果却相反——前者是"以 agent 身份干活"，后者只是"跑个 prompt 钩子"。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、advisor beta 头：先于模型解析</h2>
+<pre><code>// advisor 启用时始终发送 advisor beta 头，使非 agentic 查询
+// （compact、side_question、extract_memories 等）可以解析会话历史中
+// 已有的 advisor server_tool_use 块。
+if (isAdvisorEnabled()) {
+  betas.push(ADVISOR_BETA_HEADER)
+}</code></pre>
+<p>注意这里的微妙之处：<strong>只要 advisor 功能开着，就无条件加 beta 头</strong>，连非 agentic 查询也加。</p>
+<p>为什么？因为会话历史里可能<strong>已经存在</strong> advisor 产生的 <code>server_tool_use</code> 块。如果某次非 agentic 查询（比如 compact 压缩）要处理这段历史，但<strong>没带 advisor beta 头</strong>，API 会因为不认识这些块而<strong>报 400</strong>。所以 beta 头要"宽进"——能解析历史就行；而<strong>真正启用 advisor 工具</strong>则要"严出"，见下文。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、advisor 模型解析：三道校验门</h2>
+<pre><code>let advisorModel: string | undefined
+if (isAgenticQuery &amp;&amp; isAdvisorEnabled()) {
+  let advisorOption = options.advisorModel
+
+  // 实验可覆盖
+  const advisorExperiment = getExperimentAdvisorModels()
+  if (advisorExperiment !== undefined) {
+    if (
+      normalizeModelStringForAPI(advisorExperiment.baseModel) ===
+      normalizeModelStringForAPI(options.model)
+    ) {
+      // 只有当用户无法自行配置 advisor 模型时，实验模型才应存在
+      advisorOption = advisorExperiment.advisorModel
+    }
+  }
+
+  if (advisorOption) {
+    const normalizedAdvisorModel = normalizeModelStringForAPI(
+      parseUserSpecifiedModel(advisorOption),
+    )
+    if (!modelSupportsAdvisor(options.model)) {
+      // 门 ①：基础模型不支持 advisor
+      logForDebugging(`[AdvisorTool] Skipping advisor - base model ... does not support advisor`)
+    } else if (!isValidAdvisorModel(normalizedAdvisorModel)) {
+      // 门 ②：advisor 模型本身不合法
+      logForDebugging(`[AdvisorTool] Skipping advisor - ... is not a valid advisor model`)
+    } else {
+      // 三门全过 → 真正启用
+      advisorModel = normalizedAdvisorModel
+      logForDebugging(`[AdvisorTool] Server-side tool enabled with ${advisorModel} ...`)
+    }
+  }
+}</code></pre>
+<h3>3.1 advisor 是什么</h3>
+<p>advisor 是一个<strong>服务端工具（server tool）</strong>：在生成回复的过程中，模型可以"咨询"另一个（通常更强的）模型来获得建议。它由 API 服务端执行（区别于客户端工具），因此需要在请求里声明 <code>advisor</code> 这个 server tool + 指定它用哪个模型（见 <code>[9]</code> 把 advisor 加入 <code>extraToolSchemas</code>）。</p>
+<h3>3.2 总开关：<code>isAgenticQuery &amp;&amp; isAdvisorEnabled()</code></h3>
+<p>与第二节的"beta 头宽进"不同，<strong>真正启用 advisor 工具</strong>多了一道 <code>isAgenticQuery</code>：只有主线工作才用 advisor，后台辅助任务不需要它去"咨询"。</p>
+<h3>3.3 实验覆盖：谁说了算</h3>
+<pre><code>const advisorExperiment = getExperimentAdvisorModels()
+if (实验存在 &amp;&amp; 实验.baseModel === 当前模型) {
+  advisorOption = 实验.advisorModel   // 覆盖用户选择
+}</code></pre>
+<p><code>getExperimentAdvisorModels()</code> 是 A/B 实验配置。注释强调：</p>
+<div class="callout blue">*只有当用户无法自行配置 advisor 模型时，实验模型才应该存在。*</div>
+<p>也就是说实验覆盖只在"用户没法自己选"的场景生效，避免实验悄悄改掉用户的显式配置。覆盖前还要确认<strong>实验的 baseModel 与当前模型一致</strong>（归一化后比较），不匹配就不覆盖。</p>
+<h3>3.4 三道校验门（决定 advisorModel 是否被赋值）</h3>
+<p><code>advisorModel</code> 默认 <code>undefined</code>（= 不启用）。只有三关全过才被赋值：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>门</th><th>检查</th><th>不过的后果</th></tr>
+<tr><td>前置</td><td><code>advisorOption</code> 非空（有配置或实验值）</td><td>跳过整段</td></tr>
+<tr><td>①</td><td><code>modelSupportsAdvisor(options.model)</code> —— 基础模型支持 advisor</td><td>记日志，不启用</td></tr>
+<tr><td>②</td><td><code>isValidAdvisorModel(normalizedAdvisorModel)</code> —— advisor 模型合法</td><td>记日志，不启用</td></tr>
+<tr><td>③</td><td>前两门都过</td><td>✅ <code>advisorModel = normalizedAdvisorModel</code></td></tr>
+</table>
+</div>
+<p>每次失败都 <code>logForDebugging</code> 写明原因，方便排查"为什么 advisor 没生效"。</p>
+<h3>3.5 <code>advisorModel</code> 之后被谁用</h3>
+<p><code>advisorModel</code>（被赋值时）会在后续多处使用：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>用途</th><th>位置</th><th>文档</th></tr>
+<tr><td>注入 <code>ADVISOR_TOOL_INSTRUCTIONS</code> 到 system prompt</td><td><code>claude.ts:1724</code></td><td><code>[8]</code></td></tr>
+<tr><td>作为 server tool 加入 <code>extraToolSchemas</code></td><td><code>claude.ts:1773</code></td><td><code>[9]</code></td></tr>
+<tr><td>流里检测 advisor 调用/结果，打点</td><td><code>claude.ts:2430 / 2466</code></td><td><code>[13]</code></td></tr>
+<tr><td>标到每条 assistant 消息上（<code>advisorModel</code> 字段）</td><td><code>claude.ts:2640 / 3070</code></td><td><code>[13][15]</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-4">
+<h2>四、整段的两层"宽严"对比</h2>
+<p>这一段最值得记住的设计是 advisor 的<strong>两层不同闸门</strong>：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>目的</th><th>闸门</th><th>宽严</th><th>原因</th></tr>
+<tr><td>加 advisor <strong>beta 头</strong></td><td><code>isAdvisorEnabled()</code></td><td>宽（含非 agentic）</td><td>要能解析历史里已有的 advisor 块，否则 400</td></tr>
+<tr><td>真正<strong>启用 advisor 工具</strong></td><td><code>isAgenticQuery &amp;&amp; isAdvisorEnabled()</code> + 三道门</td><td>严</td><td>只主线工作需要，且要模型/配置都合法</td></tr>
+</table>
+</div>
+<div class="callout blue">一句话：<strong>解析历史要宽，启用功能要严</strong>。</div>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>query_tool_schema_build_start</code> 检查点</td><td><code>claude.ts:1356</code></td></tr>
+<tr><td><code>isAgenticQuery</code> 判定</td><td><code>claude.ts:1357-1362</code></td></tr>
+<tr><td><code>getMergedBetas</code></td><td><code>claude.ts:1363</code></td></tr>
+<tr><td>advisor beta 头（宽进）</td><td><code>claude.ts:1367-1369</code></td></tr>
+<tr><td>advisor 模型解析（严出）</td><td><code>claude.ts:1371-1406</code></td></tr>
+<tr><td>实验覆盖</td><td><code>claude.ts:1375-1385</code></td></tr>
+<tr><td>三道校验门</td><td><code>claude.ts:1391-1404</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>isAgenticQuery</strong>：querySource 是不是"主线工作"（repl/agent/sdk/hook/verification）—— 决定带哪些 beta、要不要 advisor。</li>
+<li><strong>betas 是购物车</strong>：这里放基础款，后面各段继续加，发送前过滤空串结账。</li>
+<li><strong>advisor 两层闸门</strong>：beta 头宽进（解析历史防 400）· 启用功能严出（agentic + 三道校验门）。</li>
+<li><strong>实验覆盖有边界</strong>：只在"用户无法自配"且 baseModel 匹配时覆盖。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>非流式降级引擎 executeNonStreamingRequest</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 4 节</div>
+  <h1>非流式降级引擎 <span>executeNonStreamingRequest</span></h1>
+  <p class="hero-sub">当 <code>queryModel</code> 的流式请求失败（<code>[15]error-fallback</code>），它不直接报错，而是改用这个引擎以非流式方式重发同一请求。本文拆解六个回调参数、它如何包裹 <code>withRetry</code>、每次尝试的有界超时（远端 120s / 否则 300s）、<code>APIUserAbortError</code> 的静默直抛、以及 <code>originatingRequestId</code> 的漏斗关联埋点（src/services/api/claude.ts:1079-1196）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:1079-1196</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>非流式降级 / 重试引擎</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、它在降级链里的位置</a></li>
+    <li><a href="#sec-2">二、有界超时</a></li>
+    <li><a href="#sec-3">三、六个参数</a></li>
+    <li><a href="#sec-4">四、包裹 withRetry</a></li>
+    <li><a href="#sec-5">五、错误处理两岔</a></li>
+    <li><a href="#sec-6">六、收尾与返回</a></li>
+    <li><a href="#sec-7">七、行号书签</a></li>
+    <li><a href="#sec-8">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout">这是本系列里<strong>唯一不是"入口包装"</strong>的函数。它属于 <code>queryModel</code> 的降级路径：流式请求挂了之后（<code>queryModel</code> 的 <code>[15]error-fallback</code>），与其直接把错误抛给用户，不如<strong>换一种姿势再试一次</strong>——关掉流式、用一次性的非流式请求重发。这个函数就是那条退路的执行引擎。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、它在降级链里的位置</h2>
+<p>回顾 <code>queryModel</code> 总览的"多层降级"暗线：</p>
+<div class="mermaid-box">流式请求
+ ├─ 用户 ESC          → 直接抛 APIUserAbortError
+ ├─ 流中途出错        → ★ 改走 executeNonStreamingRequest（非流式重发）
+ ├─ 404 流端点        → ★ 同上
+ └─ withRetry 耗尽    → FallbackTriggeredError → 上抛给 query.ts 切模型</div>
+<p>带 ★ 的两条退路都落到本函数。它把"非流式请求 + 重试 + 超时 + 埋点"打包成一个可复用的异步生成器，<code>queryModel</code> 的两处降级点共用它，避免重复代码。</p>
+<div class="callout blue">它 <code>yield</code> 的是 <code>SystemAPIErrorMessage</code>（重试过程中的系统消息），<code>return</code> 的是最终的 <code>BetaMessage</code>（成功响应）。调用方（<code>queryModel</code>）迭代它、透传系统消息、拿到最终 BetaMessage 再转成 AssistantMessage。</div>
+</section>
+
+<section id="sec-2">
+<h2>二、<code>getNonstreamingFallbackTimeoutMs()</code> —— 有界超时</h2>
+<pre><code><span class="k">function</span> <span class="n">getNonstreamingFallbackTimeoutMs</span>(): <span class="t">number</span> {
+  <span class="k">const</span> override = <span class="n">parseInt</span>(process.env.API_TIMEOUT_MS || <span class="s">''</span>, <span class="num">10</span>)
+  <span class="k">if</span> (override) <span class="k">return</span> override
+  <span class="k">return</span> <span class="n">isEnvTruthy</span>(process.env.CLAUDE_CODE_REMOTE) ? <span class="num">120_000</span> : <span class="num">300_000</span>
+}</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>场景</th><th>超时</th><th>原因</th></tr>
+<tr><td>设了 <code>API_TIMEOUT_MS</code></td><td>取该值</td><td>让慢后端和流式路径共享同一上限</td></tr>
+<tr><td>远端会话（<code>CLAUDE_CODE_REMOTE</code>）</td><td><strong>120s</strong></td><td>低于 CCR 容器约 5 分钟的空闲杀死阈值</td></tr>
+<tr><td>普通本地</td><td><strong>300s</strong></td><td>覆盖慢后端，又不逼近 API 的 10 分钟非流式上限</td></tr>
+</table>
+</div>
+<h3>为什么远端要更短</h3>
+<p>远端会话跑在 CCR 容器里，容器有个约 <strong>5 分钟空闲就 SIGKILL</strong> 的阈值。如果降级请求卡住，必须在容器被杀<strong>之前</strong>主动超时——这样能拿到一个<strong>干净的 <code>APIConnectionTimeoutError</code></strong>（可记录、可继续降级），而不是整个进程被 SIGKILL（什么诊断信息都留不下）。120s 远低于 5 分钟，留足了余量。</p>
+<div class="callout green">这是 <code>[0]</code> 暗线 D：<strong>有界超时把"无声卡死"变成"可观测的超时错误"</strong>。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、<code>executeNonStreamingRequest</code> 的六个参数</h2>
+<p>函数签名很长，因为它把"可变的部分"都做成了回调，自己只管编排：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>参数</th><th>角色</th></tr>
+<tr><td><code>clientOptions</code></td><td>创建 Anthropic 客户端要的料：模型、<code>fetchOverride</code>（dump 调试）、<code>source</code></td></tr>
+<tr><td><code>retryOptions</code></td><td>喂给 <code>withRetry</code> 的策略：主/降级模型、思考配置、fastMode、signal、初始 529 计数、querySource</td></tr>
+<tr><td><code>paramsFromContext</code></td><td><strong>闭包</strong>：根据每次重试的 <code>context</code> 算出这次的请求体（thinking、temperature、缓存断点）。来自 <code>[10]params-from-context</code></td></tr>
+<tr><td><code>onAttempt</code></td><td>每次尝试开始时的回调（记录开始时间、本次 max_tokens），用于日志/计时</td></tr>
+<tr><td><code>captureRequest</code></td><td>捕获本次请求体（dump prompts 调试用）</td></tr>
+<tr><td><code>originatingRequestId</code></td><td><strong>这次降级正在拯救的那个失败流式请求的 request ID</strong>，用于埋点漏斗关联</td></tr>
+</table>
+</div>
+<div class="callout purple">把 <code>paramsFromContext</code> 等做成回调而非内联，是因为请求体的构建逻辑（<code>[10]</code>）很重、且流式/非流式要复用同一套；引擎只负责"什么时候调它、调几次、出错怎么记"。</div>
+</section>
+
+<section id="sec-4">
+<h2>四、核心：包裹 <code>withRetry</code></h2>
+<pre><code><span class="k">const</span> generator = <span class="n">withRetry</span>(
+  () =&gt; <span class="n">getAnthropicClient</span>({
+    maxRetries: <span class="num">0</span>,                 <span class="c">// ★ SDK 自身不重试，重试全交给 withRetry</span>
+    model: clientOptions.model,
+    fetchOverride: clientOptions.fetchOverride,
+    source: clientOptions.source,
+  }),
+  <span class="k">async</span> (anthropic, attempt, context) =&gt; {
+    <span class="k">const</span> start = Date.now()
+    <span class="k">const</span> retryParams = <span class="n">paramsFromContext</span>(context)   <span class="c">// 算这次的请求体</span>
+    <span class="n">captureRequest</span>(retryParams)                      <span class="c">// dump 调试</span>
+    <span class="n">onAttempt</span>(attempt, start, retryParams.max_tokens)
+
+    <span class="k">const</span> adjustedParams = <span class="n">adjustParamsForNonStreaming</span>(retryParams, MAX_NON_STREAMING_TOKENS)
+
+    <span class="k">try</span> {
+      <span class="k">return await</span> anthropic.beta.messages.create(
+        { ...adjustedParams, model: <span class="n">normalizeModelStringForAPI</span>(adjustedParams.model) },
+        { signal: retryOptions.signal, timeout: fallbackTimeoutMs },   <span class="c">// ★ 有界超时</span>
+      )
+    } <span class="k">catch</span> (err) {
+      <span class="k">if</span> (err <span class="k">instanceof</span> APIUserAbortError) <span class="k">throw</span> err   <span class="c">// ★ 用户中止：静默直抛</span>
+      <span class="n">logForDiagnosticsNoPII</span>(<span class="s">'error'</span>, <span class="s">'cli_nonstreaming_fallback_error'</span>)
+      <span class="n">logEvent</span>(<span class="s">'tengu_nonstreaming_fallback_error'</span>, { model, error, attempt, timeout_ms, request_id })
+      <span class="k">throw</span> err
+    }
+  },
+  { model, fallbackModel, thinkingConfig, ...(<span class="n">isFastModeEnabled</span>() &amp;&amp; { fastMode }), signal, initialConsecutive529Errors, querySource },
+)</code></pre>
+<h3>4.1 <code>maxRetries: 0</code> 的分工</h3>
+<p>SDK 客户端创建时显式关掉自带重试（<code>maxRetries: 0</code>），把重试权<strong>完全交给 <code>withRetry</code></strong>。否则会出现"SDK 重试 ×3 套在 withRetry 重试 ×N 里"的嵌套重试，次数失控、计费/日志也乱。</p>
+<h3>4.2 <code>adjustParamsForNonStreaming</code></h3>
+<p>流式请求体不能原样用于非流式——非流式有更严的 <code>max_tokens</code> 上限（<code>MAX_NON_STREAMING_TOKENS</code>）。这一步把请求体调整到非流式约束内（必要时压缩 max_tokens）。</p>
+<h3>4.3 有界超时落地</h3>
+<p><code>create()</code> 的第二个参数 <code>{ signal, timeout: fallbackTimeoutMs }</code> 把第二节算出的超时真正套上去。<code>signal</code> 透传用户的 abort 信号，<code>timeout</code> 是上面的 120s/300s。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、错误处理的两条岔路</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>错误</th><th>处理</th><th>为什么</th></tr>
+<tr><td><code>APIUserAbortError</code>（用户 ESC）</td><td><strong>直接重抛，不记日志</strong></td><td>这不是故障，是正常取消，记日志只会污染遥测</td></tr>
+<tr><td>其它（含超时）</td><td>埋点后重抛</td><td>需要统计"降级也失败了"的情况</td></tr>
+</table>
+</div>
+<h3><code>originatingRequestId</code> 的漏斗关联</h3>
+<p>埋点 <code>tengu_nonstreaming_fallback_error</code> 里带上了 <code>request_id: originatingRequestId</code>——也就是<strong>最初那个失败的流式请求的 ID</strong>。这让分析时能把"流式失败 → 触发降级 → 降级也失败"串成一条完整漏斗，回答"降级到底救回来多少、又有多少二次失败"。</p>
+<h3>两种诊断信号的对照</h3>
+<ul>
+<li><strong>降级一直卡到容器被 SIGKILL</strong>（无任何事件）——说明超时没起作用 / 设得太长。</li>
+<li><strong>降级命中了有界超时</strong>（有本事件）——说明超时机制正常工作，干净地放弃了。</li>
+</ul>
+<p>有没有这条 <code>tengu_nonstreaming_fallback_error</code>，本身就是一个诊断维度。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、收尾：迭代生成器、透传系统消息、返回 BetaMessage</h2>
+<pre><code><span class="k">let</span> e
+<span class="k">do</span> {
+  e = <span class="k">await</span> generator.next()
+  <span class="k">if</span> (!e.done &amp;&amp; e.value.type === <span class="s">'system'</span>) {
+    <span class="k">yield</span> e.value          <span class="c">// 重试过程中的系统消息透传给上层</span>
+  }
+} <span class="k">while</span> (!e.done)
+
+<span class="k">return</span> e.value <span class="k">as</span> BetaMessage   <span class="c">// done 时 value 是最终成功的 BetaMessage</span></code></pre>
+<p><code>withRetry</code> 返回的也是个生成器：重试期间它 <code>yield</code> 系统消息（让 UI 显示"正在重试…"之类），最终成功时以 <code>return</code> 给出 <code>BetaMessage</code>。这个 <code>do/while</code> 把系统消息逐条透传出去、并在结束时取出最终 BetaMessage 作为本函数的返回值。</p>
+<div class="mermaid-box">queryModel 流式失败 [15]
+   └─ executeNonStreamingRequest
+        └─ withRetry 包裹 create()
+             ├─ 每次尝试：paramsFromContext → adjust → create(timeout)
+             │     ├─ 529/可重试错误 ─▶ 回到 withRetry 再试
+             │     ├─ APIUserAbortError ─▶ 静默重抛
+             │     └─ 其它错误 ─▶ 埋点 + 重抛
+             ├─ yield 系统消息 ─▶ do/while 透传
+             └─ return ─▶ 最终 BetaMessage</div>
+</section>
+
+<section id="sec-7">
+<h2>七、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>getNonstreamingFallbackTimeoutMs</code></td><td><code>claude.ts:1079</code></td></tr>
+<tr><td><code>executeNonStreamingRequest</code> 定义</td><td><code>claude.ts:1090</code></td></tr>
+<tr><td><code>withRetry</code> 包裹 + <code>maxRetries: 0</code></td><td><code>claude.ts:1119-1126</code></td></tr>
+<tr><td><code>adjustParamsForNonStreaming</code></td><td><code>claude.ts:1133</code></td></tr>
+<tr><td><code>create()</code> + 有界超时</td><td><code>claude.ts:1139-1148</code></td></tr>
+<tr><td><code>APIUserAbortError</code> 静默直抛</td><td><code>claude.ts:1151</code></td></tr>
+<tr><td><code>tengu_nonstreaming_fallback_error</code> 埋点</td><td><code>claude.ts:1157-1168</code></td></tr>
+<tr><td><code>do/while</code> 透传 + 返回 BetaMessage</td><td><code>claude.ts:1183-1195</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-8">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>身份</strong>：流式失败后的"非流式重发引擎"，被 <code>queryModel</code> 的 <code>[15]error-fallback</code> 调用。</li>
+<li><strong>有界超时</strong>：远端 120s（避开 CCR ~5min SIGKILL）/ 本地 300s（不碰 API 10min 上限），把卡死变成干净超时。</li>
+<li><strong>回调编排</strong>：<code>paramsFromContext</code>/<code>onAttempt</code>/<code>captureRequest</code> 都做成回调，引擎只管"何时调、调几次、错了怎么记"。</li>
+<li><strong><code>maxRetries: 0</code></strong>：SDK 不重试，重试全交 <code>withRetry</code>，避免嵌套重试。</li>
+<li><strong>错误两岔</strong>：用户中止静默直抛；其它埋点 <code>tengu_nonstreaming_fallback_error</code> 再抛。</li>
+<li><strong>漏斗关联</strong>：埋点带 <code>originatingRequestId</code>（原失败流式请求 ID），串起"流式失败→降级→二次失败"全链。</li>
+<li><strong>收尾</strong>：<code>do/while</code> 透传系统消息，生成器 done 时取出最终 <code>BetaMessage</code> 返回。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

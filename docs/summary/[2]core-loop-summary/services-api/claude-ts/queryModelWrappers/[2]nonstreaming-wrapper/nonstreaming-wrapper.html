@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>非流式入口 queryModelWithoutStreaming</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 720px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 2 节</div>
+  <h1>非流式入口 <span>queryModelWithoutStreaming</span></h1>
+  <p class="hero-sub">compact、extract_memories、queryHaiku 等"只要最终结果"的辅助查询走这个入口。它是普通 <code>async function</code>（返回 <code>Promise&lt;AssistantMessage&gt;</code>），内部用 <code>for await</code> 把生成器吃光、只留住最后一条 assistant 消息。本文讲清三件关键事：为什么必须吃光生成器而不能拿到结果就 break、no-assistant-message 的双分支兜底、三种结束日志的语义（src/services/api/claude.ts:963-1020）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>claude.ts:963-1020</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>非流式 Promise 入口</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、完整代码</a></li>
+    <li><a href="#sec-2">二、返回类型对照</a></li>
+    <li><a href="#sec-3">三、为什么必须吃光生成器</a></li>
+    <li><a href="#sec-4">四、no-assistant 双分支兜底</a></li>
+    <li><a href="#sec-5">五、三种结束日志</a></li>
+    <li><a href="#sec-6">六、谁在用</a></li>
+    <li><a href="#sec-7">七、行号书签</a></li>
+    <li><a href="#sec-8">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">不是所有调用方都想要"逐字流"。compact（上下文压缩）、extract_memories（记忆提取）、queryHaiku（小模型辅助）等场景只关心<strong>最终那条 assistant 消息</strong>，中间的逐帧事件对它们是噪音。这个入口把流式生成器"收敛"成一个 <code>Promise&lt;AssistantMessage&gt;</code>。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、完整代码</h2>
+<pre><code><span class="k">export async function</span> <span class="n">queryModelWithoutStreaming</span>({
+  messages, systemPrompt, thinkingConfig, tools, signal, options,
+}: { <span class="c">/* …同 queryModel 的参数 */</span> }): <span class="t">Promise</span>&lt;AssistantMessage&gt; {
+  <span class="n">logForDebugging</span>(<span class="s">`-- queryModelWithoutStreaming 开始 -- source=${options.querySource}`</span>, { level: <span class="s">'info'</span> })
+
+  <span class="c">// 存下 assistant 消息，但继续消费生成器，确保 logAPISuccessAndDuration</span>
+  <span class="c">// 会被调用（它在所有 yield 之后发生）</span>
+  <span class="k">let</span> assistantMessage: AssistantMessage | <span class="k">undefined</span>
+  <span class="k">for await</span> (<span class="k">const</span> message <span class="k">of</span> <span class="n">withStreamingVCR</span>(messages, <span class="k">async function</span>* () {
+    <span class="k">yield</span>* <span class="n">queryModel</span>(messages, systemPrompt, thinkingConfig, tools, signal, options)
+  })) {
+    <span class="k">if</span> (message.type === <span class="s">'assistant'</span>) {
+      assistantMessage = message <span class="k">as</span> AssistantMessage   <span class="c">// 只记录，不 break</span>
+    }
+  }
+
+  <span class="k">if</span> (!assistantMessage) {
+    <span class="k">if</span> (signal.aborted) {                          <span class="c">// 分支 A：用户主动中止</span>
+      <span class="n">logForDebugging</span>(<span class="s">`-- 结束 (aborted) --`</span>, { level: <span class="s">'warn'</span> })
+      <span class="k">throw new</span> <span class="n">APIUserAbortError</span>()
+    }
+    <span class="n">logForDebugging</span>(<span class="s">`-- 结束 (no_assistant_message) --`</span>, { level: <span class="s">'error'</span> })
+    <span class="k">throw new</span> <span class="t">Error</span>(<span class="s">'No assistant message found'</span>)   <span class="c">// 分支 B：真的出错</span>
+  }
+
+  <span class="n">logForDebugging</span>(<span class="s">`-- 结束 -- model=${options.model}`</span>, { level: <span class="s">'info'</span> })
+  <span class="k">return</span> assistantMessage
+}</code></pre>
+<p>与流式入口共用同样的内核——<code>withStreamingVCR(messages, () =&gt; queryModel(...))</code>——但这里<strong>自己把生成器消费掉</strong>，不再把事件透传出去。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、返回类型对照流式入口</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th></th><th>流式入口 [1]</th><th>非流式入口（本节）</th></tr>
+<tr><td>函数</td><td><code>async function*</code></td><td><code>async function</code></td></tr>
+<tr><td>返回</td><td><code>AsyncGenerator&lt;…, void&gt;</code></td><td><code>Promise&lt;AssistantMessage&gt;</code></td></tr>
+<tr><td>谁消费生成器</td><td>调用方</td><td><strong>自己</strong></td></tr>
+<tr><td>给调用方的东西</td><td>一串事件流</td><td><strong>一条</strong>最终消息</td></tr>
+</table>
+</div>
+<div class="callout purple">形象地说：流式入口把"半成品的水流"递出去；非流式入口在屋里把水接满，最后递出"一桶成品"。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、⭐ 为什么必须"吃光"生成器</h2>
+<p>最容易被误改的就是这个 <code>for await</code> 循环。直觉上你可能想"拿到 assistant 消息就 <code>break</code>"——但代码故意不这么做，注释也写明了原因。</p>
+<h3>3.1 关键事实：成功日志在所有 yield 之后</h3>
+<p><code>queryModel</code> 的结构是"yield 完所有事件 → 调 <code>logAPISuccessAndDuration</code> → finally 收尾"。<code>logAPISuccessAndDuration</code> 记录请求耗时、token 用量、成本等关键遥测。如果消费方在拿到 assistant 消息后<strong>提前 break</strong>：</p>
+<ul>
+<li><code>for await</code> 提前退出会触发生成器的 <code>.return()</code>，跳进 <code>finally</code>——<strong>但 <code>finally</code> 之前那段成功日志代码被跳过了</strong>。</li>
+<li>结果：这次成功的请求没有被正确记录耗时/成本，遥测出现黑洞。</li>
+</ul>
+<div class="callout red">所以"赋值但不 break、把循环走完"是<strong>正确性约束</strong>，不是冗余。误改成提前 break 会静默丢失遥测。</div>
+<h3>3.2 为什么用"最后一条 assistant"</h3>
+<p>循环里每遇到 <code>type==='assistant'</code> 就<strong>覆盖</strong> <code>assistantMessage</code>。正常一次查询通常只产生一条 assistant 消息，但写成"保留最后一条"更稳健——即便上游某天 yield 多条，也总能拿到最完整/最终的那条。</p>
+<div class="mermaid-box">for await 遍历每个事件
+   │
+   ├─ type === 'assistant' ? ── 是 ─▶ assistantMessage = 它（覆盖，不 break）
+   │                          └ 否 ─▶ 忽略（StreamEvent / Error 等）
+   ▼（生成器耗尽）
+queryModel 跑完成功日志 + finally
+   ▼
+循环自然结束 → 检查 assistantMessage</div>
+</section>
+
+<section id="sec-4">
+<h2>四、no-assistant-message 的双分支兜底</h2>
+<p>循环结束后若 <code>assistantMessage</code> 仍是 <code>undefined</code>，说明这次查询<strong>一条 assistant 都没产出</strong>。这时要区分两种截然不同的原因：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>分支</th><th>条件</th><th>抛出</th><th>日志级别</th><th>含义</th></tr>
+<tr><td>A</td><td><code>signal.aborted</code> 为真</td><td><code>APIUserAbortError</code></td><td><code>warn</code></td><td>用户 ESC / 调用方取消，<strong>不是 bug</strong></td></tr>
+<tr><td>B</td><td>否则</td><td><code>Error('No assistant message found')</code></td><td><code>error</code></td><td>异常状态，需要排查</td></tr>
+</table>
+</div>
+<h3>为什么要专门判断 aborted</h3>
+<p>如果不判断，所有"无消息"情况都抛通用 <code>Error</code>，调用方就无法区分"用户取消了"和"系统坏了"。而 <code>APIUserAbortError</code> 是一个<strong>可被上层识别并优雅处理</strong>的专用错误——<code>query.ts</code> 看到它就知道"这是正常取消，安静收尾即可，别报错给用户"。</p>
+<div class="callout"><strong>对照流式入口</strong>：<code>[1]</code> 不需要这套判断，因为它把 abort 异常直接透传给调用方，由调用方在 <code>for await</code> 外层 catch。非流式入口"吞掉"了生成器，所以必须自己把 abort 语义重新表达成一个错误抛出去。</div>
+</section>
+
+<section id="sec-5">
+<h2>五、三种结束日志</h2>
+<p>非流式入口有<strong>三条</strong>结束日志，分别对应三种出口，日志级别精心区分：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>出口</th><th>日志文案</th><th>level</th></tr>
+<tr><td>正常返回</td><td><code>结束 --------- model=...</code></td><td><code>info</code></td></tr>
+<tr><td>用户中止</td><td><code>结束 (aborted)</code></td><td><code>warn</code></td></tr>
+<tr><td>无消息异常</td><td><code>结束 (no_assistant_message)</code></td><td><code>error</code></td></tr>
+</table>
+</div>
+<p>加上开头一条 <code>开始</code> 日志（<code>info</code>），一次调用在日志里有清晰的"开始 → 某种结束"配对，便于在 debug 日志里定位每次辅助查询的生命周期和结局。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、谁在用这个入口</h2>
+<p>非流式入口的典型调用方都是"辅助查询"——它们不面向终端逐字渲染，只要一个结构化结果：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>调用方</th><th>用途</th></tr>
+<tr><td>compact</td><td>把长对话压缩成摘要，只要那段摘要文本</td></tr>
+<tr><td>extract_memories</td><td>从对话提取记忆条目</td></tr>
+<tr><td><code>queryHaiku</code> / <code>queryWithModel</code></td><td>小模型/指定模型的一次性问答（<code>claude.ts:3796 / 3855</code>）</td></tr>
+<tr><td>各类 side_question</td><td>标题生成、命令建议等后台查询</td></tr>
+</table>
+</div>
+<div class="callout">这些场景在<strong>穷鬼模式</strong>下可能被整体跳过（见 <code>poorMode</code>），因为它们额外消耗 token。</div>
+</section>
+
+<section id="sec-7">
+<h2>七、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>queryModelWithoutStreaming</code> 定义</td><td><code>claude.ts:963</code></td></tr>
+<tr><td>开始日志</td><td><code>claude.ts:978</code></td></tr>
+<tr><td>"吃光生成器"注释</td><td><code>claude.ts:982-983</code></td></tr>
+<tr><td><code>for await</code> 消费循环</td><td><code>claude.ts:985-998</code></td></tr>
+<tr><td>no-assistant 兜底 + aborted 分支</td><td><code>claude.ts:999-1014</code></td></tr>
+<tr><td>正常返回</td><td><code>claude.ts:1015-1019</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-8">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>身份</strong>：辅助查询（compact / extract_memories / queryHaiku）的入口，返回 <code>Promise&lt;AssistantMessage&gt;</code>。</li>
+<li><strong>接水成桶</strong>：内部 <code>for await</code> 吃光生成器，只留最后一条 assistant 消息。</li>
+<li><strong>绝不提前 break</strong>：成功日志 <code>logAPISuccessAndDuration</code> 在所有 yield 之后，break 会丢遥测。</li>
+<li><strong>双分支兜底</strong>：无消息时，<code>signal.aborted</code> → <code>APIUserAbortError</code>（warn）；否则 → 通用 Error（error）。</li>
+<li><strong>三条结束日志</strong>：正常 info / aborted warn / no_assistant_message error，出口一目了然。</li>
+<li><strong>对照 [1]</strong>：流式透传 abort，非流式必须把 abort 重新表达成错误抛出。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

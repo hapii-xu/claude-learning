@@ -1,0 +1,470 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>附件注入与续轮闭环 — next_turn</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* 鈹€鈹€ Hero 鈹€鈹€ */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* 鈹€鈹€ Code 鈹€鈹€ */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* 鈹€鈹€ Callout 鈹€鈹€ */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* 鈹€鈹€ Tables 鈹€鈹€ */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* 鈹€鈹€ Flow card 鈹€鈹€ */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* 鈹€鈹€ Card grid 鈹€鈹€ */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* 鈹€鈹€ Arch layers 鈹€鈹€ */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* 鈹€鈹€ Mode cards 鈹€鈹€ */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* 鈹€鈹€ Mermaid placeholder box 鈹€鈹€ */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 15 节</div>
+  <h1>附件注入 <span>与续轮闭环</span></h1>
+  <p class="hero-sub">一次迭代的收尾 —— 排队命令快照与认领（优先级/agent 作用域/slash 排除）、<code>getAttachmentMessages</code> 注入、memory/skill/tool 预取三连消费、<code>refreshTools</code> 让新 MCP 可用、BG_SESSIONS 周期任务摘要、<code>max_turns</code> 终止，以及 <code>next_turn</code> 的 state 整体替换与 while 闭环。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>query.ts:2228–2457</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>预取三连消费</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>max_turns</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>next_turn 闭环</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、为何在工具之后</a></li>
+    <li><a href="#sec-2">二、排队命令认领</a></li>
+    <li><a href="#sec-3">三、预取三连消费</a></li>
+    <li><a href="#sec-4">四、refreshTools</a></li>
+    <li><a href="#sec-5">五、max_turns</a></li>
+    <li><a href="#sec-6">六、next_turn 闭环</a></li>
+  </ul>
+</div>
+<div class="page-wrap">
+<section id="sec-1">
+  <h2>一、为什么附件要在工具之后处理</h2>
+  <div class="callout red">API 会报错，如果交错 <code>tool_result</code> 消息和普通 <code>user</code> 消息。所以附件（普通 user 消息）必须等所有 <code>tool_result</code> 都生成后再追加。</div>
+</section>
+<section id="sec-2">
+  <h2>二、排队命令快照与认领</h2>
+<pre><code><span class="k">const</span> <span class="n">sleepRan</span> <span class="p">=</span> <span class="n">toolUseBlocks</span>.<span class="n">some</span>(<span class="n">b</span> <span class="p">=&gt;</span> <span class="n">b</span>.<span class="n">name</span> <span class="p">===</span> <span class="n">SLEEP_TOOL_NAME</span>)
+<span class="k">const</span> <span class="n">isMainThread</span> <span class="p">=</span> <span class="n">querySource</span>.<span class="n">startsWith</span>(<span class="s">'repl_main_thread'</span>) <span class="p">||</span> <span class="n">querySource</span> <span class="p">===</span> <span class="s">'sdk'</span>
+<span class="k">const</span> <span class="n">queuedCommandsSnapshot</span> <span class="p">=</span> <span class="n">getCommandsByMaxPriority</span>(<span class="n">sleepRan</span> ? <span class="s">'later'</span> : <span class="s">'next'</span>).<span class="n">filter</span>(<span class="n">cmd</span> <span class="p">=&gt;</span> {
+  <span class="k">if</span> (<span class="n">isSlashCommand</span>(<span class="n">cmd</span>)) <span class="k">return</span> <span class="k">false</span>                       <span class="c">// slash 命令走轮次后流程</span>
+  <span class="k">if</span> (<span class="n">isMainThread</span>) <span class="k">return</span> <span class="n">cmd</span>.<span class="n">agentId</span> <span class="p">===</span> <span class="k">undefined</span>
+  <span class="k">return</span> <span class="n">cmd</span>.<span class="n">mode</span> <span class="p">===</span> <span class="s">'task-notification'</span> <span class="p">&amp;&amp;</span> <span class="n">cmd</span>.<span class="n">agentId</span> <span class="p">===</span> <span class="n">currentAgentId</span>
+})
+<span class="k">const</span> <span class="n">queuedAutonomyClaim</span> <span class="p">=</span> <span class="k">await</span> <span class="n">claimConsumableQueuedAutonomyCommands</span>(<span class="n">queuedCommandsSnapshot</span>)</code></pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>维度</th><th>规则</th></tr>
+    <tr><td>优先级</td><td><code>sleepRan</code> ? <code>'later'</code> : <code>'next'</code>（Sleep 工具跑过才排空 later 队列）</td></tr>
+    <tr><td>slash 命令</td><td><strong>排除</strong>——必须走轮次后的 <code>processSlashCommand</code>，不能当文本发给模型</td></tr>
+    <tr><td>agent 作用域</td><td>队列是进程全局单例：主线程排空 <code>agentId===undefined</code>；子 agent 只排空自己的 task-notification，绝不排空用户 prompt</td></tr>
+  </table></div>
+  <p>认领的 prompt/task-notification 命令记入 <code>consumedAutonomyCommands</code> 并 <code>notifyCommandLifecycle('started')</code>。</p>
+</section>
+<section id="sec-3">
+  <h2>三、getAttachmentMessages + 预取三连消费</h2>
+<pre><code><span class="k">for await</span> (<span class="k">const</span> <span class="n">attachment</span> <span class="k">of</span> <span class="n">getAttachmentMessages</span>(<span class="k">null</span>, <span class="n">updatedToolUseContext</span>, ...)) {
+  <span class="k">yield</span> <span class="n">attachment</span>; <span class="n">toolResults</span>.<span class="n">push</span>(<span class="n">attachment</span>)
+}
+<span class="c">// 消费 [3] 启动的三个预取（都已在流式+工具期间并行算完）</span>
+<span class="k">if</span> (<span class="n">pendingMemoryPrefetch</span>?.<span class="n">settledAt</span> !== <span class="k">null</span> <span class="p">&amp;&amp;</span> <span class="n">pendingMemoryPrefetch</span>.<span class="n">consumedOnIteration</span> <span class="p">===</span> <span class="num">-1</span>) { ... }   <span class="c">// memory</span>
+<span class="k">if</span> (<span class="n">skillPrefetch</span> <span class="p">&amp;&amp;</span> <span class="n">pendingSkillPrefetch</span>) { ... }                                                    <span class="c">// skill</span>
+<span class="k">if</span> (<span class="n">searchExtraToolsPrefetch</span> <span class="p">&amp;&amp;</span> <span class="n">pendingToolPrefetch</span>) { ... }                                          <span class="c">// tool</span></code></pre>
+  <div class="callout green">memory 消费用 <code>readFileState</code>（跨迭代累计）过滤掉模型已 Read/Wrote/Edited 的记忆——包括早期迭代的，这是 per-iteration <code>toolUseBlocks</code> 会漏掉的。未 settle 就跳过（零等待），下次迭代再试。</div>
+</section>
+<section id="sec-4">
+  <h2>四、refreshTools + BG_SESSIONS 任务摘要</h2>
+<pre><code><span class="k">if</span> (<span class="n">updatedToolUseContext</span>.<span class="n">options</span>.<span class="n">refreshTools</span>) {
+  <span class="k">const</span> <span class="n">refreshedTools</span> <span class="p">=</span> <span class="n">updatedToolUseContext</span>.<span class="n">options</span>.<span class="n">refreshTools</span>()   <span class="c">// 让新连接的 MCP server 可用</span>
+}
+<span class="k">if</span> (<span class="n">feature</span>(<span class="s">'BG_SESSIONS'</span>) <span class="p">&amp;&amp;</span> !<span class="n">agentId</span> <span class="p">&amp;&amp;</span> <span class="n">shouldGenerateTaskSummary</span>()) <span class="n">maybeGenerateTaskSummary</span>({...})  <span class="c">// claude ps 周期摘要</span></code></pre>
+</section>
+<section id="sec-5">
+  <h2>五、max_turns 终止</h2>
+<pre><code><span class="k">const</span> <span class="n">nextTurnCount</span> <span class="p">=</span> <span class="n">turnCount</span> <span class="p">+</span> <span class="num">1</span>
+<span class="k">if</span> (<span class="n">maxTurns</span> <span class="p">&amp;&amp;</span> <span class="n">nextTurnCount</span> <span class="p">&gt;</span> <span class="n">maxTurns</span>) {
+  <span class="k">yield</span> <span class="n">createAttachmentMessage</span>({ <span class="n">type</span><span class="p">:</span> <span class="s">'max_turns_reached'</span>, <span class="n">maxTurns</span>, <span class="n">turnCount</span><span class="p">:</span> <span class="n">nextTurnCount</span> })
+  <span class="k">return</span> { <span class="n">reason</span><span class="p">:</span> <span class="s">'max_turns'</span>, <span class="n">turnCount</span><span class="p">:</span> <span class="n">nextTurnCount</span> }
+}</code></pre>
+</section>
+<section id="sec-6">
+  <h2>六、next_turn：state 整体替换，闭合 while</h2>
+<pre><code><span class="k">const</span> <span class="n">next</span><span class="p">:</span> <span class="t">State</span> <span class="p">=</span> {
+  <span class="n">messages</span><span class="p">:</span> <span class="n">messagesForQuery</span>.<span class="n">concat</span>(<span class="n">assistantMessages</span>, <span class="n">toolResults</span>),   <span class="c">// 拼下一轮历史</span>
+  <span class="n">toolUseContext</span><span class="p">:</span> <span class="n">toolUseContextWithQueryTracking</span>,
+  <span class="n">autoCompactTracking</span><span class="p">:</span> <span class="n">tracking</span>,
+  <span class="n">turnCount</span><span class="p">:</span> <span class="n">nextTurnCount</span>,
+  <span class="n">maxOutputTokensRecoveryCount</span><span class="p">:</span> <span class="num">0</span>,        <span class="c">// 重置恢复计数</span>
+  <span class="n">hasAttemptedReactiveCompact</span><span class="p">:</span> <span class="k">false</span>,     <span class="c">// 重置（新一轮干净开始）</span>
+  <span class="n">pendingToolUseSummary</span><span class="p">:</span> <span class="n">nextPendingToolUseSummary</span>,   <span class="c">// 传给下一轮（[11] 消费）</span>
+  <span class="n">maxOutputTokensOverride</span><span class="p">:</span> <span class="k">undefined</span>,
+  <span class="n">stopHookActive</span>,
+  <span class="n">transition</span><span class="p">:</span> { <span class="n">reason</span><span class="p">:</span> <span class="s">'next_turn'</span> },
+}
+<span class="n">state</span> <span class="p">=</span> <span class="n">next</span>
+<span class="c">// while 回到顶部</span></code></pre>
+  <p>这就是 [0] 讲的"单个 state 整体替换"的正常续轮点：把本轮 assistant 回复 + 工具结果拼进 <code>messages</code>，重置恢复相关计数，带上工具摘要 Promise，<code>transition</code> 标 <code>next_turn</code>，回到 <code>while</code> 顶部开始下一轮。</p>
+  <h3>速记口诀</h3>
+  <ul>
+    <li>附件必须在工具之后（API 不许交错 tool_result 与普通 user 消息）。</li>
+    <li>排队命令：<code>sleepRan</code> 决定优先级、slash 排除、agent 作用域过滤、认领后通知 started。</li>
+    <li><strong>预取三连消费</strong>：memory（readFileState 去重）/ skill / tool，[3] 启动、这里收割，零等待。</li>
+    <li><code>refreshTools</code> 让新 MCP 可用；<code>max_turns</code> 终止。</li>
+    <li><strong>next_turn</strong>：拼 assistant+toolResults、重置恢复计数、传工具摘要、<code>state=next</code> 闭合循环。</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

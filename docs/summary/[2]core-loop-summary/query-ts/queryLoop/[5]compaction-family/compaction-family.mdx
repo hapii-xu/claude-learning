@@ -1,0 +1,90 @@
+---
+title: "[5] 压缩家族：snip → microcompact → contextCollapse"
+description: autocompact 之前的三种瘦身手段及其固定执行顺序 —— snipCompact（HISTORY_SNIP，snipTokensFreed 校正下游阈值）、microcompact（deps.microcompact，清理 clearedToolUseIds 原始字符串，CACHED_MICROCOMPACT 延迟边界消息）、contextCollapse.applyCollapsesIfNeeded（读取时投影，放在 autocompact 之前以保留细粒度上下文）。三者互补不互斥（src/query.ts:802-895）。
+---
+
+# [5] 压缩家族：snip → microcompact → contextCollapse
+
+> 这是压缩家族暗线的第一组。三种手段按固定顺序排布、**互补不互斥**（可能都跑）。共同目标：在调用昂贵的 `autocompact`（[6]）之前，先用便宜手段把 token 降下来，让 autocompact 尽量成为 no-op，从而**保留细粒度上下文而非单一摘要**。
+
+执行顺序：
+```
+snipCompact  →  microcompact  →  contextCollapse  →  (autocompact，见 [6])
+```
+
+---
+
+## 一、snipCompact（HISTORY_SNIP）
+
+```ts
+let snipTokensFreed = 0
+if (feature('HISTORY_SNIP')) {
+  const snipResult = snipModule!.snipCompactIfNeeded(messagesForQuery)
+  messagesForQuery = snipResult.messages
+  snipTokensFreed = snipResult.tokensFreed
+  if (snipResult.boundaryMessage) yield snipResult.boundaryMessage
+}
+```
+
+- 在 microcompact 之前应用（两者可能都跑，不互斥）。
+- **`snipTokensFreed` 是关键产物**：传给下游的 autocompact / 阻塞检查，让阈值判断反映 snip 移除的量。
+- 为什么必须显式传：`tokenCountWithEstimation` 看不到 snip 的效果——它从**受保护尾部**的 assistant 读 usage，而尾部在 snip 中保持不变。
+
+---
+
+## 二、microcompact
+
+```ts
+const microcompactResult = await deps.microcompact(messagesForQuery, toolUseContext, querySource)
+messagesForQuery = microcompactResult.messages
+
+if (microcompactResult.clearedToolUseIds?.length) {     // ⭐ 内存治理
+  const replacements = toolUseContext?.contentReplacementState?.replacements
+  if (replacements) for (const id of microcompactResult.clearedToolUseIds) replacements.delete(id)
+}
+
+const pendingCacheEdits = feature('CACHED_MICROCOMPACT')
+  ? microcompactResult.compactionInfo?.pendingCacheEdits : undefined
+```
+
+| 要点 | 说明 |
+|---|---|
+| `clearedToolUseIds` 释放 | 工具结果内容被换成清理消息后，**删掉 `contentReplacementState.replacements` 里的原始字符串**（释放内存） |
+| `pendingCacheEdits` | CACHED_MICROCOMPACT 下，边界消息**延迟**到 API 响应之后才发——这样能用真实的 `cache_deleted_input_tokens`（见 [9]） |
+| feature 门控 | 用 `feature()` 门控让被排除的字符串从外部构建中消失 |
+
+> microcompact 与工具结果预算（[4]）能干净组合：缓存 MC 只看 `tool_use_id`，从不看内容，所以内容替换对它不可见。
+
+---
+
+## 三、contextCollapse.applyCollapsesIfNeeded
+
+```ts
+if (feature('CONTEXT_COLLAPSE') && contextCollapse) {
+  const collapseResult = await contextCollapse.applyCollapsesIfNeeded(messagesForQuery, toolUseContext, querySource)
+  messagesForQuery = collapseResult.messages
+}
+```
+
+- **放在 autocompact 之前**：若折叠已让我们低于 autocompact 阈值，autocompact 就成 no-op，**保留细粒度上下文**而非单一摘要。
+- **不 yield 任何东西**：折叠视图是对 REPL 完整历史的**读取时投影**。摘要消息住在 collapse 存储里，不在 REPL 数组中。
+- 这正是折叠能**跨轮次持久**的原因：`projectView()` 每次入口重放提交日志。轮次内，视图通过续轮点（[15]）的 `state.messages` 向前流转，下一次 `projectView()` 成 no-op（归档的消息已从输入中消失）。
+
+---
+
+## 四、为什么是这个顺序
+
+```
+便宜、保细粒度 ───────────────────────→ 昂贵、变摘要
+snip  →  microcompact  →  collapse  →  autocompact
+```
+
+越靠前越便宜、越能保留原始信息；越靠后越激进。把激进手段放最后，让前面的便宜手段有机会先把 token 降到阈值之下，autocompact 自然 no-op。
+
+---
+
+## 速记口诀
+- 顺序：**snip → micro → collapse →（autocompact）**，互补不互斥。
+- `snipTokensFreed` 必须显式向下传，因为陈旧 usage 看不到 snip 效果。
+- microcompact 清 `clearedToolUseIds` 原始字符串（内存）；`pendingCacheEdits` 延迟边界消息。
+- collapse 是**读取时投影、不 yield、跨轮次持久**，放 autocompact 之前以保细粒度。

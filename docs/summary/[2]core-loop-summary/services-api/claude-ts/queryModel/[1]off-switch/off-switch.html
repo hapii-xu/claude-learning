@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>应急开关（off-switch / kill switch）</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 1 节</div>
+  <h1>应急开关（off-switch / kill switch）</h1>
+  <p class="hero-sub">queryModel 的第一段实质逻辑 —— Opus 模型的远程应急容量关闭开关。Anthropic 后端 Opus 容量吃紧时，可远程把一部分非订阅用户从 Opus 上挡下来。本文拆解三道与门的判定逻辑、为什么把廉价条件放前面以跳过会阻塞 ~10ms 的 GrowthBook 初始化、以及 getDynamicConfig_BLOCKS_ON_INIT 的含义（src/services/api/claude.ts:1318-1342）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1318-1342</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、完整代码</a></li>
+    <li><a href="#sec-2">二、三道"与门"逐条拆解</a></li>
+    <li><a href="#sec-3">三、<code>getDynamicConfig_BLOCKS_ON_INIT</code> 是什么</a></li>
+    <li><a href="#sec-4">四、触发后的三件事</a></li>
+    <li><a href="#sec-5">五、谁会被熔断 / 谁免疫</a></li>
+    <li><a href="#sec-6">六、关键行号书签</a></li>
+    <li><a href="#sec-7">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">进入 <code>queryModel</code> 后，记完开始日志，<strong>第一段实质代码</strong>就是这个"应急开关"。它本质是 Opus 模型的<strong>远程容量熔断器</strong>：当 Anthropic 后端 Opus 算力吃紧时，运维可以远程激活一个开关，把一部分用户从 Opus 上"劝退"，引导他们改用 Sonnet——避免整个服务雪崩。<br/><br/>位置：<code>claude.ts:1318-1342</code>。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、完整代码</h2>
+<pre><code>// 先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化
+// （约 10ms）。对非 Opus 模型（haiku、sonnet）可以直接跳过 await。
+// 订阅用户根本不会走到这条路径。
+
+// 这段判断本质上是 Opus 模型的"应急容量关闭开关"（off-switch / kill switch）——
+// 当 Anthropic 后端 Opus 容量吃紧时，可以远程把一部分用户从 Opus 上挡下来，
+// 引导他们切到 Sonnet。
+if (
+  !isClaudeAISubscriber() &amp;&amp;            // ① 非订阅用户
+  isNonCustomOpusModel(options.model) &amp;&amp; // ② 用的是官方 Opus 模型
+  (
+    await getDynamicConfig_BLOCKS_ON_INIT&lt;{ activated: boolean }&gt;(
+      'tengu-off-switch',
+      { activated: false },
+    )
+  ).activated                            // ③ 开关已激活
+) {
+  logEvent('tengu_off_switch_query', {})
+  yield getAssistantMessageFromError(
+    new Error(CUSTOM_OFF_SWITCH_MESSAGE),
+    options.model,
+  )
+  return
+}</code></pre>
+</section>
+
+<section id="sec-2">
+<h2>二、三道"与门"逐条拆解</h2>
+<p>三个条件用 <code>&amp;&amp;</code> 串联，<strong>全部成立</strong>才触发熔断。注意它们是<strong>短路求值</strong>——前一个为假就不算后面的，这正是性能优化的关键。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>顺序</th><th>条件</th><th>含义</th><th>代价</th></tr>
+<tr><td>①</td><td><code>!isClaudeAISubscriber()</code></td><td>当前<strong>不是</strong>订阅用户（Pro/Max 等付费订阅免疫）</td><td>极廉价（读本地状态）</td></tr>
+<tr><td>②</td><td><code>isNonCustomOpusModel(options.model)</code></td><td>用的是<strong>官方 Opus</strong> 模型（非自定义/非 Sonnet/Haiku）</td><td>廉价（字符串判断）</td></tr>
+<tr><td>③</td><td><code>getDynamicConfig_BLOCKS_ON_INIT(...).activated</code></td><td>远程动态配置里开关已激活</td><td><strong>昂贵</strong>（可能阻塞 ~10ms）</td></tr>
+</table>
+</div>
+<h3>2.1 为什么条件顺序如此重要</h3>
+<p>注释第一句点破了设计动机：</p>
+<div class="callout blue">*先检查廉价条件——off-switch 的 await 会阻塞 GrowthBook 初始化（约 10ms）。*</div>
+<p>条件 ③ 里的 <code>await getDynamicConfig_BLOCKS_ON_INIT</code> <strong>会阻塞</strong>，最坏情况触发 GrowthBook（动态配置/特性开关系统）的初始化，约 <strong>10ms</strong>。如果把它放第一个判断，那么<strong>每一次</strong> queryModel 调用——包括 Sonnet、Haiku、订阅用户——都要白白等这 10ms。</p>
+<p>通过把两个<strong>几乎零成本</strong>的本地判断（①②）放前面，利用 <code>&amp;&amp;</code> 短路：</p>
+<ul>
+<li><strong>订阅用户</strong>：① 直接为假 → 短路，永不 await。</li>
+<li><strong>Sonnet/Haiku 用户</strong>：② 为假 → 短路，永不 await。</li>
+<li><strong>只有"非订阅 + 官方 Opus"用户</strong>才会真正去 await 远程配置。</li>
+</ul>
+<div class="callout"><strong>类比</strong>：进门前先看"是不是 VIP（订阅）"和"走的是不是这扇门（Opus）"，这两步看一眼就知道；只有都对上了，才去翻那本要花时间查的"今天这扇门关没关"的台账（远程配置）。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、<code>getDynamicConfig_BLOCKS_ON_INIT</code> 是什么</h2>
+<p>函数名里大写的 <strong><code>_BLOCKS_ON_INIT</code></strong> 是一种<strong>自我警示命名</strong>——提醒调用者："我可能阻塞，因为我会等动态配置系统初始化完成"。</p>
+<pre><code>getDynamicConfig_BLOCKS_ON_INIT&lt;{ activated: boolean }&gt;(
+  'tengu-off-switch',         // 配置键名
+  { activated: false },       // 默认值（拿不到远程配置时用它）
+)</code></pre>
+<ul>
+<li>泛型 <code>&lt;{ activated: boolean }&gt;</code> 声明远程配置的形状。</li>
+<li>第二个参数 <code>{ activated: false }</code> 是<strong>兜底默认值</strong>：网络失败、配置不存在、初始化超时时，一律按"开关没激活"处理——<strong>默认放行</strong>，绝不因为配置系统抽风就误伤正常请求。</li>
+</ul>
+<div class="callout red">这是典型的<strong>安全默认（fail-open）</strong>设计：熔断器宁可漏掉一次该熔断的，也不要在配置不可用时把所有人都挡在外面。</div>
+</section>
+
+<section id="sec-4">
+<h2>四、触发后的三件事</h2>
+<p>一旦三道门全通过（确实要熔断）：</p>
+<pre><code>logEvent('tengu_off_switch_query', {})           // 1. 埋点：记录这次熔断
+yield getAssistantMessageFromError(              // 2. 给用户吐一条"错误消息"
+  new Error(CUSTOM_OFF_SWITCH_MESSAGE),
+  options.model,
+)
+return                                           // 3. 直接结束生成器，不发任何 API 请求</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>动作</th><th>作用</th></tr>
+<tr><td><code>logEvent('tengu_off_switch_query')</code></td><td>上报遥测，运维能统计熔断了多少请求</td></tr>
+<tr><td><code>yield getAssistantMessageFromError(...)</code></td><td>把 <code>CUSTOM_OFF_SWITCH_MESSAGE</code>（引导切 Sonnet 的提示文案）包装成一条 assistant 消息流出去，用户在对话里看到</td></tr>
+<tr><td><code>return</code></td><td><strong>立即退出</strong>，根本不会走到后面构建请求体、调 API 的代码</td></tr>
+</table>
+</div>
+<p>注意这里是 <code>yield</code> 一条错误消息后 <code>return</code>，<strong>不是 throw</strong>。因为这不是程序错误，而是一个<strong>正常的产品行为</strong>——用户应该收到一段友好提示，而不是看到崩溃堆栈。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、谁会被熔断 / 谁免疫</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>用户类型</th><th>模型</th><th>开关激活时</th></tr>
+<tr><td>订阅用户（Pro/Max）</td><td>任意</td><td>✅ 免疫（① 短路）</td></tr>
+<tr><td>非订阅用户</td><td>Sonnet / Haiku</td><td>✅ 免疫（② 短路）</td></tr>
+<tr><td>非订阅用户</td><td>自定义 Opus</td><td>✅ 免疫（② 为假）</td></tr>
+<tr><td><strong>非订阅用户</strong></td><td><strong>官方 Opus</strong></td><td>⚠️ <strong>被熔断</strong>，引导切 Sonnet</td></tr>
+</table>
+</div>
+<div class="callout blue">设计意图清晰：<strong>保护已付费订阅用户的体验</strong>，在容量危机时优先让免费/按量的官方 Opus 流量降级。</div>
+</section>
+
+<section id="sec-6">
+<h2>六、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>性能注释（廉价条件优先）</td><td><code>claude.ts:1318</code></td></tr>
+<tr><td>三道与门 if</td><td><code>claude.ts:1324-1335</code></td></tr>
+<tr><td>埋点 <code>tengu_off_switch_query</code></td><td><code>claude.ts:1336</code></td></tr>
+<tr><td>yield 错误消息 + return</td><td><code>claude.ts:1337-1341</code></td></tr>
+<tr><td><code>CUSTOM_OFF_SWITCH_MESSAGE</code> 常量</td><td>见 <code>claude.ts</code> 顶部 import</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-7">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>本质</strong>：Opus 远程容量熔断器，容量紧张时把非订阅 Opus 用户劝退到 Sonnet。</li>
+<li><strong>三道与门</strong>：非订阅 + 官方 Opus + 开关激活，全中才触发。</li>
+<li><strong>顺序即性能</strong>：廉价本地判断在前，靠 <code>&amp;&amp;</code> 短路避免每次都白等 ~10ms 的远程配置。</li>
+<li><strong>fail-open</strong>：拿不到配置默认 <code>activated:false</code>，宁漏勿误伤。</li>
+<li><strong>是 yield 不是 throw</strong>：友好提示而非崩溃，发完即 return，不碰 API。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

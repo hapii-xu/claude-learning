@@ -1,0 +1,88 @@
+---
+title: "[11] 流后检查与流式中断"
+description: 流式正常结束后、终止判断之前的处理 —— 缓存命中率警告（shouldShowCacheWarning，必须早于 post-sampling hooks）、executePostSamplingHooks（fire-and-forget）、aborted_streaming 中断处理（streamingToolExecutor.getRemainingResults 生成合成 tool_result / chicago MCP cleanup / interrupt 例外的中断消息）、以及 pendingToolUseSummary 上一轮工具摘要的 yield（src/query.ts:1599-1693）。
+---
+
+# [11] 流后检查与流式中断
+
+> 流式 for-await 正常结束后，进入"终止判断"（[12]/[13]）之前，有几步善后：缓存警告、采样后 hook、**流式中断检测**（最优先）、上一轮工具摘要。
+
+---
+
+## 一、缓存命中率警告
+
+```ts
+if (assistantMessages.length > 0 && !toolUseContext.options.isNonInteractiveSession) {
+  const usage = assistantMessages.at(-1)?.message?.usage
+  if (usage && isCacheWarningEnabled()) {
+    const warningInfo = shouldShowCacheWarning(usage, querySource, getCacheThreshold())
+    if (warningInfo) yield createCacheWarningMessage(warningInfo)
+  }
+}
+```
+
+检测 prompt 缓存命中率，过低时 yield 警告消息。**必须早于 post-sampling hooks**——确保警告消息显示在工具结果之前。仅交互式会话。
+
+---
+
+## 二、post-sampling hooks（fire-and-forget）
+
+```ts
+if (assistantMessages.length > 0) {
+  void executePostSamplingHooks(
+    messagesForQuery.concat(assistantMessages),
+    systemPrompt, userContext, systemContext, toolUseContext, querySource)
+}
+```
+
+模型响应完成后执行采样后 hook。`void` 前缀 = **不 await**（fire-and-forget），不阻塞主流程。
+
+---
+
+## 三、⭐ 流式中断检测：aborted_streaming（最优先）
+
+```ts
+// 必须先处理流式中断，比任何其它事都早。
+if (toolUseContext.abortController.signal.aborted) {
+  if (streamingToolExecutor) {
+    for await (const update of streamingToolExecutor.getRemainingResults()) {
+      if (update.message) yield update.message     // executor 为中断的工具生成合成 tool_result
+    }
+  } else {
+    yield* yieldMissingToolResultBlocks(assistantMessages, 'Interrupted by user')
+  }
+
+  if (feature('CHICAGO_MCP') && !toolUseContext.agentId) { /* cleanupComputerUseAfterTurn */ }
+
+  if (toolUseContext.abortController.signal.reason !== 'interrupt') {
+    yield createUserInterruptionMessage({ toolUse: false })
+  }
+  return { reason: 'aborted_streaming' }
+}
+```
+
+为什么"比任何其它事都早"：用 `streamingToolExecutor` 时**必须消费 `getRemainingResults()`**，让 executor 为排队/进行中的工具生成合成 `tool_result` 块——否则 tool_use 块会缺少匹配的 tool_result，破坏消息完整性。
+
+- **chicago MCP 清理**：中断时自动取消隐藏 + 释放锁（仅主线程；CU 的 Ctrl+C 路径）。
+- **submit 中断跳过中断消息**：`reason === 'interrupt'` 时不发——后续排队的用户消息已提供足够上下文。
+
+---
+
+## 四、pendingToolUseSummary：上一轮工具摘要
+
+```ts
+if (pendingToolUseSummary) {
+  const summary = await pendingToolUseSummary
+  if (summary) yield summary
+}
+```
+
+上一轮工具批次结束时（[14]）启动了一个 haiku 工具摘要生成（约 1s）。它在**本轮模型流式输出（5–30s）期间**已解析完成——此时 await 几乎不阻塞，yield 出来给 UI 显示。
+
+---
+
+## 速记口诀
+- **缓存警告** 必须早于 post-sampling hooks（显示顺序）。
+- **post-sampling hooks** 用 `void` fire-and-forget。
+- **aborted_streaming 最优先**：必须消费 `getRemainingResults` 补合成 tool_result；chicago 清理；interrupt 例外不发中断消息。
+- **pendingToolUseSummary**：上一轮摘要藏在本轮流式时间里算完，几乎零等待 yield。

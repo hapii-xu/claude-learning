@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流结束后的校验与配额提取</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 14 节</div>
+  <h1>流结束后的校验与配额提取</h1>
+  <p class="hero-sub">queryModel 在 for-await 正常退出后、进入错误处理之前的一段收尾校验 —— 清理看门狗、把看门狗 abort 转成可降级的 throw、检测"流完成却没产生任何 assistant 消息"的代理失败并触发非流式降级、汇总停顿日志、用响应 token 验证缓存是否真被打破、以及从响应头提取配额状态与网关检测。本文讲清两种空响应失败模式、为何结构化输出的空响应是合法的、以及看门狗的 exitDelay 遥测（src/services/api/claude.ts:2776-2882）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:2776-2882</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、清理看门狗（2776-2777）</a></li>
+    <li><a href="#sec-2">二、看门狗 abort → 转成可降级的 throw（2779-2806）</a></li>
+    <li><a href="#sec-3">三、空响应检测 → 非流式降级（2808-2834）</a></li>
+    <li><a href="#sec-4">四、停顿汇总日志（2836-2850）</a></li>
+    <li><a href="#sec-5">五、缓存打破验证（2852-2862）</a></li>
+    <li><a href="#sec-6">六、配额状态与网关检测（2864-2882）</a></li>
+    <li><a href="#sec-7">七、本段决策流</a></li>
+    <li><a href="#sec-8">八、关键行号书签</a></li>
+    <li><a href="#sec-9">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue"><code>[13]</code> 的 <code>for await</code> 循环正常退出后，并不能直接认为"成功了"。这一段（<code>claude.ts:2776-2882</code>）做一系列<strong>事后校验</strong>：看门狗是不是开过火？流是不是空响应？缓存有没有被打破？配额还剩多少？这些检查决定是"顺利收尾"还是"throw 出去交给 <code>[15]</code> 降级"。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、清理看门狗（2776-2777）</h2>
+<pre><code>// 流循环已退出，清理空闲超时看门狗
+clearStreamIdleTimers()</code></pre>
+<p>循环退出第一件事就是停掉 <code>[12]</code> 的定时器——流都结束了，看门狗没必要再倒计时（否则会误开火 + 泄漏定时器）。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、看门狗 abort → 转成可降级的 throw（2779-2806）</h2>
+<pre><code>if (streamIdleAborted) {
+  const exitDelayMs = streamWatchdogFiredAt !== null
+    ? Math.round(performance.now() - streamWatchdogFiredAt) : -1
+  logForDiagnosticsNoPII('info', 'cli_stream_loop_exited_after_watchdog_clean')
+  logEvent('tengu_stream_loop_exited_after_watchdog', {
+    request_id, exit_delay_ms: exitDelayMs, exit_path: 'clean', model,
+  })
+  streamWatchdogFiredAt = null    // 防止 catch 里重复 emit
+  throw new Error('Stream idle timeout - no chunks received')
+}</code></pre>
+<h3>2.1 为什么循环"干净退出"还要 throw</h3>
+<p><code>[12]</code> 的看门狗超时回调调了 <code>releaseStreamResources()</code> 取消流，导致 <code>for await</code> <strong>正常退出</strong>（不是抛错退出）。但语义上这是个<strong>失败</strong>——流卡死被强杀了。所以这里检测 <code>streamIdleAborted</code> 标志，<strong>主动 throw</strong> 一个 Error，把"看似正常的退出"转回"错误"，好让 <code>[15]</code> 的 catch 接住并走非流式降级。</p>
+<h3>2.2 exitDelayMs：看门狗有效性遥测</h3>
+<p>呼应 <code>[12]</code>：用 <code>streamWatchdogFiredAt</code> 算出"从看门狗开火到循环退出"的延迟。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>exitDelayMs</th><th>含义</th></tr>
+<tr><td>0-10ms</td><td>abort 立即生效，看门狗工作正常</td></tr>
+<tr><td>远超 1000ms</td><td>是别的东西唤醒了循环，而非 abort</td></tr>
+</table>
+</div>
+<p><code>exit_path: 'clean'</code> 标记这是"干净退出"路径（对应 <code>[15]</code> catch 里的 <code>exit_path: 'error'</code>）。<code>streamWatchdogFiredAt = null</code> 是<strong>防重复打点</strong>——避免接下来 catch 块又记一次。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、空响应检测 → 非流式降级（2808-2834）</h2>
+<pre><code>if (!partialMessage || (newMessages.length === 0 &amp;&amp; !stopReason)) {
+  logForDebugging(!partialMessage
+    ? 'Stream completed without receiving message_start event - triggering non-streaming fallback'
+    : 'Stream completed with message_start but no content blocks completed - triggering non-streaming fallback',
+    { level: 'error' })
+  logEvent('tengu_stream_no_events', { model, request_id })
+  throw new Error('Stream ended without receiving any events')
+}</code></pre>
+<h3>3.1 两种代理失败模式</h3>
+<p>某些<strong>网关/代理</strong>会返回 200，但流内容是坏的。注释列了两种：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>模式</th><th>判定</th><th>含义</th></tr>
+<tr><td><strong>完全无事件</strong></td><td><code>!partialMessage</code></td><td>代理返回 200，但响应体根本不是 SSE（没收到 message_start）</td></tr>
+<tr><td><strong>部分事件</strong></td><td><code>newMessages.length === 0 &amp;&amp; !stopReason</code></td><td>收到 message_start，但流在任何 content_block_stop 和带 stop_reason 的 message_delta 之前就断了</td></tr>
+</table>
+</div>
+<p>两种都 throw <code>'Stream ended without receiving any events'</code> → <code>[15]</code> 非流式降级。</p>
+<p>注释补充：<code>BetaMessageStream</code> 的 <code>_endRequest()</code> 内置了第一项检查，但<strong>原始 Stream（<code>[11]</code> 选用）没有</strong>——所以这里手动补上，否则生成器会<strong>静默不返回任何 assistant 消息</strong>，在 <code>-p</code> 模式下导致 "Execution error"。</p>
+<h3>3.2 ⭐ 为什么要检查 <code>stopReason</code> 避免误报</h3>
+<p>注释强调：</p>
+<div class="callout blue">*必须检查 stopReason 以避免误报。例如使用结构化输出（--json-schema）时，模型会在第 1 轮调用 StructuredOutput 工具，然后在第 2 轮以 end_turn 回应且没有内容块。这是合法的空响应，不是不完整的流。*</div>
+<p>结构化输出场景：第 2 轮可能<strong>合法地</strong>没有内容块（<code>newMessages.length === 0</code>），但<strong>有 <code>stopReason</code>（end_turn）</strong>。所以判定加了 <code>&amp;&amp; !stopReason</code>——<strong>有停止原因 = 流正常结束了</strong>，哪怕没内容块也不算失败。漏了这个条件会把合法空响应误判成代理故障。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、停顿汇总日志（2836-2850）</h2>
+<pre><code>if (stallCount &gt; 0) {
+  logForDebugging(`Streaming completed with ${stallCount} stall(s), total stall time: ...`, { level: 'warn' })
+  logEvent('tengu_streaming_stall_summary', { stall_count, total_stall_time_ms, model, request_id })
+}</code></pre>
+<p>把 <code>[13]</code> 累积的停顿次数/总时长汇总上报。注意：<strong>停顿不影响成功</strong>——流虽然慢但完整收到了，只是记一笔供分析连接质量。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、缓存打破验证（2852-2862）</h2>
+<pre><code>if (feature('PROMPT_CACHE_BREAK_DETECTION')) {
+  void checkResponseForCacheBreak(
+    options.querySource,
+    usage.cache_read_input_tokens,
+    usage.cache_creation_input_tokens,
+    messages,
+    options.agentId,
+    streamRequestId,
+  )
+}</code></pre>
+<p>呼应 <code>[9]</code> 的 <code>recordPromptState</code>：那里记录了"预期的缓存状态"，这里用<strong>真实响应的 token</strong>（<code>cache_read</code> / <code>cache_creation</code>）来<strong>验证缓存是否真的命中</strong>。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>预期 vs 实际</th><th>结论</th></tr>
+<tr><td>预期命中，但 <code>cache_read=0</code></td><td>缓存<strong>被打破了</strong>——上报，便于定位是哪个因素变了</td></tr>
+<tr><td>预期命中，<code>cache_read&gt;0</code></td><td>缓存正常工作</td></tr>
+</table>
+</div>
+<p><code>recordPromptState</code>（事前快照）+ <code>checkResponseForCacheBreak</code>（事后验证）构成完整的<strong>缓存可观测性闭环</strong>。<code>void</code> 表示触发即忘，不阻塞。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、配额状态与网关检测（2864-2882）</h2>
+<pre><code>const resp = streamResponse as Response | undefined   // [11] 设置的
+if (resp) {
+  extractQuotaStatusFromHeaders(resp.headers)         // 提取配额/限流状态
+  if (getAPIProvider() === 'bedrock') {
+    updateProviderBuckets('bedrock', bedrockAdapter.parseHeaders(resp.headers))  // Bedrock 自己的限流桶
+  }
+  responseHeaders = resp.headers                       // 存起来供成功日志（[16]）网关检测
+}</code></pre>
+<ul>
+<li><code>extractQuotaStatusFromHeaders</code>：从响应头读出<strong>配额/限流状态</strong>（剩余额度、是否超量等），更新本地状态——驱动 UI 提示和限流退避。Anthropic 适配在其内部完成。</li>
+<li><strong>Bedrock 特判</strong>：走同一客户端路径但有自己的限流头，用 <code>bedrockAdapter.parseHeaders</code> 解析后 <code>updateProviderBuckets</code> 覆盖到自己的 bucket。</li>
+<li><code>responseHeaders</code> 存入外层变量，供 <code>[16]</code> 的 <code>logAPISuccessAndDuration</code> 做<strong>网关检测</strong>（识别请求经过了什么中间网关）。</li>
+</ul>
+</section>
+
+<section id="sec-7">
+<h2>七、本段决策流</h2>
+<div class="mermaid">graph TD
+    A["for-await 退出"] --&gt; B["clearStreamIdleTimers"]
+    B --&gt; C{streamIdleAborted?}
+    C --&gt;|是| T1["throw → [15]降级&lt;br/&gt;(exit_path=clean, 记exitDelay)"]
+    C --&gt;|否| D{"空响应?&lt;br/&gt;!partialMessage 或&lt;br/&gt;(无消息 且 无stopReason)"}
+    D --&gt;|是| T2["throw → [15]非流式降级"]
+    D --&gt;|"否(含结构化空响应)"| E["停顿汇总日志"]
+    E --&gt; F["checkResponseForCacheBreak&lt;br/&gt;真实token验证缓存"]
+    F --&gt; G["提取配额头 + 网关检测&lt;br/&gt;存 responseHeaders"]
+    G --&gt; H["→ [16] finally 收尾"]
+
+    style T1 fill:#fde0e0,stroke:#e05757
+    style T2 fill:#fde0e0,stroke:#e05757
+    style F fill:#ffe0cc,stroke:#d77757</div>
+</section>
+
+<section id="sec-8">
+<h2>八、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>clearStreamIdleTimers</code></td><td><code>claude.ts:2777</code></td></tr>
+<tr><td>看门狗 abort → throw</td><td><code>claude.ts:2781-2806</code></td></tr>
+<tr><td>exitDelayMs 计算</td><td><code>claude.ts:2785-2788</code></td></tr>
+<tr><td>空响应检测 → throw</td><td><code>claude.ts:2820-2834</code></td></tr>
+<tr><td>两种失败模式注释</td><td><code>claude.ts:2808-2819</code></td></tr>
+<tr><td>结构化输出 stopReason 例外</td><td><code>claude.ts:2817-2819</code></td></tr>
+<tr><td>停顿汇总</td><td><code>claude.ts:2837-2850</code></td></tr>
+<tr><td><code>checkResponseForCacheBreak</code></td><td><code>claude.ts:2853-2862</code></td></tr>
+<tr><td>配额头提取 + Bedrock</td><td><code>claude.ts:2868-2882</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-9">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>正常退出 ≠ 成功</strong>：先一连串校验才算数。</li>
+<li><strong>看门狗 abort 要补 throw</strong>：杀流导致循环"干净退出"，主动 throw 转回错误交给 [15]，并记 exitDelay 证明 abort 有效。</li>
+<li><strong>两种空响应</strong>：无 message_start / 有骨架无内容块 → 都降级；但<strong>有 stopReason 的空响应是合法的</strong>（结构化输出），别误报。</li>
+<li><strong>缓存验证闭环</strong>：[9] recordPromptState 事前 + 本段 checkResponseForCacheBreak 事后（看真实 cache_read token）。</li>
+<li><strong>配额头</strong>：提取限流状态 + Bedrock 自己的桶 + 存 responseHeaders 供 [16] 网关检测。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

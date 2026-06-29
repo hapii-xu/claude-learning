@@ -1,0 +1,88 @@
+---
+title: "[6] 系统提示构建与主动 autocompact"
+description: 构建完整系统提示（asSystemPrompt + appendSystemContext）后调用 deps.autocompact 做主动压缩 —— compactionResult 成功路径的处理（tengu_auto_compact_succeeded 埋点、task_budget 跨边界捕获 preCompactContext、tracking 重置、buildPostCompactMessages 逐条 yield 并替换 messagesForQuery），以及 consecutiveFailures 熔断器传播（src/query.ts:897-1019）。
+---
+
+# [6] 系统提示构建与主动 autocompact
+
+> 压缩家族暗线的第二组（主力）。先把动态上下文拼进系统提示，再调用最重的压缩手段 `autocompact`。这是"上下文接近窗口上限时把历史压成摘要"的核心。
+
+---
+
+## 一、构建完整系统提示
+
+```ts
+const fullSystemPrompt = asSystemPrompt(appendSystemContext(systemPrompt, systemContext))
+```
+
+`systemPrompt` 是基础提示；`appendSystemContext` 把 `systemContext`（CLAUDE.md 内容、git status 等动态键值对）拼到后面，`asSystemPrompt` 包成最终类型。这个 `fullSystemPrompt` 后续直接送进 `callModel`（[9]）。
+
+> 跨迭代内容追踪：源码用 `_prevFullSystemPromptJson` 等局部变量，首次打全量、之后仅在变化时重新打印——纯日志优化，不影响逻辑。
+
+---
+
+## 二、调用 deps.autocompact
+
+```ts
+const { compactionResult, consecutiveFailures } = await deps.autocompact(
+  messagesForQuery, toolUseContext,
+  { systemPrompt, userContext, systemContext, toolUseContext, forkContextMessages: messagesForQuery },
+  querySource, tracking, snipTokensFreed,   // ← snipTokensFreed 来自 [5]
+)
+```
+
+`autocompact` 内部判断是否超阈值（用 `snipTokensFreed` 校正），超了就 fork 一个压缩 agent 把历史摘要化。返回二选一：
+- `compactionResult`（压缩成功），或
+- `consecutiveFailures`（压缩失败的累计次数，用于熔断）。
+
+---
+
+## 三、compactionResult 成功路径
+
+```ts
+if (compactionResult) {
+  const { preCompactTokenCount, postCompactTokenCount, truePostCompactTokenCount, compactionUsage } = compactionResult
+  logEvent('tengu_auto_compact_succeeded', { ... queryChainId, queryDepth })
+
+  // task_budget：替换 messagesForQuery 之前，捕获压缩前的最终上下文窗口
+  if (params.taskBudget) {
+    const preCompactContext = finalContextTokensFromLastResponse(messagesForQuery)
+    taskBudgetRemaining = Math.max(0, (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext)
+  }
+
+  tracking = { compacted: true, turnId: deps.uuid(), turnCounter: 0, consecutiveFailures: 0 }
+
+  const postCompactMessages = buildPostCompactMessages(compactionResult)
+  for (const message of postCompactMessages) yield message
+  messagesForQuery = postCompactMessages    // 用压缩后的消息继续本次 query
+}
+```
+
+| 步骤 | 作用 |
+|---|---|
+| `tengu_auto_compact_succeeded` | 埋点：pre/post token 数、压缩本身的 usage、chainId/depth |
+| **task_budget 捕获** | 替换前用 `finalContextTokensFromLastResponse` 拿压缩前的最终窗口，从 `remaining` 减去——服务端压缩后只看摘要会低估消耗，这告诉它被压掉的量（可跨多次压缩累计） |
+| `tracking` 重置 | `turnCounter` 归零、新 `turnId`，使统计反映最近一次压缩 |
+| `buildPostCompactMessages` | 构建"摘要 + 附件 + hook 结果"消息，逐条 yield 给 UI，并**替换 `messagesForQuery`** |
+
+> `recompactionInfo` 在调用 autocompact 之前已捕获旧的 `turnsSincePreviousCompact`/`previousCompactTurnId`，因此这次重置不丢这些信息。
+
+---
+
+## 四、失败路径：consecutiveFailures 熔断
+
+```ts
+else if (consecutiveFailures !== undefined) {
+  tracking = { ...(tracking ?? { compacted: false, turnId: '', turnCounter: 0 }), consecutiveFailures }
+}
+```
+
+压缩失败时，把失败计数传播到 `tracking`，让熔断器在下次迭代停止重试——避免"压缩一直失败却一直重试"烧 API。
+
+---
+
+## 速记口诀
+- **先拼系统提示**（appendSystemContext）再压缩。
+- autocompact 返回 `compactionResult`（成功）**或** `consecutiveFailures`（失败计数）。
+- 成功：埋点 + **task_budget 捕获压缩前窗口** + tracking 重置 + `buildPostCompactMessages` 替换历史。
+- 失败：传播 `consecutiveFailures` 给熔断器，下轮停止重试。

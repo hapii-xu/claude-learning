@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>finally 资源释放与收尾</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 16 节</div>
+  <h1>finally 资源释放与收尾</h1>
+  <p class="hero-sub">queryModel 的最后一段 —— finally 块停止会话活动、释放流资源（防止 .return() 提前终止导致泄漏）、补算非流式降级的成本，随后标记工具已发送（cachedMC）、记录主会话最后 request ID 供关闭时驱逐缓存、向 Langfuse 上报观测、异步打成功日志、并防御性再释放一次。本文讲清为何降级成本必须在 finally 算、为何后台会话要排除在 lastMainRequestId 之外、以及收尾处再次出现的"预算标量防 pin 闭包"技巧（src/services/api/claude.ts:3291-3403）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:3291-3403</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、finally 块（3291-3318）</a></li>
+    <li><a href="#sec-2">二、cachedMC：标记工具已发送（3320-3323）</a></li>
+    <li><a href="#sec-3">三、记录主会话最后 request ID（3325-3336）</a></li>
+    <li><a href="#sec-4">四、Langfuse 观测（3338-3360）</a></li>
+    <li><a href="#sec-5">五、成功日志（3362-3395）</a></li>
+    <li><a href="#sec-6">六、防御性结尾（3397-3402）</a></li>
+    <li><a href="#sec-7">七、收尾全景</a></li>
+    <li><a href="#sec-8">八、关键行号书签</a></li>
+    <li><a href="#sec-9">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">走到这里，请求要么成功收完流（<code>[14]</code> 后），要么在 <code>[15]</code> 已 return。这一段（<code>claude.ts:3291-3403</code>）是 queryModel 的<strong>收尾</strong>：<code>finally</code> 保证资源释放与降级成本结算，之后做缓存维护、Langfuse 观测、成功日志。它把 <code>[0]</code> 的<strong>内存防漏</strong>和<strong>闭包防 pin</strong> 两条暗线收口。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、finally 块（3291-3318）</h2>
+<pre><code>} finally {
+  stopSessionActivity('api_call')
+
+  // 必须放在 finally：生成器可能被 .return() 提前终止
+  // （消费者跳出 for-await，或 query.ts 遇到中止），try/finally 之后的代码永不执行。
+  releaseStreamResources()
+
+  // 非流式降级的成本：流式路径在 message_delta 里就跟踪了成本；
+  // 降级路径是先 push 再 yield，因此跟踪必须放在这里，才能在 .return() 中存活。
+  if (fallbackMessage) {
+    const fallbackUsage = fallbackMessage.message.usage as BetaMessageDeltaUsage
+    usage = updateUsage(EMPTY_USAGE, fallbackUsage)
+    stopReason = fallbackMessage.message.stop_reason as BetaStopReason
+    const fallbackCost = calculateUSDCost(resolvedModel, fallbackUsage)  // ← resolvedModel([2])
+    costUSD += addToTotalSessionCost(fallbackCost, fallbackUsage, options.model)
+  }
+}</code></pre>
+<h3>1.1 ⭐ 为什么释放资源必须在 finally</h3>
+<p>这是 <code>[0]</code> 内存防漏暗线的核心收口。注释：</p>
+<div class="callout blue">*如果生成器被提前通过 <code>.return()</code> 终止（例如消费者跳出 for-await-of，或 query.ts 遇到中止），try/finally 之后的代码永远不会执行。不这样做的话，Response 对象的本地 TLS/socket 缓冲区会一直泄漏，直到生成器本身被 GC 回收（GH #32920）。*</div>
+<p>生成器的特殊性：消费者 <code>break</code> 出 <code>for await</code>，或调 <code>.return()</code>，会让生成器<strong>在 yield 处直接终止</strong>——函数体后续代码（finally 之外的）<strong>不执行</strong>。只有 <code>finally</code> 保证一定跑。所以 <code>releaseStreamResources()</code> 放 finally 是<strong>唯一可靠</strong>的释放点。</p>
+<h3>1.2 ⭐ 为什么降级成本必须在 finally 算</h3>
+<p>注释点破流式与降级两条路径的成本跟踪<strong>时机不同</strong>：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>路径</th><th>成本何时算</th><th>原因</th></tr>
+<tr><td>流式（正常）</td><td><code>[13]</code> message_delta 处理器里（yield 之前）</td><td>那时还在循环内，安全</td></tr>
+<tr><td>非流式降级</td><td><strong>finally 里</strong>（本段）</td><td>降级是"先 push 再 yield m"，若消费者在那个 yield 处 <code>.return()</code>，yield 之后的代码不执行</td></tr>
+</table>
+</div>
+<p>降级消息（<code>fallbackMessage</code>）是在 <code>[15]</code> "先 push 到 newMessages 再 yield" 的——如果成本跟踪写在 yield 之后，一旦 <code>.return()</code> 就丢了。放 finally 才能<strong>在提前终止中存活</strong>。同样用 <code>resolvedModel</code>（<code>[2]</code>）算钱。</p>
+<h3>1.3 stopSessionActivity</h3>
+<pre><code>stopSessionActivity('api_call')</code></pre>
+<p>与 <code>[12]</code> 的 <code>startSessionActivity('api_call')</code> 成对，标记 API 调用结束。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、cachedMC：标记工具已发送（3320-3323）</h2>
+<pre><code>if (feature('CACHED_MICROCOMPACT') &amp;&amp; cachedMCEnabled) {
+  markToolsSentToAPIState()
+}</code></pre>
+<p>呼应 <code>[5]</code>：cached microcompact 启用时，把"已注册的工具标记为已发送给 API"，使它们<strong>具备被（缓存编辑）删除的资格</strong>。本 fork 中 <code>cachedMCEnabled</code> 恒为 false（<code>[5]</code> 1.4），所以这段实际不执行。</p>
+</section>
+
+<section id="sec-3">
+<h2>三、记录主会话最后 request ID（3325-3336）</h2>
+<pre><code>if (
+  streamRequestId &amp;&amp;
+  !getAgentContext() &amp;&amp;
+  (options.querySource.startsWith('repl_main_thread') || options.querySource === 'sdk')
+) {
+  setLastMainRequestId(streamRequestId)
+}</code></pre>
+<h3>用途：关闭时驱逐缓存</h3>
+<p>记录主会话链的最后一个 request ID，<strong>以便关闭时向推理层发送缓存驱逐提示</strong>（告诉服务端"这条链结束了，可以释放它的 KV 缓存"）。</p>
+<h3>⭐ 为什么排除后台会话</h3>
+<p>注释：</p>
+<div class="callout blue">*排除后台会话（Ctrl+B）——它们共享 repl_main_thread querySource，但运行在 agent 上下文里——它们是独立的会话链，当前台会话 clear 时不应驱逐它们的缓存。*</div>
+<p>后台会话也用 <code>repl_main_thread</code> 这个 querySource，但它跑在 <strong>agent 上下文</strong>里（<code>getAgentContext()</code> 非空）。它们是<strong>独立的链</strong>——若把它们的 request ID 当成"主会话最后 ID"，那前台 <code>/clear</code> 时会误驱逐后台会话的缓存。所以加 <code>!getAgentContext()</code> 把后台排除。</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>querySource</th><th>getAgentContext()</th><th>记为主会话最后 ID？</th></tr>
+<tr><td>repl_main_thread（前台）</td><td>空</td><td>✅</td></tr>
+<tr><td>repl_main_thread（Ctrl+B 后台）</td><td>非空</td><td>❌ 排除</td></tr>
+<tr><td>sdk</td><td>空</td><td>✅</td></tr>
+<tr><td>其他（agent/compact...)</td><td>—</td><td>❌</td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-4">
+<h2>四、Langfuse 观测（3338-3360）</h2>
+<pre><code>// 预算标量，避免 .then() 闭包 pin 住整个 messagesForAPI 数组
+const logMessageCount = messagesForAPI.length
+const logMessageTokens = tokenCountFromLastAPIResponse(messagesForAPI)
+
+recordLLMObservation(options.langfuseTrace ?? null, {
+  model: resolvedModel,
+  provider: getAPIProvider(),
+  input: convertMessagesToLangfuse(messagesForAPI, systemPrompt),
+  output: convertOutputToLangfuse(newMessages),
+  usage: { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens },
+  startTime: new Date(startIncludingRetries),
+  endTime: new Date(),
+  completionStartTime: ttftMs &gt; 0 ? new Date(start + ttftMs) : undefined,
+  tools: convertToolsToLangfuse(toolSchemas),
+  thinking: langfuseThinking,        // ← [10] 捕获的
+})</code></pre>
+<p>向 <strong>Langfuse</strong>（LLM 可观测性平台）上报本次调用的完整观测：输入/输出消息、用量、起止时间、首 token 时间、工具、thinking 配置。未配置 Langfuse 时为 no-op。<code>langfuseThinking</code> 来自 <code>[10]</code> 的标量预算块。</p>
+<p>注意开头又一次出现<strong>预算标量防 pin</strong>（<code>[0]</code> 暗线）——把 <code>logMessageCount</code>/<code>logMessageTokens</code> 先算成原始值。</p>
+</section>
+
+<section id="sec-5">
+<h2>五、成功日志（3362-3395）</h2>
+<pre><code>void options.getToolPermissionContext().then(permissionContext =&gt; {
+  logAPISuccessAndDuration({
+    model: newMessages[0]?.message.model ?? partialMessage?.model ?? options.model,
+    preNormalizedModel: options.model,
+    usage, start, startIncludingRetries, attempt: attemptNumber,
+    messageCount: logMessageCount, messageTokens: logMessageTokens,
+    requestId: streamRequestId ?? null, stopReason, ttftMs, didFallBackToNonStreaming,
+    querySource: options.querySource, headers: responseHeaders,  // ← [14] 存的，网关检测
+    costUSD, permissionMode: permissionContext.mode,
+    newMessages,                  // beta tracing 时才在 logging.ts 提取
+    llmSpan,                       // ← [9] 的 span，结束追踪
+    globalCacheStrategy,           // ← [5]
+    requestSetupMs: start - startIncludingRetries,
+    attemptStartTimes, fastMode: isFastModeRequest,
+    previousRequestId,             // ← [2] 串链
+    betas: lastRequestBetas,       // ← [10] 实际发送的 betas
+  })
+})</code></pre>
+<p>异步打<strong>成功 + 耗时日志</strong>，汇集了贯穿全函数的各路信息：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>字段</th><th>来源</th></tr>
+<tr><td><code>headers: responseHeaders</code></td><td><code>[14]</code> 配额头（网关检测）</td></tr>
+<tr><td><code>llmSpan</code></td><td><code>[9]</code> 追踪 span（在此结束）</td></tr>
+<tr><td><code>globalCacheStrategy</code></td><td><code>[5]</code> 缓存策略</td></tr>
+<tr><td><code>previousRequestId</code></td><td><code>[2]</code> 请求链</td></tr>
+<tr><td><code>betas: lastRequestBetas</code></td><td><code>[10]</code> 实际发送的 beta</td></tr>
+<tr><td><code>requestSetupMs</code></td><td><code>start - startIncludingRetries</code>（含重试的建立耗时）</td></tr>
+</table>
+</div>
+<p>模型字段用 <code>newMessages[0]?.message.model ?? partialMessage?.model ?? options.model</code> 三级兜底——优先用响应里的真实模型。这里同样用 <code>getToolPermissionContext().then()</code> 异步取权限上下文，靠前面的标量预算避免 pin。</p>
+</section>
+
+<section id="sec-6">
+<h2>六、防御性结尾（3397-3402）</h2>
+<pre><code>logForDebugging(`------------ queryModel 结束 --------- model=... stopReason=... usage.in=... out=...`, { level: 'info' })
+releaseStreamResources()    // 防御性：正常完成也释放一次（finally 已执行则 no-op）</code></pre>
+<p>打结束日志，再 <code>releaseStreamResources()</code> 一次。注释：*正常完成时也释放一次（如果 finally 已执行则为 no-op）*。多释放无害（函数内有空值守卫），但<strong>漏释放有害</strong>——所以宁可多调一次。至此 queryModel 全部结束。</p>
+</section>
+
+<section id="sec-7">
+<h2>七、收尾全景</h2>
+<div class="mermaid">graph TD
+    A["[14]后 / [15] return"] --&gt; B["finally:&lt;br/&gt;stopSessionActivity&lt;br/&gt;releaseStreamResources(防.return泄漏)&lt;br/&gt;降级成本补算(fallbackMessage)"]
+    B --&gt; C["markToolsSentToAPI (cachedMC, 本fork no-op)"]
+    C --&gt; D["setLastMainRequestId&lt;br/&gt;(排除后台会话, 供关闭驱逐缓存)"]
+    D --&gt; E["recordLLMObservation (Langfuse)"]
+    E --&gt; F["logAPISuccessAndDuration&lt;br/&gt;(汇集 span/betas/配额头/previousReqId)"]
+    F --&gt; G["结束日志 + 防御性再释放"]
+
+    style B fill:#fde0e0,stroke:#e05757
+    style F fill:#d2f0e3,stroke:#22a766</div>
+</section>
+
+<section id="sec-8">
+<h2>八、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td>finally 开始</td><td><code>claude.ts:3291</code></td></tr>
+<tr><td><code>stopSessionActivity</code></td><td><code>claude.ts:3292</code></td></tr>
+<tr><td><code>releaseStreamResources</code>（finally 内）</td><td><code>claude.ts:3298</code></td></tr>
+<tr><td>降级成本补算</td><td><code>claude.ts:3303-3317</code></td></tr>
+<tr><td><code>markToolsSentToAPIState</code></td><td><code>claude.ts:3321-3323</code></td></tr>
+<tr><td><code>setLastMainRequestId</code>（排除后台）</td><td><code>claude.ts:3329-3336</code></td></tr>
+<tr><td>预算标量</td><td><code>claude.ts:3340-3341</code></td></tr>
+<tr><td><code>recordLLMObservation</code>（Langfuse）</td><td><code>claude.ts:3344-3360</code></td></tr>
+<tr><td><code>logAPISuccessAndDuration</code></td><td><code>claude.ts:3362-3395</code></td></tr>
+<tr><td>结束日志 + 防御性释放</td><td><code>claude.ts:3398-3402</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-9">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>finally 是唯一可靠释放点</strong>：生成器被 <code>.return()</code> 提前终止时只有 finally 跑，否则 Response 的 TLS/socket 缓冲泄漏（GH #32920）。</li>
+<li><strong>降级成本放 finally</strong>：流式成本在 message_delta 算；降级"先 push 再 yield"，成本必须在 finally 才能在 <code>.return()</code> 中存活。</li>
+<li><strong>lastMainRequestId 排除后台会话</strong>：后台共享 repl_main_thread 但有 agent 上下文，前台 /clear 不该驱逐它的缓存。</li>
+<li><strong>收尾汇集全程信息</strong>：成功日志把 span([9])、betas([10])、配额头([14])、previousRequestId([2])、缓存策略([5]) 一网打尽。</li>
+<li><strong>再次预算标量防 pin</strong>：<code>.then()</code> 只捕获标量，别 pin 住 messagesForAPI。</li>
+<li><strong>防御性再释放一次</strong>：多调无害（有守卫），漏调有害。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

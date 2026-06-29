@@ -1,0 +1,87 @@
+---
+title: "[7] 设置阶段与模型选择"
+description: API 调用前的最后设置 —— 更新 toolUseContext.messages、初始化 assistantMessages/toolResults/toolUseBlocks/needsFollowUp（为何 needsFollowUp 是唯一可靠的循环退出信号而非 stop_reason）、按 gate 创建 StreamingToolExecutor、读取 permissionMode 并经 getRuntimeMainLoopModel 选模型（plan + 200k 降级），以及 dumpPromptsFetch 每会话只建一次的内存理由（src/query.ts:1021-1108）。
+---
+
+# [7] 设置阶段与模型选择
+
+> 压缩都跑完后，`messagesForQuery` 已定型。这一节把发请求要用的"运行时对象"备齐：累积容器、流式工具执行器、当前模型、调试 fetch。
+
+---
+
+## 一、更新 toolUseContext + 初始化累积容器
+
+```ts
+toolUseContext = { ...toolUseContext, messages: messagesForQuery }
+
+const assistantMessages: AssistantMessage[] = []
+const toolResults: (UserMessage | AttachmentMessage)[] = []
+const toolUseBlocks: ToolUseBlock[] = []
+let needsFollowUp = false
+```
+
+四个容器在本次迭代内累积流式结果，迭代末（[15]）拼进下一轮 `state.messages`。
+
+### ⭐ 为什么 needsFollowUp 是唯一可靠的退出信号
+
+```ts
+// 注意：stop_reason === 'tool_use' 不可靠 —— 并不总是被正确设置。
+// 在流式过程中只要有 tool_use 块到达就置位 —— 这是唯一的循环退出信号。
+```
+
+不能靠 API 返回的 `stop_reason`（它有时不被正确设置）。而是：**流式过程中只要出现一个 `tool_use` 块，就把 `needsFollowUp = true`**。流结束后若仍为 `false`，就说明模型没有要调工具——回合可以结束（modulo stop-hook 重试）。
+
+---
+
+## 二、StreamingToolExecutor（feature gate）
+
+```ts
+queryCheckpoint('query_setup_start')
+const useStreamingToolExecution = config.gates.streamingToolExecution
+let streamingToolExecutor = useStreamingToolExecution
+  ? new StreamingToolExecutor(toolUseContext.options.tools, canUseTool, toolUseContext)
+  : null
+```
+
+开启时，工具可以**边流边执行**（[9] 里 `addTool` / `getCompletedResults`），不必等整段响应结束。关闭时走传统的 `runTools`（[14]）。`streamingToolExecutor` 用 `let`——fallback 重试时要丢弃重建（[9]/[10]）。
+
+---
+
+## 三、模型选择：getRuntimeMainLoopModel
+
+```ts
+const appState = toolUseContext.getAppState()
+const permissionMode = appState.toolPermissionContext.mode
+let currentModel = getRuntimeMainLoopModel({
+  permissionMode,
+  mainLoopModel: toolUseContext.options.mainLoopModel,
+  exceeds200kTokens: permissionMode === 'plan' && doesMostRecentAssistantMessageExceed200k(messagesForQuery),
+})
+```
+
+`currentModel` 用 `let`（fallback 时会改）。选择逻辑考虑：
+- **permissionMode**：plan 模式可能用不同模型；
+- **plan + 200k 降级**：plan 模式下若最近 assistant 消息超 200k，触发降级路径。
+
+---
+
+## 四、dumpPromptsFetch：每会话只建一次（⭐ 内存治理）
+
+```ts
+const dumpPromptsFetch = config.gates.isAnt
+  ? createDumpPromptsFetch(toolUseContext.agentId ?? config.sessionId)
+  : undefined
+```
+
+每次 `createDumpPromptsFetch` 都创建一个**捕获请求体的闭包**。若每次迭代都建，会保留会话中所有请求体（长会话约 500MB）。**只建一次**意味着只保留最新请求体（约 700KB）。
+
+> 可以只建一次的前提：`agentId` 在一次 `query()` 调用中实质是常量——只在查询之间变化（如 `/clear` 或会话恢复）。
+
+---
+
+## 速记口诀
+- 四容器：`assistantMessages` / `toolResults` / `toolUseBlocks` / `needsFollowUp`。
+- **needsFollowUp**：流里出现 tool_use 就置位，是唯一可靠的退出信号（不信 `stop_reason`）。
+- `StreamingToolExecutor`：开则边流边跑工具，用 `let` 以便 fallback 重建。
+- `getRuntimeMainLoopModel`：plan 模式 + 200k 降级。
+- `dumpPromptsFetch` 每会话只建一次：700KB vs 500MB。

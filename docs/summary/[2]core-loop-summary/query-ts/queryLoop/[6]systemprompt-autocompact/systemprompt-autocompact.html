@@ -1,0 +1,445 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>系统提示构建与主动 autocompact</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* 鈹€鈹€ Hero 鈹€鈹€ */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* 鈹€鈹€ Code 鈹€鈹€ */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* 鈹€鈹€ Callout 鈹€鈹€ */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* 鈹€鈹€ Tables 鈹€鈹€ */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* 鈹€鈹€ Flow card 鈹€鈹€ */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* 鈹€鈹€ Card grid 鈹€鈹€ */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* 鈹€鈹€ Arch layers 鈹€鈹€ */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* 鈹€鈹€ Mode cards 鈹€鈹€ */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* 鈹€鈹€ Mermaid placeholder box 鈹€鈹€ */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 6 节</div>
+  <h1>系统提示构建 <span>与主动 autocompact</span></h1>
+  <p class="hero-sub">构建完整系统提示（<code>asSystemPrompt + appendSystemContext</code>）后调用 <code>deps.autocompact</code> 做主动压缩 —— compactionResult 成功路径（埋点、task_budget 跨边界捕获、tracking 重置、buildPostCompactMessages 替换历史），以及 consecutiveFailures 熔断器传播。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>query.ts:897–1019</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>主动压缩</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>task_budget 捕获</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>压缩家族 ③</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、系统提示</a></li>
+    <li><a href="#sec-2">二、调用 autocompact</a></li>
+    <li><a href="#sec-3">三、成功路径</a></li>
+    <li><a href="#sec-4">四、失败熔断</a></li>
+  </ul>
+</div>
+<div class="page-wrap">
+<section id="sec-1">
+  <h2>一、构建完整系统提示</h2>
+<pre><code><span class="k">const</span> <span class="n">fullSystemPrompt</span> <span class="p">=</span> <span class="n">asSystemPrompt</span>(<span class="n">appendSystemContext</span>(<span class="n">systemPrompt</span>, <span class="n">systemContext</span>))</code></pre>
+  <p><code>systemPrompt</code> 是基础提示；<code>appendSystemContext</code> 把 <code>systemContext</code>（CLAUDE.md、git status 等动态键值对）拼到后面，<code>asSystemPrompt</code> 包成最终类型。后续直接送进 <code>callModel</code>（[9]）。</p>
+  <div class="callout">跨迭代内容追踪用 <code>_prevFullSystemPromptJson</code> 等局部变量，首次打全量、之后仅变化时重打——纯日志优化。</div>
+</section>
+<section id="sec-2">
+  <h2>二、调用 deps.autocompact</h2>
+<pre><code><span class="k">const</span> { <span class="n">compactionResult</span>, <span class="n">consecutiveFailures</span> } <span class="p">=</span> <span class="k">await</span> <span class="n">deps</span>.<span class="n">autocompact</span>(
+  <span class="n">messagesForQuery</span>, <span class="n">toolUseContext</span>,
+  { <span class="n">systemPrompt</span>, <span class="n">userContext</span>, <span class="n">systemContext</span>, <span class="n">toolUseContext</span>, <span class="n">forkContextMessages</span><span class="p">:</span> <span class="n">messagesForQuery</span> },
+  <span class="n">querySource</span>, <span class="n">tracking</span>, <span class="n">snipTokensFreed</span>,   <span class="c">// ← snipTokensFreed 来自 [5]</span>
+)</code></pre>
+  <p>内部判断是否超阈值（用 <code>snipTokensFreed</code> 校正），超了就 fork 压缩 agent 把历史摘要化。返回二选一：<code>compactionResult</code>（成功）或 <code>consecutiveFailures</code>（失败计数）。</p>
+</section>
+<section id="sec-3">
+  <h2>三、compactionResult 成功路径</h2>
+<pre><code><span class="k">if</span> (<span class="n">compactionResult</span>) {
+  <span class="n">logEvent</span>(<span class="s">'tengu_auto_compact_succeeded'</span>, { ... <span class="n">queryChainId</span>, <span class="n">queryDepth</span> })
+  <span class="k">if</span> (<span class="n">params</span>.<span class="n">taskBudget</span>) {
+    <span class="k">const</span> <span class="n">preCompactContext</span> <span class="p">=</span> <span class="n">finalContextTokensFromLastResponse</span>(<span class="n">messagesForQuery</span>)
+    <span class="n">taskBudgetRemaining</span> <span class="p">=</span> <span class="t">Math</span>.<span class="n">max</span>(<span class="num">0</span>, (<span class="n">taskBudgetRemaining</span> ?? <span class="n">params</span>.<span class="n">taskBudget</span>.<span class="n">total</span>) <span class="p">-</span> <span class="n">preCompactContext</span>)
+  }
+  <span class="n">tracking</span> <span class="p">=</span> { <span class="n">compacted</span><span class="p">:</span> <span class="k">true</span>, <span class="n">turnId</span><span class="p">:</span> <span class="n">deps</span>.<span class="n">uuid</span>(), <span class="n">turnCounter</span><span class="p">:</span> <span class="num">0</span>, <span class="n">consecutiveFailures</span><span class="p">:</span> <span class="num">0</span> }
+  <span class="k">const</span> <span class="n">postCompactMessages</span> <span class="p">=</span> <span class="n">buildPostCompactMessages</span>(<span class="n">compactionResult</span>)
+  <span class="k">for</span> (<span class="k">const</span> <span class="n">message</span> <span class="k">of</span> <span class="n">postCompactMessages</span>) <span class="k">yield</span> <span class="n">message</span>
+  <span class="n">messagesForQuery</span> <span class="p">=</span> <span class="n">postCompactMessages</span>
+}</code></pre>
+  <div class="tbl-wrap"><table>
+    <tr><th>步骤</th><th>作用</th></tr>
+    <tr><td><code>tengu_auto_compact_succeeded</code></td><td>埋点：pre/post token 数、压缩 usage、chainId/depth</td></tr>
+    <tr><td><strong>task_budget 捕获</strong></td><td>替换前用 <code>finalContextTokensFromLastResponse</code> 拿压缩前最终窗口，从 remaining 减去——服务端压缩后只看摘要会低估，这告诉它被压掉的量（可跨多次累计）</td></tr>
+    <tr><td><code>tracking</code> 重置</td><td><code>turnCounter</code> 归零、新 <code>turnId</code>，使统计反映最近压缩</td></tr>
+    <tr><td><code>buildPostCompactMessages</code></td><td>构建"摘要+附件+hook结果"，逐条 yield 并<strong>替换 messagesForQuery</strong></td></tr>
+  </table></div>
+  <div class="callout"><code>recompactionInfo</code> 在调用 autocompact 之前已捕获旧的 <code>turnsSincePreviousCompact</code>/<code>previousCompactTurnId</code>，重置不丢这些信息。</div>
+</section>
+<section id="sec-4">
+  <h2>四、失败路径：consecutiveFailures 熔断</h2>
+<pre><code><span class="k">else if</span> (<span class="n">consecutiveFailures</span> !== <span class="k">undefined</span>) {
+  <span class="n">tracking</span> <span class="p">=</span> { ...(<span class="n">tracking</span> ?? { <span class="n">compacted</span><span class="p">:</span> <span class="k">false</span>, <span class="n">turnId</span><span class="p">:</span> <span class="s">''</span>, <span class="n">turnCounter</span><span class="p">:</span> <span class="num">0</span> }), <span class="n">consecutiveFailures</span> }
+}</code></pre>
+  <p>压缩失败时把失败计数传播到 <code>tracking</code>，让熔断器在下次迭代停止重试——避免"压缩一直失败却一直重试"烧 API。</p>
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>先拼系统提示</strong>（appendSystemContext）再压缩。</li>
+    <li>autocompact 返回 <code>compactionResult</code>（成功）<strong>或</strong> <code>consecutiveFailures</code>（失败计数）。</li>
+    <li>成功：埋点 + <strong>task_budget 捕获压缩前窗口</strong> + tracking 重置 + 替换历史。</li>
+    <li>失败：传播 <code>consecutiveFailures</code> 给熔断器，下轮停止重试。</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

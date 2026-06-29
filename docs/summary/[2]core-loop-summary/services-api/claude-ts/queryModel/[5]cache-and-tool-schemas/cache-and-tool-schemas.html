@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cachedMicrocompact 闸门、全局缓存与工具 schema 构建</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+  <style>
+    .mermaid {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      margin: 14px 0;
+      text-align: center;
+      overflow-x: auto;
+      box-shadow: var(--shadow);
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">核心循环 · API 传输层 · 第 5 节</div>
+  <h1>cachedMicrocompact 闸门、全局缓存与工具 schema 构建</h1>
+  <p class="hero-sub">queryModel 在工具过滤之后、消息归一化之前的三段缓存与工具准备 —— cached microcompact（服务端 KV 缓存定向删除）的能力闸门、全局缓存作用域策略的选择、以及把过滤后的工具列表异步构建成 API schema。本文讲清公开 prompt caching 与内部 cache editing 的区别、为何 MCP 工具不能全局缓存、以及 toolToAPISchema 为何传入完整 tools 而非 filteredTools（src/services/api/claude.ts:1480-1563）。</p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/services/api/claude.ts:1480-1563</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、cached microcompact 闸门（1480-1519）</a></li>
+    <li><a href="#sec-2">二、全局缓存作用域（1521-1539）</a></li>
+    <li><a href="#sec-3">三、工具 schema 构建（1541-1563）</a></li>
+    <li><a href="#sec-4">四、三段如何协同</a></li>
+    <li><a href="#sec-5">五、关键行号书签</a></li>
+    <li><a href="#sec-6">速记口诀</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section>
+<div class="callout blue">接在工具过滤（<code>[4]</code>）之后，这一段（<code>claude.ts:1480-1563</code>）做三件与<strong>缓存</strong>和<strong>工具定义</strong>有关的准备： 1. <strong>cached microcompact 闸门</strong>：判断本次能否使用"服务端定向删缓存"的高级能力。 2. <strong>全局缓存作用域</strong>：决定缓存按"系统提示"还是"完全不共享"来分桶。 3. <strong>工具 schema 构建</strong>：把工具异步转成 API 要的 JSON Schema。<br/><br/>三段都服务于 <code>[0]</code> 提到的"缓存保护"暗线。</div>
+</section>
+
+<section id="sec-1">
+<h2>一、cached microcompact 闸门（1480-1519）</h2>
+<h3>1.1 代码骨架</h3>
+<pre><code>let cachedMCEnabled = false
+let cacheEditingBetaHeader = ''
+if (feature('CACHED_MICROCOMPACT')) {
+  const { isCachedMicrocompactEnabled, isModelSupportedForCacheEditing, getCachedMCConfig }
+    = await import('../compact/cachedMicrocompact.js')
+  const betas = await import('src/constants/betas.js')
+  cacheEditingBetaHeader = betas.CACHE_EDITING_BETA_HEADER
+
+  const featureEnabled = isCachedMicrocompactEnabled()
+  const modelSupported = isModelSupportedForCacheEditing(options.model)
+  const headerAvailable = !!cacheEditingBetaHeader        // 本 fork 里常量是 ''
+  cachedMCEnabled = featureEnabled &amp;&amp; modelSupported &amp;&amp; headerAvailable
+  // ... 日志
+}</code></pre>
+<h3>1.2 ⭐ 两种"缓存"完全不是一回事</h3>
+<p>代码注释画了一张关键的对照表，务必分清：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>能力</th><th>字段</th><th>面向</th><th>状态</th></tr>
+<tr><td><strong>Prompt caching</strong>（提示缓存）</td><td><code>cache_control</code> 断点</td><td>所有用户</td><td>公开 API，正常工作</td></tr>
+<tr><td><strong>Cache editing</strong>（缓存编辑）</td><td><code>cache_reference</code> / <code>cache_edits</code> / <code>delete_tool_result</code></td><td>ant 内部</td><td>服务端 beta，header <strong>未公开</strong></td></tr>
+</table>
+</div>
+<ul>
+<li>你平时享受的"<strong>缓存命中省钱</strong>"是<strong>前者</strong>——公开的，谁都能用（<code>addCacheBreakpoints</code> 在 <code>[10]</code> 里加断点）。</li>
+<li><code>CACHED_MICROCOMPACT</code> 用的是<strong>后者</strong>——不只是读写缓存，而是能从服务端 KV cache 里<strong>定向删除某条 <code>tool_result</code></strong>。这是更强的能力，属于<strong>未公开 beta</strong>。</li>
+</ul>
+<div class="callout red"><strong>类比</strong>：prompt caching 像"把整段前缀拍个快照下次复用"；cache editing 像"能伸手进那个快照里，精准抠掉其中某一块再补上"——后者危险得多，所以是内部 beta。</div>
+<h3>1.3 三个 <code>&amp;&amp;</code> 条件</h3>
+<pre><code>cachedMCEnabled = featureEnabled &amp;&amp; modelSupported &amp;&amp; headerAvailable</code></pre>
+<div class="tbl-wrap">
+<table>
+<tr><th>条件</th><th>含义</th></tr>
+<tr><td><code>featureEnabled</code></td><td><code>isCachedMicrocompactEnabled()</code>：运行时配置开着</td></tr>
+<tr><td><code>modelSupported</code></td><td><code>isModelSupportedForCacheEditing(model)</code>：模型支持缓存编辑</td></tr>
+<tr><td><code>headerAvailable</code></td><td><code>!!cacheEditingBetaHeader</code>：beta 头常量非空</td></tr>
+</table>
+</div>
+<h3>1.4 本 fork 的现实：headerAvailable 永远为假</h3>
+<p>注释点破了一个反编译版的真相：</p>
+<div class="callout blue">*在本 fork 中 <code>CACHE_EDITING_BETA_HEADER</code> 常量是 <code>''</code>（上游尚未发布真实值）。如果没有它，请求体里的 <code>cache_reference</code> 和 <code>cache_edits</code> 会触发 API 400："tool_result.cache_reference: Extra inputs are not permitted"。*</div>
+<p>所以 <code>headerAvailable = !!''  = false</code>，<strong><code>cachedMCEnabled</code> 在本 fork 实际恒为 <code>false</code></strong>。这段逻辑保留是为了与上游对齐结构，但实际不会激活。理解这点能避免你在调试时困惑"为什么 cachedMC 从不生效"。</p>
+<h3>1.5 为什么用动态 <code>await import</code></h3>
+<pre><code>const { ... } = await import('../compact/cachedMicrocompact.js')
+const betas = await import('src/constants/betas.js')</code></pre>
+<p>注释说明：在此异步上下文计算一次，<strong>避免在顶层 import</strong> ant 专属的 <code>CACHE_EDITING_BETA_HEADER</code> 常量。动态导入把这些"内部/可能不存在"的依赖延迟到真正需要时才加载，且只在 <code>feature('CACHED_MICROCOMPACT')</code> 为真时触发。</p>
+<p><code>cachedMCEnabled</code> 和 <code>cacheEditingBetaHeader</code> 之后会被 <code>paramsFromContext</code> 闭包捕获使用（<code>[10]</code>），并影响 beta 头锁存（<code>[9]</code>）和收尾的 <code>markToolsSentToAPIState()</code>（<code>[16]</code>）。</p>
+</section>
+
+<section id="sec-2">
+<h2>二、全局缓存作用域（1521-1539）</h2>
+<h3>2.1 代码</h3>
+<pre><code>const useGlobalCacheFeature = shouldUseGlobalCacheScope()
+// MCP 工具是每用户独立的——属于动态工具段——无法做全局缓存。
+const needsToolBasedCacheMarker =
+  useGlobalCacheFeature &amp;&amp; filteredTools.some(t =&gt; t.isMcp === true)
+
+// 全局缓存启用时，确保 prompt_caching_scope beta 头存在
+if (useGlobalCacheFeature &amp;&amp; !betas.includes(PROMPT_CACHING_SCOPE_BETA_HEADER)) {
+  betas.push(PROMPT_CACHING_SCOPE_BETA_HEADER)
+}
+
+const globalCacheStrategy: GlobalCacheStrategy = useGlobalCacheFeature
+  ? needsToolBasedCacheMarker
+    ? 'none'
+    : 'system_prompt'
+  : 'none'</code></pre>
+<h3>2.2 全局缓存 vs 普通缓存</h3>
+<p>普通 prompt 缓存是<strong>按用户/会话</strong>分桶的——你的缓存只有你能命中。<strong>全局缓存作用域</strong>（global cache scope）则尝试让<strong>系统提示这类所有用户都一样的部分</strong>跨用户共享缓存，进一步省钱。</p>
+<h3>2.3 ⭐ 为什么 MCP 工具会"毒化"全局缓存</h3>
+<pre><code>const needsToolBasedCacheMarker =
+  useGlobalCacheFeature &amp;&amp; filteredTools.some(t =&gt; t.isMcp === true)</code></pre>
+<p>注释一针见血：</p>
+<div class="callout blue">*MCP 工具是每用户独立的——属于动态工具段——无法做全局缓存。*</div>
+<p>全局缓存的前提是"这段内容<strong>所有用户都一样</strong>"。但 MCP 工具是<strong>每个用户各自接入的</strong>（你的 Gmail、他的 Jira……），完全个性化。一旦请求里含 MCP 工具，这个请求的前缀就<strong>不可能全局共享</strong>了。</p>
+<p><code>needsToolBasedCacheMarker</code> 就是"<strong>检测到了 MCP 工具，需要退化处理</strong>"的标志。</p>
+<h3>2.4 三种 globalCacheStrategy</h3>
+<div class="tbl-wrap">
+<table>
+<tr><th>useGlobalCacheFeature</th><th>needsToolBasedCacheMarker</th><th>strategy</th><th>含义</th></tr>
+<tr><td>关</td><td>—</td><td><code>'none'</code></td><td>不用全局缓存</td></tr>
+<tr><td>开</td><td>false（无 MCP 工具）</td><td><code>'system_prompt'</code></td><td>系统提示走全局缓存</td></tr>
+<tr><td>开</td><td>true（有 MCP 工具）</td><td><code>'none'</code></td><td>有 MCP，退回不做全局缓存</td></tr>
+</table>
+</div>
+<p>这个 <code>globalCacheStrategy</code> 后面只用于<strong>日志/遥测</strong>（<code>recordPromptState</code>、<code>logAPISuccessAndDuration</code>，见 <code>[9][16]</code>），以及影响 <code>buildSystemPromptBlocks</code> 是否跳过系统提示的全局缓存（<code>skipGlobalCacheForSystemPrompt: needsToolBasedCacheMarker</code>，见 <code>[8]</code>）。</p>
+<div class="callout blue">简记：<strong>有 MCP 工具 → 全局缓存降级为 none</strong>；没有 → 系统提示可以全局共享。</div>
+</section>
+
+<section id="sec-3">
+<h2>三、工具 schema 构建（1541-1563）</h2>
+<h3>3.1 代码</h3>
+<pre><code>const toolSchemas = await Promise.all(
+  filteredTools.map(tool =&gt;
+    toolToAPISchema(tool, {
+      getToolPermissionContext: options.getToolPermissionContext,
+      tools,                       // ← 注意：传完整 tools，不是 filteredTools
+      agents: options.agents,
+      allowedAgentTypes: options.allowedAgentTypes,
+      model: options.model,
+    }),
+  ),
+)
+
+if (useSearchExtraTools) {
+  logForDebugging(
+    `Dynamic tool loading: 0/${deferredToolNames.size} deferred tools in API tools array (all via ExecuteExtraTool)`,
+  )
+}
+queryCheckpoint('query_tool_schema_build_end')</code></pre>
+<h3>3.2 在做什么</h3>
+<p>把 <strong><code>filteredTools</code></strong>（已剔除延迟工具，只剩核心 + SearchExtraTools，见 <code>[4]</code>）里的每个工具，调 <code>toolToAPISchema</code> 转成 Anthropic API 要的 <code>{ name, description, input_schema }</code> 结构。用 <code>Promise.all</code> <strong>并行</strong>转换（每个工具的 schema 生成可能是异步的，比如要算权限上下文）。</p>
+<h3>3.3 ⭐ 关键细节：map 的是 filteredTools，但参数里传 tools</h3>
+<pre><code>filteredTools.map(tool =&gt; toolToAPISchema(tool, { ..., tools, ... }))
+//  ↑ 遍历过滤后的                                    ↑ 但上下文给完整的</code></pre>
+<p>注释解释了这个"不一致"是故意的：</p>
+<div class="callout blue">*传给 <code>toolToAPISchema</code> 的是完整的 <code>tools</code> 列表（而非 filteredTools），这样 <code>SearchExtraToolsTool</code> 的 prompt 能列出所有可用的 MCP 工具。过滤只影响真正发送给 API 的工具集合，不影响模型在工具描述里看到的内容。*</div>
+<p>拆开理解：</p>
+<div class="tbl-wrap">
+<table>
+<tr><th>用途</th><th>用哪个列表</th><th>为什么</th></tr>
+<tr><td><strong>遍历谁生成 schema</strong></td><td><code>filteredTools</code></td><td>只有这些工具的 schema 真正进 API 请求（省 token、保缓存）</td></tr>
+<tr><td><strong>schema 生成时的上下文 <code>tools</code></strong></td><td>完整 <code>tools</code></td><td><code>SearchExtraToolsTool</code> 的描述需要"知道全部延迟工具有哪些"，才能在 prompt 里告诉模型"你可以搜这些"</td></tr>
+</table>
+</div>
+<div class="callout"><strong>类比</strong>：菜单上只印<strong>今天供应的菜</strong>（filteredTools），但服务员脑子里得知道<strong>整个菜库</strong>（tools），这样你问"有没有甜点"时他能答"有，需要的话我去后厨拿"（SearchExtraTools）。</div>
+<h3>3.4 日志：延迟工具恒为 0</h3>
+<pre><code>Dynamic tool loading: 0/${deferredToolNames.size} deferred tools in API tools array</code></pre>
+<p>再次确认 <code>[4]</code> 的核心结论：<strong>API tools 数组里延迟工具数永远是 0</strong>，全部走 <code>ExecuteExtraTool</code>。这条日志是运行时的"自证"。</p>
+<h3>3.5 计时检查点</h3>
+<p><code>queryCheckpoint('query_tool_schema_build_start')</code>（在 <code>[3]</code> 开头）到 <code>query_tool_schema_build_end</code>（这里）框住了<strong>整个工具准备阶段</strong>的耗时——包括 <code>[3]</code>~<code>[5]</code> 的 advisor 解析、工具过滤、schema 构建。这是性能剖析（queryProfiler）的一个区段。</p>
+</section>
+
+<section id="sec-4">
+<h2>四、三段如何协同</h2>
+<div class="mermaid">graph TD
+    A["filteredTools&lt;br/&gt;(来自[4]过滤)"] --&gt; B["cachedMC 闸门&lt;br/&gt;能否定向删缓存"]
+    A --&gt; C["全局缓存作用域&lt;br/&gt;有MCP→none"]
+    A --&gt; D["toolSchemas 构建&lt;br/&gt;map(filtered) ctx(完整tools)"]
+    B --&gt; E["cachedMCEnabled / cacheEditingBetaHeader&lt;br/&gt;→ [9]锁存 / [10]参数 / [16]收尾"]
+    C --&gt; F["globalCacheStrategy / needsToolBasedCacheMarker&lt;br/&gt;→ [8]系统提示 / [9][16]日志"]
+    D --&gt; G["toolSchemas&lt;br/&gt;→ [9]allTools → [10]API请求"]
+
+    style B fill:#dde0fe,stroke:#5769f7
+    style C fill:#dde0fe,stroke:#5769f7
+    style D fill:#ffe0cc,stroke:#d77757</div>
+</section>
+
+<section id="sec-5">
+<h2>五、关键行号书签</h2>
+<div class="tbl-wrap">
+<table>
+<tr><th>内容</th><th>位置</th></tr>
+<tr><td><code>feature('CACHED_MICROCOMPACT')</code> 闸门</td><td><code>claude.ts:1485</code></td></tr>
+<tr><td>公开 vs 内部缓存对照注释</td><td><code>claude.ts:1486-1499</code></td></tr>
+<tr><td><code>cachedMCEnabled</code> 三条件</td><td><code>claude.ts:1514</code></td></tr>
+<tr><td><code>shouldUseGlobalCacheScope</code></td><td><code>claude.ts:1521</code></td></tr>
+<tr><td><code>needsToolBasedCacheMarker</code>（MCP 检测）</td><td><code>claude.ts:1523</code></td></tr>
+<tr><td><code>globalCacheStrategy</code></td><td><code>claude.ts:1535-1539</code></td></tr>
+<tr><td><code>toolToAPISchema</code> + Promise.all</td><td><code>claude.ts:1545-1555</code></td></tr>
+<tr><td>完整 tools 作为上下文的注释</td><td><code>claude.ts:1541-1544</code></td></tr>
+<tr><td><code>query_tool_schema_build_end</code></td><td><code>claude.ts:1563</code></td></tr>
+</table>
+</div>
+</section>
+
+<section id="sec-6">
+<h2>速记口诀</h2>
+<ul>
+<li><strong>两种缓存</strong>：prompt caching（公开、省钱、cache_control）≠ cache editing（内部 beta、定向删 KV、本 fork 恒关）。</li>
+<li><strong>MCP 毒化全局缓存</strong>：MCP 工具每用户独立 → <code>needsToolBasedCacheMarker</code> → strategy 退回 <code>none</code>。</li>
+<li><strong>schema 构建的不一致是故意的</strong>：遍历 <code>filteredTools</code> 生成、但上下文传完整 <code>tools</code>，让 SearchExtraTools 能列出全部延迟工具。</li>
+<li><strong>延迟工具进 API 恒为 0</strong>：日志自证，全走 ExecuteExtraTool。</li>
+</ul>
+</section>
+
+</div><!-- .page-wrap -->
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+      fontSize: '14px',
+      primaryColor: '#ffe0cc',
+      primaryBorderColor: '#d77757',
+      primaryTextColor: '#2d2a26',
+      lineColor: '#8a8480',
+      secondaryColor: '#dde0fe',
+      tertiaryColor: '#d2f0e3',
+    },
+  });
+</script>
+</body>
+</html>

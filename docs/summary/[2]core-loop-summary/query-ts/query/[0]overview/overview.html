@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>[0] query() 方法总览 — 核心循环 · 回合包装器</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* Code */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* Callout */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* Tables */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* Flow card */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* Card grid */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* Arch layers */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* Mode cards */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* Mermaid placeholder box */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合包装器 · 第 0 节</div>
+  <h1>query() <span>方法总览</span></h1>
+  <p class="hero-sub">
+    <strong>queryLoop 的公开入口与生命周期管理者</strong> —— 它本身不做循环，而是 <code>yield*</code> 委托给 queryLoop，价值全在「善后」：Langfuse trace 拥有权判定与注入、try/catch/finally 三段式、autonomy 命令收尾、trace 闭包断链与 Performance 缓冲清理（571MB OTel 泄漏对策），以及只在正常返回时通知 command lifecycle completed。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>src/query.ts:359–526</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>约 167 行</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>3 阶段 5 动作</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>总索引 → [1]~[7]</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、调用链位置</a></li>
+    <li><a href="#sec-2">二、generator 协议</a></li>
+    <li><a href="#sec-3">三、控制流地图</a></li>
+    <li><a href="#sec-4">四、三个出口语义</a></li>
+    <li><a href="#sec-5">五、内存治理暗线</a></li>
+    <li><a href="#sec-6">六、阅读建议</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section id="sec-1">
+  <h2>一、它在调用链里的位置</h2>
+  <p><code>query()</code> 是上层（REPL / print.ts / runAgent）与内部循环之间的<strong>唯一公开门面</strong>：</p>
+  <div class="mermaid-box">QueryEngine / print.ts / runAgent
+   │  for await (const ev of query(params)) { ... }
+   ▼
+query()              ← query.ts:359   ★本系列主角（包装 + 善后）
+   │  yield* 委托
+   ▼
+queryLoop()          ← query.ts:540   真正的 while(true) 回合循环
+   │  每轮调用
+   ▼
+deps.callModel → queryModel → Anthropic API</div>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>层</th><th>职责</th><th>位置</th></tr>
+      <tr><td>调用方</td><td><code>for await</code> 消费事件流，拿到 <code>Terminal</code> 决定下一步</td><td>QueryEngine / print.ts</td></tr>
+      <tr><td><strong>query()</strong></td><td><strong>trace 拥有权 + 委托 queryLoop + finally 善后 + completed 信号</strong></td><td><code>query.ts:359-526</code></td></tr>
+      <tr><td><code>queryLoop()</code></td><td><code>while(true)</code> 预处理→调 API→跑工具→判终止</td><td><code>query.ts:540-2457</code></td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>一句话定位：</strong><code>query()</code> = queryLoop 的「外壳与善后人」。把 trace、命令收尾、内存清理从循环里剥出来，<code>queryLoop</code> 才能专注于「回合逻辑」。
+  </div>
+</section>
+
+<section id="sec-2">
+  <h2>二、async generator 协议</h2>
+  <p><code>query()</code> 是 <code>async function*</code>，调用方用 <code>for await</code> 消费。它通过 <code>yield*</code> 把 <code>queryLoop</code> 的<strong>全部产出透明转发</strong>给上游，并接收 <code>queryLoop</code> 的 <code>return</code> 值作为自己的 <code>terminal</code>。</p>
+<pre><code><span class="k">export</span> <span class="k">async</span> <span class="k">function</span>* <span class="n">query</span>(
+  <span class="n">params</span><span class="p">:</span> <span class="t">QueryParams</span>,
+)<span class="p">:</span> <span class="t">AsyncGenerator</span>&lt;
+  <span class="p">|</span> <span class="t">StreamEvent</span>            <span class="c">// 流式 SSE 事件（逐 token 渲染）</span>
+  <span class="p">|</span> <span class="t">RequestStartEvent</span>      <span class="c">// 一次 API 请求开始的标记</span>
+  <span class="p">|</span> <span class="t">Message</span>                <span class="c">// 完整消息（assistant / tool_result 等）</span>
+  <span class="p">|</span> <span class="t">TombstoneMessage</span>       <span class="c">// 墓碑（流式 fallback 时的孤儿消息占位）</span>
+  <span class="p">|</span> <span class="t">ToolUseSummaryMessage</span>, <span class="c">// 工具调用的 haiku 摘要</span>
+  <span class="t">Terminal</span>                 <span class="c">// ← 返回值：本回合为何终止</span>
+&gt;</code></pre>
+  <div class="callout purple">
+    <strong>类比：</strong><code>query()</code> 像一场演出的「舞台监督」——演员（<code>queryLoop</code>）在台上演（<code>yield</code> 各类事件），监督不上台，但负责开演前挂好灯光（trace）、谢幕后关灯锁门（finally 善后），并在演出<strong>圆满结束时</strong>才在登记簿写「completed」。
+  </div>
+</section>
+
+<section id="sec-3">
+  <h2>三、⭐ query() 控制流地图</h2>
+  <p>把 167 行按执行顺序看成 <strong>3 个阶段、5 个动作</strong>：</p>
+  <div class="mermaid-box">① trace 准备 (359-407)          ② 委托执行 (408-432)
+   ownsTrace / createTrace          yield* queryLoop
+   paramsWithTrace                  try / catch 捕获结局
+        │                                 │
+        └────────────►  ③ finally 善后 (433-508)  ◄──────────┘
+                          ├─ autonomy 收尾 (433-456)
+                          └─ trace teardown + GC (457-508)
+                                 │
+                                 ▼
+                       ④ 正常返回路径 (510-526)
+                          notify completed + return terminal</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>小节文件</th><th>主题</th><th>行号</th></tr>
+      <tr><td><code>[1]module-helpers</code></td><td>模块级辅助：扣留判定 <code>isWithheldMaxOutputTokens</code> + 结局反推 <code>getAutonomyTurnOutcome</code></td><td>214-282</td></tr>
+      <tr><td><code>[2]params-and-state</code></td><td>输入与状态契约：<code>QueryParams</code> 13 字段 + <code>State</code> 10 字段</td><td>284-335</td></tr>
+      <tr><td><code>[3]trace-ownership</code></td><td>trace 拥有权与注入：<code>ownsTrace</code> / <code>createTrace</code> / <code>paramsWithTrace</code></td><td>359-407</td></tr>
+      <tr><td><code>[4]loop-invocation</code></td><td>委托执行：<code>yield* queryLoop(...)</code> + <code>try/catch</code> 捕获结局</td><td>408-432</td></tr>
+      <tr><td><code>[5]autonomy-finalize</code></td><td>finally①：autonomy 命令收尾 → <code>enqueue</code> 后续命令</td><td>433-456</td></tr>
+      <tr><td><code>[6]trace-teardown-gc</code></td><td>finally②：<code>endTrace</code> + <code>flushLangfuse</code> + 闭包断链 + Performance 清理</td><td>457-508</td></tr>
+      <tr><td><code>[7]completion-signal</code></td><td>正常返回路径：<code>notifyCommandLifecycle('completed')</code> + <code>return terminal!</code></td><td>510-526</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="sec-4">
+  <h2>四、三个出口的不同语义（理解 finally 的关键）</h2>
+  <p><code>try { yield* queryLoop } catch { rethrow } finally { 善后 }</code> 之后，还有一行 <code>notifyCommandLifecycle('completed')</code> 在 <code>finally</code> <strong>之外</strong>。三种退出方式落点不同：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>出口</th><th>finally 执行？</th><th>completed 通知？</th><th>场景</th></tr>
+      <tr><td><strong>正常 return</strong></td><td>✅</td><td>✅</td><td>queryLoop 跑到 <code>completed</code> 等终止原因正常返回</td></tr>
+      <tr><td><strong>throw</strong></td><td>✅</td><td>❌ 跳过</td><td>queryLoop 内部抛出未捕获错误（经 <code>yield*</code> 传播）</td></tr>
+      <tr><td><strong><code>.return()</code></strong></td><td>✅</td><td>❌ 跳过</td><td>调用方提前关闭 generator（如用户 ESC 中断后丢弃）</td></tr>
+    </table>
+  </div>
+  <div class="callout green">
+    <strong>为什么这样设计：</strong><code>completed</code> 通知放在 <code>finally</code> 之外，使得「回合失败 / 被中断」时<strong>故意不发</strong> completed，形成与 <code>print.ts</code> 的 <code>drainCommandQueue</code> 一致的<strong>非对称 started-without-completed 信号</strong>——上层据此知道「这条命令开始了但没善终」。详见 <code>[7]</code>。
+  </div>
+</section>
+
+<section id="sec-5">
+  <h2>五、贯穿全文的一条暗线：内存治理</h2>
+  <p><code>query()</code> 最精华的部分（<code>[6]</code>）是对一个 <strong>571MB 真实内存泄漏</strong>的修复。三连清理缺一不可：</p>
+  <div class="flow-steps">
+    <div class="flow-step"><span class="flow-num">1</span><div class="flow-body"><div class="flow-title">flushLangfuse()</div><div class="flow-desc">不主动 flush，<code>SpanImpl</code> 会把序列化对话历史（数百 KB JSON）保留到批次定时器（默认 10s）才释放</div></div></div>
+    <div class="flow-step"><span class="flow-num">2</span><div class="flow-body"><div class="flow-title">闭包断链置 null</div><div class="flow-desc"><code>toolUseContext</code> 捕获的 <code>langfuseTrace → SpanImpl → otperformance</code>（571MB Performance 对象），<code>endTrace</code> 后置 null 才能 GC</div></div></div>
+    <div class="flow-step"><span class="flow-num">3</span><div class="flow-body"><div class="flow-title">performance.clearMarks()</div><div class="flow-desc">OTel 把 marks/measures 存进<strong>永不收缩的 C++ Vector</strong>，长会话即便 span 已置 null 仍累积数百 MB 死容量</div></div></div>
+  </div>
+</section>
+
+<section id="sec-6">
+  <h2>六、阅读建议与速记</h2>
+  <ol>
+    <li><strong>先读本文</strong>建立控制流地图（3 阶段 5 动作 + 3 出口语义）。</li>
+    <li><strong>主干路线</strong>：<code>[2]→[3]→[4]→[6]→[7]</code>（输入契约 → trace 准备 → 委托 → 内存治理 → 完成信号）。</li>
+    <li><strong>补充路线</strong>：<code>[1]</code>（模块级辅助）、<code>[5]</code>（autonomy 自动模式收尾）。</li>
+    <li>本系列<strong>只讲 query() 外壳</strong>；循环内部的压缩家族、恢复家族、工具执行等细节，见姊妹系列 <code>query-ts/queryLoop/</code>。</li>
+  </ol>
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>一句话</strong>：query() = queryLoop 的外壳 + 善后，循环本体在 queryLoop。</li>
+    <li><strong>五类 yield</strong>：StreamEvent · RequestStartEvent · Message · TombstoneMessage · ToolUseSummaryMessage；<strong>返回</strong> Terminal。</li>
+    <li><strong>三阶段</strong>：trace 准备 → 委托 queryLoop → finally 善后 + 正常返回信号。</li>
+    <li><strong>三出口</strong>：正常 return（发 completed）· throw（跳过）· <code>.return()</code>（跳过）。</li>
+    <li><strong>一暗线</strong>：内存治理三连 = flushLangfuse → 闭包断链 → Performance 清理。</li>
+  </ul>
+</section>
+
+</div>
+
+</body>
+</html>

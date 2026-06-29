@@ -1,0 +1,125 @@
+---
+title: "[1] 外层 query() 包装器"
+description: query() 是 queryLoop 的公开入口与生命周期管理者 —— 负责 Langfuse trace 的拥有权判定、try/catch/finally 结构、finally 中的 autonomy 命令收尾、trace 闭包断链与 Performance 缓冲清理（571MB OTel 泄漏对策），以及只在正常返回时通知 command lifecycle completed（src/query.ts:359-526）。
+---
+
+# [1] 外层 query() 包装器
+
+> `query()`（`query.ts:359-526`）是对外的公开入口，本身**不做循环**——它 `yield*` 委托给 `queryLoop()`。它的全部价值在于**生命周期管理与善后**：trace、命令收尾、内存清理。把这些从循环里剥出来，`queryLoop` 才能专注于"回合逻辑"。
+
+---
+
+## 一、函数骨架：try / catch / finally
+
+```ts
+export async function* query(params): AsyncGenerator<..., Terminal> {
+  const consumedCommandUuids: string[] = []
+  const consumedAutonomyCommands: QueuedCommand[] = []
+
+  const ownsTrace = !params.toolUseContext.langfuseTrace
+  const langfuseTrace = params.toolUseContext.langfuseTrace ?? (isLangfuseEnabled() ? createTrace(...) : null)
+  const paramsWithTrace = langfuseTrace ? { ...params, toolUseContext: { ...params.toolUseContext, langfuseTrace } } : params
+
+  let terminal, didThrow = false, thrownError
+  try {
+    terminal = yield* queryLoop(paramsWithTrace, consumedCommandUuids, consumedAutonomyCommands)
+  } catch (error) {
+    didThrow = true; thrownError = error
+    throw error                       // ← 重新抛出，不吞
+  } finally {
+    /* autonomy 收尾 + trace 结束 + 闭包断链 + Performance 清理 */
+  }
+
+  for (const uuid of consumedCommandUuids) notifyCommandLifecycle(uuid, 'completed')
+  return terminal!
+}
+```
+
+三个出口的语义不同，是理解 finally 的关键：
+- **正常 return**：执行 finally → 再执行最后的 `notifyCommandLifecycle('completed')` → 返回 terminal。
+- **throw**：执行 finally → 重新抛出（**跳过** completed 通知）。
+- **`.return()`**（调用方提前关 generator）：执行 finally（同样跳过 completed 通知）。
+
+---
+
+## 二、Langfuse trace 的拥有权（ownsTrace）
+
+```ts
+const ownsTrace = !params.toolUseContext.langfuseTrace
+```
+
+- **主线程**：进来时 `langfuseTrace` 为空 → `ownsTrace = true`，自己 `createTrace`，自己负责 `endTrace`。
+- **子 agent**：`runAgent()` 已经把父 trace 塞进 `toolUseContext` → `ownsTrace = false`，**复用**父 trace，绝不自己结束它。
+
+> 为什么重要：trace 是带层级的（observation 树）。子 agent 若自己 end，会把父级的 span 树提前关闭。`ownsTrace` 保证"谁创建谁销毁"。
+
+`paramsWithTrace` 把 trace 挂进 `toolUseContext`，让循环里的工具执行能记录 observation。
+
+---
+
+## 三、finally：autonomy 命令收尾
+
+```ts
+await finalizeAutonomyCommandsForTurn({
+  commands: consumedAutonomyCommands,
+  outcome: getAutonomyTurnOutcome({ terminal, ...(didThrow ? { thrownError } : {}) }),
+  priority: 'later',
+}).then(nextCommands => { for (const c of nextCommands) enqueue(c) }).catch(logError)
+```
+
+- `getAutonomyTurnOutcome` 用 `terminal`（正常）或 `thrownError`（异常）**反推本回合结局**——自动模式据此决定下一步注入什么命令。
+- 返回的 `nextCommands` 重新 `enqueue` 到全局队列，形成自动模式的"链式推进"。
+
+---
+
+## 四、finally：trace 结束 + 闭包断链 + Performance 清理（⭐ 内存治理）
+
+这是 `query()` 最精华的一段，对应一个 **571MB 的真实内存泄漏**修复。
+
+### 4.1 只有 ownsTrace 才 endTrace
+```ts
+if (ownsTrace) {
+  const isAborted = terminal?.reason === 'aborted_streaming' || terminal?.reason === 'aborted_tools'
+  endTrace(langfuseTrace, undefined, isAborted ? 'interrupted' : undefined)
+  await flushLangfuse()   // ← 主动 flush
+}
+```
+`flushLangfuse` 必须主动调用：否则 `SpanImpl` 会把数百 KB 的序列化对话历史保留到批次定时器触发（默认 10s）。
+
+### 4.2 闭包断链置 null
+```ts
+if (paramsWithTrace !== params) {
+  paramsWithTrace.toolUseContext.langfuseTrace = null
+  paramsWithTrace.toolUseContext.langfuseRootTrace = null
+  paramsWithTrace.toolUseContext.langfuseBatchSpan = null
+}
+```
+`toolUseContext` 捕获的 `langfuseTrace` → `SpanImpl` → `otperformance`（那个 571MB 的 Performance 对象）。endTrace 之后置 null，GC 才能回收整棵 span 树。
+
+### 4.3 清理 JSC 原生 Performance 缓冲
+```ts
+const gPerf = globalThis.performance
+if (gPerf?.clearMarks) {
+  try { gPerf.clearMarks(); gPerf.clearMeasures?.(); gPerf.clearResourceTimings?.() } catch {}
+}
+```
+OTel 引用 `globalThis.performance`，后者把 marks/measures 存在一个**永不收缩的 C++ Vector** 里。长会话即便 span 已 flush 且置 null，仍会累积数百 MB 死容量——必须显式清理。
+
+---
+
+## 五、finally 之后：command lifecycle completed
+
+```ts
+for (const uuid of consumedCommandUuids) notifyCommandLifecycle(uuid, 'completed')
+return terminal!
+```
+
+这行在 `finally` **之外**、`return` 之前。只有 `queryLoop` 正常返回才会到达——throw 和 `.return()` 都跳过。这样在回合失败时，给出和 `print.ts` 的 `drainCommandQueue` 相同的**非对称 started-without-completed 信号**，让上层知道"这条命令开始了但没善终"。
+
+---
+
+## 速记口诀
+- `query()` = **薄包装 + 善后**，循环本体在 `queryLoop`。
+- **ownsTrace**：谁创建谁销毁，子 agent 复用父 trace。
+- **finally 三件事**：autonomy 收尾 → endTrace+flush → 闭包断链 + Performance 清理。
+- **completed 通知在 finally 之外**：只有正常 return 才发，形成失败信号的非对称性。

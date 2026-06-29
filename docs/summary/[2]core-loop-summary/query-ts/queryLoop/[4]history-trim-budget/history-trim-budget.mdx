@@ -1,0 +1,75 @@
+---
+title: "[4] 历史裁边与工具结果预算"
+description: 每次迭代发请求前对消息历史的第一道处理 —— getMessagesAfterCompactBoundary 只取最近压缩边界之后的消息、主动删除前序 toolUseResult 负载（避免 400KB FileRead 永驻的内存治理）、以及 applyToolResultBudget 对聚合工具结果按消息强制预算（contentReplacementState、持久化条件、跳过无限工具）（src/query.ts:714-800）。
+---
+
+# [4] 历史裁边与工具结果预算
+
+> 进入压缩家族（[5][6]）之前，先做两件"轻量瘦身"：① 把历史裁到最近一次压缩边界之后；② 给单条工具结果套预算上限。这两步都属于**内存治理暗线**。
+
+---
+
+## 一、历史裁边：getMessagesAfterCompactBoundary
+
+```ts
+let messagesForQuery = getMessagesAfterCompactBoundary(messages)
+```
+
+`messages` 是完整 REPL 历史；但发给 API 的只需要**最近一次 `compact_boundary` 之后**的部分——之前的内容已被压缩成摘要消息，摘要本身在边界之后。
+
+> 边界消息（`type: 'system'`, `subtype: 'compact_boundary'`）携带 `compactMetadata`。裁边后 `messagesForQuery` 通常远小于 `messages`，这就是后续 API 请求体的起点。
+
+---
+
+## 二、⭐ 释放前序 toolUseResult 负载（内存治理）
+
+```ts
+for (const msg of messagesForQuery) {
+  if (msg.type === 'user' && 'toolUseResult' in msg && msg.toolUseResult !== undefined) {
+    delete (msg as Message & { toolUseResult?: unknown }).toolUseResult
+  }
+}
+```
+
+每条工具结果消息有两部分：
+- `message.message.content`（`tool_result` 块）——**API 需要**，保留；
+- `toolUseResult`（原始输出对象，UI 渲染用）——此时 UI 已渲染完，**不再需要**。
+
+下一次 API 调用只用前者。删掉后者，避免一次 400KB 文件的 `FileRead` 结果**永远留在 mutableMessages 里**，把内存撑到 compact 触发前无限增长。
+
+---
+
+## 三、applyToolResultBudget：按消息的工具结果预算
+
+```ts
+const persistReplacements =
+  querySource.startsWith('agent:') || querySource.startsWith('repl_main_thread')
+const skipInfiniteTools = toolUseContext.options.tools
+  .filter(t => !Number.isFinite(t.maxResultSizeChars)).map(t => t.name)
+const crs = toolUseContext.contentReplacementState
+
+messagesForQuery = await applyToolResultBudget(
+  messagesForQuery, crs,
+  persistReplacements ? records => void recordContentReplacement(records, toolUseContext.agentId).catch(logError) : undefined,
+  new Set(skipInfiniteTools),
+)
+```
+
+对**聚合工具结果大小**强制按消息预算。要点：
+
+| 要素 | 说明 |
+|---|---|
+| 执行时机 | **在 microcompact 之前**——缓存 MC 完全靠 `tool_use_id` 操作（从不看内容），内容替换对它不可见，两者干净组合 |
+| `contentReplacementState (crs)` | 为 `undefined`（特性关闭）时整步是 no-op |
+| `persistReplacements` | 只对 `agent:` / `repl_main_thread` 前缀持久化——这些会在 resume 时被读回 |
+| `recordContentReplacement` | 把替换记录路由：`agentId` → sidechain 文件（AgentTool resume）或会话文件（/resume） |
+| `skipInfiniteTools` | `maxResultSizeChars` 非有限的工具跳过预算（声明自己输出可以无限大） |
+
+> 临时 `runForkedAgent` 调用方（`agent_summary` 等）**不持久化**——它们的替换不会被 resume 读回，记下来没意义。
+
+---
+
+## 速记口诀
+- **裁边**：`getMessagesAfterCompactBoundary` 只取最近压缩边界之后。
+- **删 toolUseResult**：API 只要 `tool_result` 块，原始输出删掉防内存泄漏。
+- **工具结果预算**：在 microcompact 之前跑（互不干扰），只对 `agent:`/`repl_main_thread` 持久化，无限工具跳过。

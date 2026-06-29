@@ -1,0 +1,108 @@
+---
+title: "[14] 工具执行"
+description: needsFollowUp=true 时执行模型请求的工具 —— streamingToolExecutor.getRemainingResults() 与 runTools() 二选一、for-await 消费 update（hook_stopped_continuation 置位、normalizeMessagesForAPI 收集 tool_result、newContext 更新）、非阻塞的 nextPendingToolUseSummary 生成、aborted_tools（chicago 清理 + 中断前 maxTurns 检查）与 hook_stopped 终止、tracking.turnCounter++（src/query.ts:2031-2226）。
+---
+
+# [14] 工具执行
+
+> 走到这里说明 `needsFollowUp === true`——模型请求了工具。这一节执行工具、收集结果，并处理工具阶段的中断与 hook 停止。执行完才能拼下一轮请求（[15]）。
+
+---
+
+## 一、二选一：streaming vs runTools
+
+```ts
+queryCheckpoint('query_tool_execution_start')
+logEvent(streamingToolExecutor ? 'tengu_streaming_tool_execution_used' : 'tengu_streaming_tool_execution_not_used', { tool_count: toolUseBlocks.length, ... })
+
+const toolUpdates = streamingToolExecutor
+  ? streamingToolExecutor.getRemainingResults()                          // 流式：收尾边流时已开跑的工具
+  : runTools(toolUseBlocks, assistantMessages, canUseTool, toolUseContext)  // 传统：现在才开始跑
+```
+
+- **streaming 模式**（[9] 已 `addTool` 边流开跑）：这里只 `getRemainingResults()` 收尾。
+- **传统模式**：`runTools` 现在才统一执行所有 `toolUseBlocks`。
+
+---
+
+## 二、for-await 消费工具结果
+
+```ts
+for await (const update of toolUpdates) {
+  if (update.message) {
+    yield update.message
+    if (update.message.type === 'attachment' && update.message.attachment!.type === 'hook_stopped_continuation') {
+      shouldPreventContinuation = true
+    }
+    toolResults.push(...normalizeMessagesForAPI([update.message], toolUseContext.options.tools).filter(_ => _.type === 'user'))
+  }
+  if (update.newContext) {
+    updatedToolUseContext = { ...update.newContext, queryTracking }
+  }
+}
+```
+
+| 处理 | 说明 |
+|---|---|
+| `yield update.message` | 实时把工具结果推给 UI |
+| `hook_stopped_continuation` | 工具的 PreToolUse/PostToolUse hook 要求停止 → 置 `shouldPreventContinuation` |
+| `normalizeMessagesForAPI` | 把工具结果规范成 API 能消费的 user 消息，收进 `toolResults` |
+| `update.newContext` | 工具可能更新上下文（如权限模式变化），合并并保留 `queryTracking` |
+
+---
+
+## 三、nextPendingToolUseSummary：非阻塞生成
+
+```ts
+if (config.gates.emitToolUseSummaries && toolUseBlocks.length > 0
+    && !toolUseContext.abortController.signal.aborted && !toolUseContext.agentId) {  // 子 agent 跳过
+  // 提取最后 assistant 文本块 + 收集 (name, input, output) 三元组
+  nextPendingToolUseSummary = generateToolUseSummary({ tools: toolInfoForSummary, signal, ..., lastAssistantText })
+    .then(summary => summary ? createToolUseSummaryMessage(summary, toolUseIds) : null)
+    .catch(() => null)
+}
+```
+
+工具批次完成后**启动**（不 await）一个 haiku 摘要生成，传给下一轮。它会在下一轮的模型流式输出期间算完，在那时被 yield（见 [11]）。子 agent 跳过——不在移动端 UI 展示。
+
+---
+
+## 四、aborted_tools：工具阶段中断
+
+```ts
+if (toolUseContext.abortController.signal.aborted) {
+  if (feature('CHICAGO_MCP') && !toolUseContext.agentId) { /* cleanupComputerUseAfterTurn */ }
+  if (signal.reason !== 'interrupt') yield createUserInterruptionMessage({ toolUse: true })
+  const nextTurnCountOnAbort = turnCount + 1
+  if (maxTurns && nextTurnCountOnAbort > maxTurns) yield createAttachmentMessage({ type: 'max_turns_reached', ... })
+  return { reason: 'aborted_tools' }
+}
+```
+
+工具调用期间被中断（CU 最常见的 Ctrl+C 路径，如慢截图）。chicago 清理 + 中断消息（interrupt 例外）+ 返回前补 maxTurns 检查 → `aborted_tools`。
+
+---
+
+## 五、hook_stopped + tracking.turnCounter++
+
+```ts
+if (shouldPreventContinuation) {
+  return { reason: 'hook_stopped' }
+}
+
+if (tracking?.compacted) {
+  tracking.turnCounter++
+  logEvent('tengu_post_autocompact_turn', { turnId: tracking.turnId, turnCounter: tracking.turnCounter, ... })
+}
+```
+
+- hook 要求停 → `hook_stopped` 终止。
+- 若本轮发生过压缩，递增 `turnCounter` 并埋点（追踪"压缩后又跑了几轮"）。
+
+---
+
+## 速记口诀
+- **二选一**：streaming `getRemainingResults`（边流已开跑）vs `runTools`（现在才跑）。
+- for-await 收 update：yield 给 UI、`hook_stopped_continuation` 置位、`normalizeMessagesForAPI` 收进 toolResults、`newContext` 合并。
+- **工具摘要**非阻塞启动，藏到下一轮流式时间里算（子 agent 跳过）。
+- `aborted_tools`（chicago 清理 + maxTurns 检查）/ `hook_stopped` / 压缩后 `turnCounter++`。
