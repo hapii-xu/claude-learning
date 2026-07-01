@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>模块级设施 + 配置契约 — QueryEngine 深度学习 第1节</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 1 节</div>
+  <h1>模块级设施 <span>+ 配置契约</span></h1>
+  <p class="hero-sub">
+    进入 QueryEngine 类之前，文件顶部铺设的一批设施：调试用量接收端 <code>UsageSink</code>、懒加载 <code>messageSelector</code>、feature 门控的条件导入 <code>coordinator/snip</code>，以及最关键的 <code>QueryEngineConfig</code> 类型——构造一个 engine 的完整契约。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>QueryEngine.ts:1-195</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>调试钩子 + 懒加载</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>feature 死代码消除</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>Config 4 组字段</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、UsageSink</a></li>
+    <li><a href="#sec-2">二、messageSelector</a></li>
+    <li><a href="#sec-3">三、条件导入</a></li>
+    <li><a href="#sec-4">四、QueryEngineConfig</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、UsageSink ════════════════ -->
+<section id="sec-1">
+  <h2>一、UsageSink：调试面板的用量接收端</h2>
+  <p>文件最顶部（<code>1-14</code>）定义了一个<strong>单例</strong>回调，把每次累计用量推给浏览器调试面板：</p>
+<pre><code><span class="k">type</span> <span class="t">UsageSink</span> <span class="p">=</span> (
+  <span class="n">usage</span><span class="p">:</span> { <span class="n">input_tokens</span>; <span class="n">output_tokens</span>; <span class="n">cache_creation_input_tokens</span><span class="p">?</span>; <span class="n">cache_read_input_tokens</span><span class="p">?</span> },
+  <span class="n">model</span><span class="p">:</span> <span class="t">string</span>,
+) <span class="p">=&gt;</span> <span class="t">void</span>
+<span class="k">let</span> <span class="n">_usageSink</span><span class="p">:</span> <span class="t">UsageSink</span> <span class="p">|</span> <span class="k">null</span> <span class="p">=</span> <span class="k">null</span>
+<span class="k">export function</span> <span class="n">setUsageSink</span>(<span class="n">sink</span><span class="p">:</span> <span class="t">UsageSink</span> <span class="p">|</span> <span class="k">null</span>)<span class="p">:</span> <span class="t">void</span> {
+  <span class="n">_usageSink</span> <span class="p">=</span> <span class="n">sink</span>
+}</code></pre>
+  <ul>
+    <li><strong>单例模块级变量</strong>：全进程一个 <code>_usageSink</code>，调试面板启动时 <code>setUsageSink(fn)</code> 注册，关闭时 <code>setUsageSink(null)</code> 注销。</li>
+    <li><strong>消费点</strong>在 [9]：<code>message_stop</code> 分支里 <code>_usageSink?.(this.totalUsage, mainLoopModel)</code>，用 <code>try {} catch {}</code> 包住——调试钩子绝不能让主流程崩。</li>
+  </ul>
+</section>
+
+<!-- ════════════════ 二、messageSelector ════════════════ -->
+<section id="sec-2">
+  <h2>二、懒加载 messageSelector</h2>
+  <p><code>MessageSelector.tsx</code> 引入了 React/ink，加载代价高。但它只在「过滤可重放用户消息」时才需要，所以用 try/require 懒加载（<code>103-113</code>）：</p>
+<pre><code><span class="k">const</span> <span class="n">messageSelector</span> <span class="p">=</span> ()<span class="p">:</span>
+  <span class="p">|</span> <span class="k">typeof</span> <span class="k">import</span>(<span class="s">'src/components/MessageSelector.js'</span>)
+  <span class="p">|</span> <span class="k">null</span> <span class="p">=&gt;</span> {
+  <span class="k">try</span> {
+    <span class="k">return</span> <span class="n">require</span>(<span class="s">'src/components/MessageSelector.js'</span>)
+  } <span class="k">catch</span> {
+    <span class="k">return</span> <span class="k">null</span>
+  }
+}</code></pre>
+  <div class="callout blue">
+    <strong>为什么这样做：</strong>headless/SDK 路径<strong>不渲染 UI</strong>，没必要为了一个 <code>selectableUserMessagesFilter</code> 把整个 React/ink 拉进启动路径。catch 返回 <code>null</code>，调用方用 <code>?.</code> + <code>?? true</code> 兜底（见 [6]、[7]）。
+  </div>
+</section>
+
+<!-- ════════════════ 三、条件导入 ════════════════ -->
+<section id="sec-3">
+  <h2>三、feature 门控的条件导入（死代码消除）</h2>
+  <p>两组功能用 <code>feature()</code> 在<strong>模块求值期</strong>决定是否 require（<code>134-152</code>）：</p>
+<pre><code><span class="k">const</span> <span class="n">getCoordinatorUserContext</span> <span class="p">=</span> <span class="n">feature</span>(<span class="s">'COORDINATOR_MODE'</span>)
+  <span class="p">?</span> <span class="n">require</span>(<span class="s">'./coordinator/coordinatorMode.js'</span>).<span class="n">getCoordinatorUserContext</span>
+  <span class="p">:</span> () <span class="p">=&gt;</span> ({})
+
+<span class="k">const</span> <span class="n">snipModule</span> <span class="p">=</span> <span class="n">feature</span>(<span class="s">'HISTORY_SNIP'</span>)
+  <span class="p">?</span> <span class="n">require</span>(<span class="s">'./services/compact/snipCompact.js'</span>)
+  <span class="p">:</span> <span class="k">null</span>
+<span class="k">const</span> <span class="n">snipProjection</span> <span class="p">=</span> <span class="n">feature</span>(<span class="s">'HISTORY_SNIP'</span>)
+  <span class="p">?</span> <span class="n">require</span>(<span class="s">'./services/compact/snipProjection.js'</span>)
+  <span class="p">:</span> <span class="k">null</span></code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>导入</th><th>feature</th><th>关闭时的替身</th><th>用在</th></tr>
+      <tr><td><code>getCoordinatorUserContext</code></td><td><code>COORDINATOR_MODE</code></td><td><code>() =&gt; ({})</code>（空对象）</td><td>[4] userContext 合并</td></tr>
+      <tr><td><code>snipModule</code> / <code>snipProjection</code></td><td><code>HISTORY_SNIP</code></td><td><code>null</code></td><td>[11] ask 注入 snipReplay</td></tr>
+    </table>
+  </div>
+  <div class="callout green">
+    <strong>两层好处：</strong>① <strong>死代码消除</strong>——feature 关闭时整个模块不被打进产物；② <strong>被排除字符串不进产物</strong>——snip 相关的标识符字符串只存在于被门控的模块里，配合 excluded-strings 检查（即便 bun test 下 <code>feature()</code> 返回 false 也能编过）。
+  </div>
+</section>
+
+<!-- ════════════════ 四、QueryEngineConfig ════════════════ -->
+<section id="sec-4">
+  <h2>四、⭐ QueryEngineConfig：构造 engine 的完整契约</h2>
+  <p><code>154-195</code> 定义 <code>QueryEngineConfig</code>，是 <code>new QueryEngine(config)</code> 的唯一入参。分四组：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>组</th><th>字段</th><th>说明</th></tr>
+      <tr><td><strong>运行环境</strong></td><td><code>cwd</code> / <code>tools</code> / <code>commands</code> / <code>mcpClients</code> / <code>agents</code></td><td>工作目录、工具表、slash 命令、MCP 连接、子 agent 定义</td></tr>
+      <tr><td><strong>状态接入</strong></td><td><code>canUseTool</code> / <code>getAppState</code> / <code>setAppState</code> / <code>initialMessages</code> / <code>readFileCache</code></td><td>权限回调、AppState 读写、初始历史、文件缓存</td></tr>
+      <tr><td><strong>提示/模型</strong></td><td><code>customSystemPrompt</code> / <code>appendSystemPrompt</code> / <code>userSpecifiedModel</code> / <code>fallbackModel</code> / <code>thinkingConfig</code></td><td>系统提示定制、模型与降级、thinking 配置</td></tr>
+      <tr><td><strong>限制/能力</strong></td><td><code>maxTurns</code> / <code>maxBudgetUsd</code> / <code>taskBudget</code> / <code>jsonSchema</code> / <code>replayUserMessages</code> / <code>includePartialMessages</code> / <code>handleElicitation</code> / <code>setSDKStatus</code> / <code>abortController</code> / <code>orphanedPermission</code></td><td>轮次/预算上限、结构化输出 schema、SDK 行为开关</td></tr>
+    </table>
+  </div>
+
+  <h3>4.1 snipReplay 回调（重点）</h3>
+<pre><code><span class="n">snipReplay</span><span class="p">?:</span> (
+  <span class="n">yieldedSystemMsg</span><span class="p">:</span> <span class="t">Message</span>,
+  <span class="n">store</span><span class="p">:</span> <span class="t">Message</span>[],
+) <span class="p">=&gt;</span> { <span class="n">messages</span><span class="p">:</span> <span class="t">Message</span>[]; <span class="n">executed</span><span class="p">:</span> <span class="t">boolean</span> } <span class="p">|</span> <span class="k">undefined</span></code></pre>
+  <p>由 <code>ask()</code> 在 <code>HISTORY_SNIP</code> 启用时注入。它接收每条 yield 出的系统消息 + 当前 <code>mutableMessages</code>：不是 snip 边界则返回 <code>undefined</code>；是则重放并返回裁剪后的消息。</p>
+  <div class="callout">
+    <strong>为什么用「注入回调」而非内联判断：</strong>snip 子类型字符串只能出现在被 feature 门控的模块里。把判断逻辑做成回调由 <code>ask()</code>（[11]）注入，保证 <strong>QueryEngine 本文件不含被排除的字符串</strong>——这样即使 <code>feature()</code> 在 bun test 下返回 false，本文件仍能通过 excluded-strings 检查与编译。
+  </div>
+  <div class="callout purple">
+    <strong>SDK 专用：</strong>REPL 保留完整历史用于 UI 回滚；QueryEngine 在 snip 边界截断，限制长会话内存占用（无 UI 需保留）。
+  </div>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

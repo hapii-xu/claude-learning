@@ -1,0 +1,164 @@
+---
+title: Pending 单例 · src/main.tsx:718-763
+description: 三套「暂存-消费」模块单例 _pendingConnect / _pendingAssistantChat / _pendingSSH，为何用模块级变量做 argv 预解析 → action 消费的跨函数通信
+---
+
+# Pending 单例 · argv 预解析与消费
+
+> `src/main.tsx:718–763` 定义了三套「暂存-消费」模块单例：`_pendingConnect`（DIRECT_CONNECT）、`_pendingAssistantChat`（KAIROS）、`_pendingSSH`（SSH_REMOTE）。它们是 main.tsx 最独特的设计模式——`main()` 写入，主 action 消费。
+
+---
+
+## 一、为什么需要模块单例？
+
+Commander 的 `parseAsync` 会自动分发 argv 到对应 `.action(handler)`，**只给两个参数**：`(prompt, options)`。
+
+```ts
+program.argument('[prompt]', '...').action(async (prompt, options) => {
+  // 只能访问 prompt 和 options
+  // main() 无法传入额外数据
+});
+```
+
+> **问题**：`main()` 需要预解析某些 argv（cc:// URL / `assistant` / `ssh`），但没法传给 action。
+> **解决**：模块级变量是唯一跨函数通信的方式。
+
+---
+
+## 二、三套单例定义（718–763）
+
+### 2.1 `_pendingConnect`（725–734）
+
+```ts
+// src/main.tsx:725
+const _pendingConnect: PendingConnect | undefined = feature('DIRECT_CONNECT')
+  ? { url: undefined, authToken: undefined, dangerouslySkipPermissions: false }
+  : undefined;
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `url` | `string \| undefined` | cc:// URL 解析后的 serverUrl |
+| `authToken` | `string \| undefined` | cc:// URL 中的 token |
+| `dangerouslySkipPermissions` | `boolean` | 是否跳过权限检查 |
+
+### 2.2 `_pendingAssistantChat`（735–744）
+
+```ts
+// src/main.tsx:735
+const _pendingAssistantChat: PendingAssistantChat | undefined = feature('KAIROS')
+  ? { sessionId: undefined, discover: false }
+  : undefined;
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `sessionId` | `string \| undefined` | KAIROS assistant session UUID |
+| `discover` | `boolean` | 是否弹 session 选择器 |
+
+### 2.3 `_pendingSSH`（745–763）
+
+```ts
+// src/main.tsx:745
+const _pendingSSH: PendingSSH | undefined = feature('SSH_REMOTE')
+  ? {
+      host: undefined,
+      cwd: undefined,
+      permissionMode: undefined,
+      dangerouslySkipPermissions: false,
+      local: false,
+      extraCliArgs: [],
+      remoteBin: undefined,
+    }
+  : undefined;
+```
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `host` | `string \| undefined` | SSH 目标主机 |
+| `cwd` | `string \| undefined` | 远程工作目录 |
+| `permissionMode` | `string \| undefined` | 权限模式 |
+| `dangerouslySkipPermissions` | `boolean` | 是否跳过权限 |
+| `local` | `boolean` | e2e 测试模式（跳过真实 SSH） |
+| `extraCliArgs` | `string[]` | 转发给远程的参数 |
+| `remoteBin` | `string \| undefined` | 远程 claude 二进制路径 |
+
+---
+
+## 三、写入-消费流程
+
+```mermaid
+flowchart TD
+    A[main() argv 预解析] --> B{匹配哪种模式?}
+    B -->|cc:// URL| C[_pendingConnect 写入\n817-846]
+    B -->|assistant| D[_pendingAssistantChat 写入\n881-896]
+    B -->|ssh| E[_pendingSSH 写入\n902-993]
+    B -->|其他| F[保持 undefined]
+
+    C --> G[process.argv 改写\n剥离特殊 argv]
+    D --> G
+    E --> G
+
+    G --> H[Commander parseAsync]
+    H --> I[主 action 执行]
+    I --> J{检查 pending 单例}
+    J -->|_pendingConnect.url| K[createDirectConnectSession\n3791-3836]
+    J -->|_pendingSSH.host| L[createSSHSession\n3837-3917]
+    J -->|_pendingAssistantChat| M[discoverAssistantSessions\n3918-4051]
+    J -->|皆 undefined| N[普通启动流程]
+```
+
+---
+
+## 四、各模式的写入位置
+
+| 模式 | main() 写入行号 | 主 action 消费行号 | feature 门控 |
+|---|---|---|---|
+| DIRECT_CONNECT | 817–846 | 3791–3836 | `DIRECT_CONNECT` |
+| KAIROS assistant | 881–896 | 3918–4051 | `KAIROS` |
+| SSH_REMOTE | 902–993 | 3837–3917 | `SSH_REMOTE` |
+
+---
+
+## 五、为什么不用函数参数？
+
+### 5.1 Commander 的限制
+
+Commander.js 设计时就没有"额外参数"机制：
+
+```ts
+// ❌ 不支持
+program.action((prompt, options, extraData) => { ... });
+
+// ✅ 只支持
+program.action((prompt, options) => { ... });
+```
+
+### 5.2 模块级变量的唯一性
+
+| 方案 | 可行性 | 问题 |
+|---|---|---|
+| 函数参数 | ❌ | Commander 不支持 |
+| 全局变量 | ✅ | 污染全局命名空间 |
+| 环境变量 | ✅ | 需要序列化复杂对象 |
+| 模块级 const | ✅ | **当前方案**——作用域限于此文件 |
+
+---
+
+## 六、常见问题 FAQ
+
+> **Q：为什么是 `const` + 可变内部对象，而不是 `let`？**
+
+A：JavaScript 对象引用不变，内容可变。`const` 保证引用不会被意外重新赋值，而内部字段可写入。这与 TypeScript 的类型声明一致。
+
+> **Q：为什么不存到 settings.json？**
+
+A：这些是**单次会话级别的临时数据**，不需要持久化。写入 settings 会污染配置，且读写有 I/O 开销。
+
+> **Q：如果 feature 关闭，这些单例是什么？**
+
+A：`undefined`。定义时的 ternary 直接返回 `undefined`，后续 `main()` 写入前会检查 feature，避免写入不存在的对象。
+
+---
+
+**下一步**：[5] main-fn-argv —— main() 四件事 + argv 重写四分支 + clientType 推断。

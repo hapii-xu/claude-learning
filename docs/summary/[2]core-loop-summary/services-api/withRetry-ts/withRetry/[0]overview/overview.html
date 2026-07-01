@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>withRetry 方法总览 — Claude Code API 请求的重试/降级/心跳引擎</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* Code */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* Callout */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* Tables */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* Flow card */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* Card grid */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* Arch layers */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* Mode cards */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* Mermaid placeholder box */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 重试引擎 · 第 0 节</div>
+  <h1>withRetry <span>方法总览</span></h1>
+  <p class="hero-sub">
+    <strong>每次 API 请求外层的"重试 / 降级 / 心跳引擎"</strong>完整拆解 —— for 循环包裹的 async generator，happy-path 直接 return，失败则在 catch 里依次走 fast mode 降级、529 追踪与模型 fallback、重试闸门、退避计算、心跳 yield，并兜底认证刷新、陈旧连接重连、max_tokens 溢出调参、persistent 无限重试。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>withRetry.ts:168–514</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>2 通道 yield / return</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>3 类退出</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>5 条暗线</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、调用链位置</a></li>
+    <li><a href="#sec-2">二、方法签名</a></li>
+    <li><a href="#sec-3">三、循环-终止模型</a></li>
+    <li><a href="#sec-4">四、三类退出</a></li>
+    <li><a href="#sec-5">五、五条暗线</a></li>
+    <li><a href="#sec-6">六、阶段地图</a></li>
+    <li><a href="#sec-7">七、行号书签</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section id="sec-1">
+  <h2>一、它在调用链里的位置</h2>
+  <p><code>withRetry</code> 被 <code>queryModel</code>（见姊妹系列 <code>queryModel/[11]send-request</code>）直接包裹调用：把「发一次流式请求」打包成 <code>operation</code> 闭包传进来，由 <code>withRetry</code> 负责重试编排。</p>
+  <div class="mermaid-box">queryModel()                       ← claude.ts  组装请求体
+   │  把"发一次请求"包成 operation 闭包
+   ▼
+withRetry(getClient, operation, options)   ← withRetry.ts:168  ★本系列主角
+   │  循环里调用
+   ▼
+operation(client, attempt, context)        ← 真正 anthropic.beta.messages.create(...)</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>层</th><th>职责</th><th>文件</th></tr>
+      <tr><td><code>queryModel</code></td><td>构建请求体 + 流式解析 + 错误降级</td><td><code>claude.ts:1303</code></td></tr>
+      <tr><td><strong><code>withRetry</code></strong></td><td><strong>重试编排 / 退避 / 认证刷新 / fallback / 心跳</strong></td><td><code>withRetry.ts:168</code></td></tr>
+      <tr><td><code>operation</code> 闭包</td><td>真正发一次请求、收一次流</td><td>由 <code>queryModel</code> 传入</td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>一句话定位：</strong><code>withRetry</code> = "把一次<strong>可能失败</strong>的请求变成一次<strong>最终成功（或明确放弃）</strong>的请求"的全过程。它上面是「一次请求怎么发」，它自己管「失败了怎么办」。
+  </div>
+</section>
+
+<section id="sec-2">
+  <h2>二、方法签名拆解</h2>
+<pre><code><span class="k">export</span> <span class="k">async</span> <span class="k">function*</span> <span class="n">withRetry</span>&lt;<span class="t">T</span>&gt;(
+  <span class="n">getClient</span><span class="p">:</span> () <span class="p">=&gt;</span> <span class="t">Promise</span>&lt;<span class="t">Anthropic</span>&gt;,          <span class="c">// 惰性建 / 重建 client（认证错误后换新）</span>
+  <span class="n">operation</span><span class="p">:</span> (                                   <span class="c">// 真正发请求的闭包</span>
+    <span class="n">client</span><span class="p">:</span> <span class="t">Anthropic</span>,
+    <span class="n">attempt</span><span class="p">:</span> <span class="t">number</span>,
+    <span class="n">context</span><span class="p">:</span> <span class="t">RetryContext</span>,                        <span class="c">// 把降级状态 maxTokens/fastMode 回传给 operation</span>
+  ) <span class="p">=&gt;</span> <span class="t">Promise</span>&lt;<span class="t">T</span>&gt;,
+  <span class="n">options</span><span class="p">:</span> <span class="t">RetryOptions</span>,                          <span class="c">// model / fallbackModel / signal / querySource ...</span>
+)<span class="p">:</span> <span class="t">AsyncGenerator</span>&lt;<span class="t">SystemAPIErrorMessage</span>, <span class="t">T</span>&gt;       <span class="c">// ← yield 错误/心跳消息，return 成功结果 T</span></code></pre>
+
+  <h3>2.1 为什么是 <code>async function*</code>（异步生成器）</h3>
+  <p>返回 <code>AsyncGenerator&lt;SystemAPIErrorMessage, T&gt;</code> 而不是 <code>Promise&lt;T&gt;</code>，关键在于<strong>重试等待期间也要对外"说话"</strong>：</p>
+  <ul>
+    <li>每次决定重试前，<code>yield</code> 一条 <code>SystemAPIErrorMessage</code>（"API 过载，{N} 毫秒后重试…"），UI 据此渲染倒计时。</li>
+    <li>persistent（无人值守）模式下，长睡眠被切成 30 秒一块，<strong>每块都 yield 一次心跳</strong>——经 <code>QueryEngine</code> 输出到 stdout，让宿主环境看到活动、不把 session 判为 idle。</li>
+    <li>成功时用 <code>return operation(...)</code> 的结果作为生成器的<strong>返回值</strong> <code>T</code>，调用方 <code>for-await</code> 拿到。</li>
+  </ul>
+  <div class="callout purple">
+    <strong>类比：</strong><code>withRetry</code> 像快递柜的"取件机器人"——取件失败时它不是默默重试，而是每隔一会儿在屏幕上打一行"第 3 次尝试，请稍候"（yield），取到了才把包裹递出来（return）。
+  </div>
+
+  <h3>2.2 yield 与 return 的区别（关键）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>通道</th><th>类型</th><th>含义</th></tr>
+      <tr><td><strong><code>yield</code></strong></td><td><code>SystemAPIErrorMessage</code></td><td>"即将重试，等 N 毫秒" 的系统消息 / persistent 心跳</td></tr>
+      <tr><td><strong><code>return</code></strong></td><td><code>T</code></td><td><code>operation</code> 成功的结果（生成器正常结束）</td></tr>
+      <tr><td><strong><code>throw</code></strong></td><td><code>CannotRetryError</code> / <code>FallbackTriggeredError</code> / <code>APIUserAbortError</code></td><td>放弃重试 / 触发模型降级 / 用户中止</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="sec-3">
+  <h2>三、⭐ for 循环 - 终止模型</h2>
+  <p><code>withRetry</code> 的骨架是一个<strong>带上界的 for 循环</strong>，每轮是一次「尝试」：</p>
+<pre><code><span class="k">for</span> (<span class="k">let</span> <span class="n">attempt</span> <span class="p">=</span> <span class="num">1</span>; <span class="n">attempt</span> <span class="p">&lt;=</span> <span class="n">maxRetries</span> <span class="p">+</span> <span class="num">1</span>; <span class="n">attempt</span><span class="p">++</span>) {
+  <span class="k">if</span> (<span class="n">options</span>.<span class="n">signal</span>?.<span class="n">aborted</span>) <span class="k">throw</span> <span class="k">new</span> <span class="t">APIUserAbortError</span>()
+  <span class="k">try</span> {
+    <span class="c">// …（按需重建 client、刷新 token）</span>
+    <span class="k">return</span> <span class="k">await</span> <span class="n">operation</span>(<span class="n">client</span>, <span class="n">attempt</span>, <span class="n">retryContext</span>)   <span class="c">// ← happy path：成功即结束</span>
+  } <span class="k">catch</span> (<span class="n">error</span>) {
+    <span class="c">// …（fast mode 降级 / 529 追踪 / 闸门 / 退避 / yield+sleep）</span>
+    <span class="c">// 要么 continue（调参后立即重试，不计退避）</span>
+    <span class="c">// 要么 throw（不可重试）</span>
+    <span class="c">// 要么走到末尾 await sleep → 自然进入下一轮</span>
+  }
+}
+<span class="k">throw</span> <span class="k">new</span> <span class="t">CannotRetryError</span>(<span class="n">lastError</span>, <span class="n">retryContext</span>)          <span class="c">// ← 循环耗尽兜底</span></code></pre>
+  <ul>
+    <li><strong><code>maxRetries + 1</code></strong>：首次尝试不算"重试"，所以上界是 <code>maxRetries + 1</code>。</li>
+    <li><strong><code>continue</code> vs 落底 sleep</strong>：<code>continue</code> 用于「已调整状态、应立刻再试」的场景（关 fast mode、调 <code>maxTokens</code>），<strong>不走退避</strong>；普通可重试错误走到 catch 末尾，<code>yield + sleep</code> 后由 for 自然进入下一轮。</li>
+    <li><strong>persistent 模式</strong>：把 <code>attempt</code> 夹在 <code>maxRetries</code>，让 for 循环<strong>永不终止</strong>，退避改用独立的 <code>persistentAttempt</code> 计数器。</li>
+  </ul>
+</section>
+
+<section id="sec-4">
+  <h2>四、三类退出</h2>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>退出方式</th><th>触发条件</th><th>上层后果</th></tr>
+      <tr><td>✅ <code>return T</code></td><td><code>operation</code> 成功</td><td>正常拿到响应</td></tr>
+      <tr><td>❌ <code>throw CannotRetryError</code></td><td>重试耗尽 / 不可重试错误 / 后台 source 的 529 / external 重复 529</td><td><code>queryModel</code> 把它当作最终失败</td></tr>
+      <tr><td>🔀 <code>throw FallbackTriggeredError</code></td><td>连续 529 达 <code>MAX_529_RETRIES</code> 且配了 <code>fallbackModel</code></td><td>上抛给 <code>query.ts</code>，<strong>切换到 fallback 模型重发</strong></td></tr>
+    </table>
+  </div>
+  <div class="callout blue">
+    <strong>为什么 fallback 要用 throw 而非内部切换：</strong><code>withRetry</code> 只持有一个 <code>model</code>，模型切换涉及 thinking 签名、prompt 缓存键、消息历史等，必须回到更上层（<code>query.ts</code>）统一处理。<code>withRetry</code> 只负责"识别该降级了"并抛出信号。
+  </div>
+</section>
+
+<section id="sec-5">
+  <h2>五、贯穿全文的五条暗线</h2>
+  <p>理解这五个反复出现的主题，能把 11 个小节串起来：</p>
+  <div class="card-grid">
+    <div class="card orange">
+      <div class="card-icon">📊</div>
+      <div class="card-title">A · 容量错误（429 / 529）</div>
+      <div class="card-body">最核心。前台/后台 source 区分（<code>[1]</code>）、连续 529 追踪与 fallback（<code>[6]</code>）、退避计算（<code>[8]</code>）、<code>shouldRetry</code> 订阅门槛（<code>[10]</code>）、persistent 豁免（<code>[2][7]</code>）。</div>
+    </div>
+    <div class="card blue">
+      <div class="card-icon">🔑</div>
+      <div class="card-title">B · 认证刷新</div>
+      <div class="card-body">401/403/Bedrock/Vertex 不能用坏 client 重试——强制刷 token / 清缓存 / 换 client：<code>handleOAuth401Error</code>、<code>clearAwsCredentialsCache</code>、<code>clearGcpCredentialsCache</code>（<code>[4][10]</code>）。</div>
+    </div>
+    <div class="card green">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">C · Fast mode 降级</div>
+      <div class="card-body">命中 429/529：短 retry-after → 同模型名重试保缓存；长 retry-after → 冷却切标准速度。还有 API 拒绝 fast mode 参数的永久关闭路径（<code>[5]</code>）。</div>
+    </div>
+    <div class="card purple">
+      <div class="card-icon">♾️</div>
+      <div class="card-title">D · Persistent 无人值守</div>
+      <div class="card-body"><code>CLAUDE_CODE_UNATTENDED_RETRY</code>（仅 ant）：429/529 无限重试 + 5 分钟封顶退避 + 30 秒分块 yield 心跳防 idle。绕过订阅门槛（<code>[2][7][8]</code>）。</div>
+    </div>
+    <div class="card orange">
+      <div class="card-icon">🧊</div>
+      <div class="card-title">E · Prompt 缓存 / 状态副本</div>
+      <div class="card-body">重试沿用<strong>同模型名</strong>避免缓存键抖动；降级状态（<code>maxTokensOverride</code> / <code>fastMode</code>）写进 <code>retryContext</code> 就地传给下一次 <code>operation</code>（<code>[2][7]</code>）。</div>
+    </div>
+  </div>
+</section>
+
+<section id="sec-6">
+  <h2>六、⭐ 单次 attempt 阶段地图</h2>
+  <p>把一次 <code>attempt</code> 的执行流画成地图，作为 <code>[3]</code>~<code>[8]</code> 的索引：</p>
+  <div class="mermaid-box">循环开头：signal abort 检查
+   │
+   ▼
+快照 wasFastModeActive（fallback 可能中途改状态）
+   │
+   ▼
+按需重建 client（401/403/Bedrock/Vertex/陈旧连接）           [4]
+   │
+   ▼
+return operation(...) ──成功──→ ✅ return T
+   │
+   │ 抛错 ▼  catch
+   ├─ ① fast mode 降级三分支                                [5]
+   ├─ ② 529 后台 drop / 连续追踪 / 模型 fallback             [6]
+   ├─ ③ 重试闸门（耗尽/shouldRetry）+ maxtokens 溢出调参     [7]
+   └─ ④ 退避计算 + yield 心跳 + sleep ──→ 回到循环开头        [8]</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>阶段</th><th>小节</th><th>行号</th></tr>
+      <tr><td>脚手架：常量 + 前台 529 白名单</td><td><code>[1]constants-sources</code></td><td>50-88</td></tr>
+      <tr><td>脚手架：persistent 配置 + 类型 + 错误类</td><td><code>[2]persistent-types</code></td><td>90-166</td></tr>
+      <tr><td>循环前置：签名 + 计数器</td><td><code>[3]loop-setup</code></td><td>168-187</td></tr>
+      <tr><td>单次尝试前半 + happy path</td><td><code>[4]attempt-client</code></td><td>188-251</td></tr>
+      <tr><td>catch：Fast mode 降级三分支</td><td><code>[5]fastmode-fallback</code></td><td>252-311</td></tr>
+      <tr><td>529 追踪与模型 fallback</td><td><code>[6]529-fallback</code></td><td>313-362</td></tr>
+      <tr><td>重试闸门 + maxtokens 溢出</td><td><code>[7]retry-gate</code></td><td>364-424</td></tr>
+      <tr><td>退避计算 + 心跳 yield</td><td><code>[8]delay-yield</code></td><td>426-514</td></tr>
+      <tr><td>辅助：延迟与判定函数</td><td><code>[9]retry-helpers</code></td><td>516-542, 591-614, 795-814</td></tr>
+      <tr><td>辅助：shouldRetry 全表 + 认证识别</td><td><code>[10]should-retry</code></td><td>544-589, 616-789</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="sec-7">
+  <h2>七、关键行号书签</h2>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>内容</th><th>位置</th></tr>
+      <tr><td><code>withRetry</code> 函数定义</td><td><code>withRetry.ts:168</code></td></tr>
+      <tr><td><code>for</code> 循环（<code>attempt &lt;= maxRetries+1</code>）</td><td><code>withRetry.ts:187</code></td></tr>
+      <tr><td>happy path <code>return operation(...)</code></td><td><code>withRetry.ts:251</code></td></tr>
+      <tr><td><code>catch</code> 入口</td><td><code>withRetry.ts:252</code></td></tr>
+      <tr><td>Fast mode 429/529 降级</td><td><code>withRetry.ts:265</code></td></tr>
+      <tr><td>后台 529 drop</td><td><code>withRetry.ts:315</code></td></tr>
+      <tr><td>连续 529 → <code>FallbackTriggeredError</code></td><td><code>withRetry.ts:332-348</code></td></tr>
+      <tr><td>重试耗尽闸门</td><td><code>withRetry.ts:367</code></td></tr>
+      <tr><td><code>shouldRetry</code> 闸门</td><td><code>withRetry.ts:376</code></td></tr>
+      <tr><td>退避 + yield + sleep</td><td><code>withRetry.ts:458-509</code></td></tr>
+      <tr><td>循环耗尽末尾 throw</td><td><code>withRetry.ts:513</code></td></tr>
+      <tr><td><code>shouldRetry</code> 函数</td><td><code>withRetry.ts:689</code></td></tr>
+      <tr><td><code>getRetryDelay</code>（指数退避）</td><td><code>withRetry.ts:527</code></td></tr>
+    </table>
+  </div>
+
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>一句话</strong>：withRetry = 把一次可能失败的请求，变成一次最终成功或明确放弃的请求。</li>
+    <li><strong>两通道</strong>：yield（重试倒计时 / 心跳）· return（成功结果 T）。</li>
+    <li><strong>三退出</strong>：return T · CannotRetryError（放弃）· FallbackTriggeredError（切模型）。</li>
+    <li><strong>五暗线</strong>：容量错误 · 认证刷新 · Fast mode 降级 · Persistent 无限重试 · 缓存/状态副本。</li>
+    <li><strong>catch 五步</strong>：fast mode → 529 → 闸门 → 退避 → yield+sleep。</li>
+  </ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

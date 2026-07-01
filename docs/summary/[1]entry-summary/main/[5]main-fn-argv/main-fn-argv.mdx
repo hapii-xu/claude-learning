@@ -1,0 +1,196 @@
+---
+title: main() 函数 · src/main.tsx:777-1072
+description: main() 四件事（安全 env / argv 重写四分支 / clientType 9 种推断 / eagerLoadSettings + run）+ 与 cli.tsx 的协作边界
+---
+
+# main() 函数 · 四件事与 argv 重写
+
+> `src/main.tsx:777–1072` 的 `main()` 导出函数按顺序完成四件事：安全环境变量设置、argv 重写四分支、clientType 推断、调用 run()。它是 cli.tsx 动态 import 后的第一个执行点。
+
+---
+
+## 一、函数签名与四件事
+
+```ts
+// src/main.tsx:777
+export async function main() {
+  // 1. 安全环境变量 + warning handler + 进程退出清理（789-811）
+  process.env.NoDefaultCurrentDirectoryInExePath = '1';
+  initializeWarningHandler();
+
+  // 2. argv 重写四分支（817-993）
+  // → cc:// URL / --handle-uri / assistant / ssh
+
+  // 3. isNonInteractive 判定 + clientType 9 种推断（997-1040）
+  const isNonInteractive = hasPrintFlag || hasInitOnlyFlag || hasSdkUrl || ...;
+  const clientType = /* 9 种推断 */;
+
+  // 4. eagerLoadSettings + 调用 run()（1065-1070）
+  eagerLoadSettings();
+  await run();
+}
+```
+
+---
+
+## 二、argv 重写四分支（817–993）
+
+### 2.1 分支地图
+
+```mermaid
+flowchart TD
+    A[main() 开始] --> B{argv 包含?}
+    B -->|cc://| C[分支 1: cc:// URL\n817-846]
+    B -->|--handle-uri| D[分支 2: deep link\n851-872]
+    B -->|assistant| E[分支 3: KAIROS\n881-896]
+    B -->|ssh| F[分支 4: SSH 远程\n902-993]
+    B -->|其他| G[跳过]
+
+    C --> H[_pendingConnect 写入]
+    D --> I[handleDeepLinkUri\n直接 exit]
+    E --> J[_pendingAssistantChat 写入]
+    F --> K[_pendingSSH 写入]
+
+    H --> L[process.argv 改写]
+    J --> L
+    K --> L
+```
+
+### 2.2 分支 1：cc:// URL（817–846）
+
+```ts
+// src/main.tsx:817
+if (feature('DIRECT_CONNECT')) {
+  const ccIdx = rawCliArgs.findIndex(a => a.startsWith('cc://') || a.startsWith('cc+unix://'));
+  if (ccIdx !== -1 && _pendingConnect) {
+    const parsed = parseCcUrl(rawCliArgs[ccIdx]);
+    _pendingConnect.url = parsed.serverUrl;
+    _pendingConnect.authToken = parsed.authToken;
+
+    // 剥离 ccUrl 和 --dangerously-skip-permissions
+    process.argv = [argv[0], argv[1], ...rest];
+  }
+}
+```
+
+| 模式 | 改写结果 | 最终路径 |
+|---|---|---|
+| 交互（默认） | 剥离 ccUrl，主命令看到干净 argv | 主 action `3791` 消费 `_pendingConnect.url` → `createDirectConnectSession` → `launchRepl` |
+| Headless（`-p`） | 改写为 `['open', ccUrl, ...]` | `open` 子命令 action（`4927`） |
+
+### 2.3 分支 2：`--handle-uri` deep link（851–872）
+
+```ts
+// src/main.tsx:851
+if (feature('LODESTONE')) {
+  const handleUriIdx = process.argv.indexOf('--handle-uri');
+  if (handleUriIdx !== -1) {
+    const uri = process.argv[handleUriIdx + 1];
+    const { handleDeepLinkUri } = await import('./utils/deepLink/protocolHandler.js');
+    const exitCode = await handleDeepLinkUri(uri);
+    process.exit(exitCode); // 直接 exit，不进入 Commander
+  }
+}
+```
+
+**特点**：不暂存到模块单例，处理完直接 `process.exit()`。
+
+### 2.4 分支 3：`assistant` KAIROS（881–896）
+
+```ts
+// src/main.tsx:881
+if (feature('KAIROS') && _pendingAssistantChat) {
+  const rawArgs = process.argv.slice(2);
+  if (rawArgs[0] === 'assistant') {
+    const nextArg = rawArgs[1];
+    if (nextArg && !nextArg.startsWith('-')) {
+      _pendingAssistantChat.sessionId = nextArg; // claude assistant <uuid>
+      rawArgs.splice(0, 2);
+    } else if (!nextArg) {
+      _pendingAssistantChat.discover = true;     // claude assistant（无 id）
+      rawArgs.splice(0, 1);
+    }
+    process.argv = [process.argv[0], process.argv[1], ...rawArgs];
+  }
+}
+```
+
+### 2.5 分支 4：`ssh` 远程（902–993）
+
+最复杂的 argv 重写，会从 argv 中抽走 7 个专属 flag：
+
+```ts
+// src/main.tsx:902
+if (feature('SSH_REMOTE') && _pendingSSH) {
+  if (rawCliArgs[0] === 'ssh') {
+    // 1. 预抽 SSH 专属标志
+    _pendingSSH.local    = 提取 --local
+    _pendingSSH.dangerouslySkipPermissions = 提取 --dangerously-skip-permissions
+    _pendingSSH.permissionMode = 提取 --permission-mode <val>
+    _pendingSSH.remoteBin      = 提取 --remote-bin <val>
+
+    // 2. 转发给远程首次派生的标志（存入 extraCliArgs）
+    extractFlag('-c', { as: '--continue' });
+    extractFlag('--resume', { hasValue: true });
+    extractFlag('--model',  { hasValue: true });
+
+    // 3. 读 host [dir]
+    if (rawCliArgs[1] && !rawCliArgs[1].startsWith('-')) {
+      _pendingSSH.host = rawCliArgs[1];
+      _pendingSSH.cwd  = rawCliArgs[2] && !rawCliArgs[2].startsWith('-') ? rawCliArgs[2] : undefined;
+      process.argv = [argv[0], argv[1], ...rest];
+    }
+  }
+}
+```
+
+---
+
+## 三、clientType 9 种推断（1022–1040）
+
+```ts
+// src/main.tsx:1022
+const clientType = (() => {
+  if (GITHUB_ACTIONS)                                                    return 'github-action';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-ts')                               return 'sdk-typescript';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-py')                               return 'sdk-python';
+  if (CLAUDE_CODE_ENTRYPOINT === 'sdk-cli')                              return 'sdk-cli';
+  if (CLAUDE_CODE_ENTRYPOINT === 'claude-vscode')                        return 'claude-vscode';
+  if (CLAUDE_CODE_ENTRYPOINT === 'local-agent')                          return 'local-agent';
+  if (CLAUDE_CODE_ENTRYPOINT === 'claude-desktop')                       return 'claude-desktop';
+  if (CLAUDE_CODE_ENTRYPOINT === 'remote' || hasSessionIngressToken)     return 'remote';
+  return 'cli';
+})();
+```
+
+| clientType | 触发条件 | 影响 |
+|---|---|---|
+| `github-action` | `GITHUB_ACTIONS` env | 遥测归因 |
+| `sdk-typescript` | `CLAUDE_CODE_ENTRYPOINT=sdk-ts` | API 调用链 |
+| `sdk-python` | `CLAUDE_CODE_ENTRYPOINT=sdk-py` | API 调用链 |
+| `sdk-cli` | `CLAUDE_CODE_ENTRYPOINT=sdk-cli` | API 调用链 |
+| `claude-vscode` | `CLAUDE_CODE_ENTRYPOINT=claude-vscode` | IDE 集成 |
+| `local-agent` | `CLAUDE_CODE_ENTRYPOINT=local-agent` | 子 agent |
+| `claude-desktop` | `CLAUDE_CODE_ENTRYPOINT=claude-desktop` | 桌面应用 |
+| `remote` | `CLAUDE_CODE_ENTRYPOINT=remote` 或有 session ingress token | 远程会话 |
+| `cli` | 默认 | 标准命令行 |
+
+---
+
+## 四、常见问题 FAQ
+
+> **Q：为什么 `ssh` 的 argv 重写这么复杂？**
+
+A：`ssh` 模式需要区分两类 flag：**本地消费**（`--local` / `--permission-mode`）和**转发给远程**（`--continue` / `--resume` / `--model`）。前者影响本地 SSH 连接行为，后者需要透传给远程 claude 进程。不区分会导致 flag 被重复解析或丢失。
+
+> **Q：`--handle-uri` 为什么直接 exit 而不暂存？**
+
+A：Deep link 处理是一次性任务（打开特定 URI），不需要进入 Commander 流程。处理完直接退出更干净，避免遗留状态。
+
+> **Q：clientType 推断顺序重要吗？**
+
+A：重要。优先级从高到低：GitHub Actions > SDK 各语言 > VSCode > local-agent > desktop > remote > CLI 默认。这样确保特定场景优先匹配，不会误判为普通 CLI。
+
+---
+
+**下一步**：[6] get-input-prompt —— stdin 拼接与超时兜底。

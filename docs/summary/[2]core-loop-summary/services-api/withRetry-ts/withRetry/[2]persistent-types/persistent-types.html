@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Persistent 配置 + 类型契约 + 错误类 — withRetry 脚手架</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* Code */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* Callout */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* Tables */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* Flow card */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* Card grid */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* Arch layers */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* Mode cards */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* Mermaid placeholder box */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 重试引擎 · 第 2 节</div>
+  <h1>Persistent 配置 + <span>类型契约</span> + 错误类</h1>
+  <p class="hero-sub">
+    <strong>withRetry 的第二段脚手架</strong> —— 无人值守（persistent）重试的配置与门控、生成器的输入输出类型契约（RetryContext 就地回传降级状态 / RetryOptions 的预置 529 计数器）、两个自定义错误类。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>withRetry.ts:90–166</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>persistent 配置</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>2 类型契约</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>2 错误类</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、Persistent 配置</a></li>
+    <li><a href="#sec-2">二、类型契约</a></li>
+    <li><a href="#sec-3">三、两个错误类</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section id="sec-1">
+  <h2>一、Persistent（无人值守）重试配置</h2>
+
+  <h3>1.1 三个常量</h3>
+<pre><code><span class="k">const</span> <span class="n">PERSISTENT_MAX_BACKOFF_MS</span> <span class="p">=</span> <span class="num">5</span> <span class="p">*</span> <span class="num">60</span> <span class="p">*</span> <span class="num">1000</span>        <span class="c">// 5 分钟：退避上限</span>
+<span class="k">const</span> <span class="n">PERSISTENT_RESET_CAP_MS</span> <span class="p">=</span> <span class="num">6</span> <span class="p">*</span> <span class="num">60</span> <span class="p">*</span> <span class="num">60</span> <span class="p">*</span> <span class="num">1000</span>     <span class="c">// 6 小时：窗口 reset 等待上限</span>
+<span class="k">const</span> <span class="n">HEARTBEAT_INTERVAL_MS</span> <span class="p">=</span> <span class="num">30_000</span>                   <span class="c">// 30 秒：心跳分块间隔</span></code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>常量</th><th>值</th><th>作用</th></tr>
+      <tr><td><code>PERSISTENT_MAX_BACKOFF_MS</code></td><td>5 分钟</td><td>persistent 模式指数退避的封顶（普通模式封 32 秒）</td></tr>
+      <tr><td><code>PERSISTENT_RESET_CAP_MS</code></td><td>6 小时</td><td>窗口限额 reset 等待 / 病态 retry-after 头的硬上限</td></tr>
+      <tr><td><code>HEARTBEAT_INTERVAL_MS</code></td><td>30 秒</td><td>长睡眠切块的粒度，每块 yield 一次心跳防 idle</td></tr>
+    </table>
+  </div>
+<pre><code><span class="c">// CLAUDE_CODE_UNATTENDED_RETRY：用于无人值守 session（仅 ant）。无限重试</span>
+<span class="c">// 429/529，使用更长的退避并周期性 yield keep-alive，避免宿主环境在等待中</span>
+<span class="c">// 把 session 标记为 idle。</span>
+<span class="c">// TODO(ANT-344)：通过 SystemAPIErrorMessage yield 做 keep-alive 只是临时方案，</span>
+<span class="c">// 直到有专门的 keep-alive 通道为止。</span></code></pre>
+  <div class="callout purple">
+    <strong>为什么要"心跳"：</strong>无人值守 session 在长等待（可能数小时）里若毫无 stdout 活动，宿主环境会判定它 idle 并回收。临时方案是把等待切成 30 秒块，每块 yield 一条 <code>SystemAPIErrorMessage</code> 制造 stdout 活动。这是<strong>借用错误消息通道做 keep-alive</strong>，故有 <code>TODO(ANT-344)</code> 标记将来要换专用通道。
+  </div>
+
+  <h3>1.2 门控：isPersistentRetryEnabled</h3>
+<pre><code><span class="k">function</span> <span class="n">isPersistentRetryEnabled</span>()<span class="p">:</span> <span class="t">boolean</span> {
+  <span class="k">return</span> <span class="n">feature</span>(<span class="s">'UNATTENDED_RETRY'</span>)
+    ? <span class="n">isEnvTruthy</span>(<span class="n">process</span>.<span class="n">env</span>.<span class="n">CLAUDE_CODE_UNATTENDED_RETRY</span>)
+    : <span class="k">false</span>
+}</code></pre>
+  <p>双重门控：feature flag <code>UNATTENDED_RETRY</code> <strong>且</strong> 环境变量 <code>CLAUDE_CODE_UNATTENDED_RETRY</code> 为真。feature 未开时直接 <code>false</code>，让相关分支能被外部构建 tree-shake。</p>
+
+  <h3>1.3 两个错误分类器</h3>
+<pre><code><span class="k">function</span> <span class="n">isTransientCapacityError</span>(<span class="n">error</span><span class="p">:</span> <span class="t">unknown</span>)<span class="p">:</span> <span class="t">boolean</span> {
+  <span class="k">return</span> (
+    <span class="n">is529Error</span>(<span class="n">error</span>) <span class="p">||</span> (<span class="n">error</span> <span class="k">instanceof</span> <span class="t">APIError</span> <span class="p">&amp;&amp;</span> <span class="n">error</span>.<span class="n">status</span> <span class="p">===</span> <span class="num">429</span>)
+  )
+}
+
+<span class="k">function</span> <span class="n">isStaleConnectionError</span>(<span class="n">error</span><span class="p">:</span> <span class="t">unknown</span>)<span class="p">:</span> <span class="t">boolean</span> {
+  <span class="k">if</span> (!(<span class="n">error</span> <span class="k">instanceof</span> <span class="t">APIConnectionError</span>)) <span class="k">return</span> <span class="k">false</span>
+  <span class="k">const</span> <span class="n">details</span> <span class="p">=</span> <span class="n">extractConnectionErrorDetails</span>(<span class="n">error</span>)
+  <span class="k">return</span> <span class="n">details</span>?.<span class="n">code</span> <span class="p">===</span> <span class="s">'ECONNRESET'</span> <span class="p">||</span> <span class="n">details</span>?.<span class="n">code</span> <span class="p">===</span> <span class="s">'EPIPE'</span>
+}</code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>函数</th><th>判定</th><th>用途</th></tr>
+      <tr><td><code>isTransientCapacityError</code></td><td>529 或 429</td><td>persistent 模式的"瞬时容量错误"——这类才无限重试（<code>[7][10]</code>）</td></tr>
+      <tr><td><code>isStaleConnectionError</code></td><td><code>APIConnectionError</code> 且 ECONNRESET/EPIPE</td><td>陈旧 keep-alive socket，重试前要禁连接池 + 换 client（<code>[4]</code>）</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="sec-2">
+  <h2>二、类型契约</h2>
+
+  <h3>2.1 RetryContext——降级状态的"就地传递"载体</h3>
+<pre><code><span class="k">export interface</span> <span class="t">RetryContext</span> {
+  <span class="n">maxTokensOverride</span>?<span class="p">:</span> <span class="t">number</span>     <span class="c">// max_tokens 溢出后调整的新上限</span>
+  <span class="n">model</span><span class="p">:</span> <span class="t">string</span>                  <span class="c">// 当前模型名</span>
+  <span class="n">thinkingConfig</span><span class="p">:</span> <span class="t">ThinkingConfig</span> <span class="c">// 思考预算</span>
+  <span class="n">fastMode</span>?<span class="p">:</span> <span class="t">boolean</span>            <span class="c">// fast mode 是否仍激活</span>
+}</code></pre>
+  <p><code>retryContext</code> 在生成器里被创建一次，然后<strong>每次 <code>operation(client, attempt, retryContext)</code> 都把它传进去</strong>。关键在于它会被<strong>就地改写</strong>：</p>
+  <ul>
+    <li><code>[5]</code> 关闭 fast mode 时写 <code>retryContext.fastMode = false</code>。</li>
+    <li><code>[7]</code> max_tokens 溢出时写 <code>retryContext.maxTokensOverride = adjustedMaxTokens</code>。</li>
+  </ul>
+  <p>下一次 <code>operation</code> 就能看到这些降级，据此调整请求参数。</p>
+  <div class="callout blue">
+    <strong>为什么用"就地改写副本"而非每次新建：</strong>降级是<strong>累积</strong>的——关了 fast mode、又调了 maxTokens，两个状态都要带到下一次尝试。一个可变的 <code>retryContext</code> 对象天然累积这些变更，比每次组装新对象简单。
+  </div>
+
+  <h3>2.2 RetryOptions——生成器的输入配置</h3>
+<pre><code><span class="k">interface</span> <span class="t">RetryOptions</span> {
+  <span class="n">maxRetries</span>?<span class="p">:</span> <span class="t">number</span>
+  <span class="n">model</span><span class="p">:</span> <span class="t">string</span>
+  <span class="n">fallbackModel</span>?<span class="p">:</span> <span class="t">string</span>
+  <span class="n">thinkingConfig</span><span class="p">:</span> <span class="t">ThinkingConfig</span>
+  <span class="n">fastMode</span>?<span class="p">:</span> <span class="t">boolean</span>
+  <span class="n">signal</span>?<span class="p">:</span> <span class="t">AbortSignal</span>
+  <span class="n">querySource</span>?<span class="p">:</span> <span class="t">QuerySource</span>
+  <span class="n">initialConsecutive529Errors</span>?<span class="p">:</span> <span class="t">number</span>   <span class="c">// ★ 预置 529 计数器</span>
+}</code></pre>
+  <p>大部分字段顾名思义。重点是 <code>initialConsecutive529Errors</code>，源码注释解释了它的存在意义：</p>
+<pre><code><span class="c">// 预置连续 529 计数器。当本重试循环是流式 529 之后的非流式 fallback 时</span>
+<span class="c">// 使用 —— 流式的 529 应计入 MAX_529_RETRIES，使触发 fallback 前的总 529</span>
+<span class="c">// 次数与命中过载的请求模式无关，保持一致。</span></code></pre>
+  <div class="callout">
+    <strong>场景：</strong>一次请求先以流式方式发，连续吃了 2 个 529，然后降级为非流式重发。非流式这一轮的 <code>withRetry</code> 如果从 0 开始数 529，就会比纯非流式路径多容忍几次过载。<code>initialConsecutive529Errors=2</code> 把流式已发生的 529 <strong>预置进计数器</strong>，让"触发模型 fallback 前总共容忍几次 529"这个语义与请求方式无关。
+  </div>
+</section>
+
+<section id="sec-3">
+  <h2>三、两个错误类</h2>
+
+  <h3>3.1 CannotRetryError——放弃重试</h3>
+<pre><code><span class="k">export class</span> <span class="t">CannotRetryError</span> <span class="k">extends</span> <span class="t">Error</span> {
+  <span class="k">constructor</span>(
+    <span class="k">public readonly</span> <span class="n">originalError</span><span class="p">:</span> <span class="t">unknown</span>,
+    <span class="k">public readonly</span> <span class="n">retryContext</span><span class="p">:</span> <span class="t">RetryContext</span>,
+  ) {
+    <span class="k">super</span>(<span class="n">errorMessage</span>(<span class="n">originalError</span>))
+    <span class="k">this</span>.<span class="n">name</span> <span class="p">=</span> <span class="s">'RetryError'</span>
+    <span class="k">if</span> (<span class="n">originalError</span> <span class="k">instanceof</span> <span class="t">Error</span> <span class="p">&amp;&amp;</span> <span class="n">originalError</span>.<span class="n">stack</span>) {
+      <span class="k">this</span>.<span class="n">stack</span> <span class="p">=</span> <span class="n">originalError</span>.<span class="n">stack</span>   <span class="c">// 保留原始 stack trace</span>
+    }
+  }
+}</code></pre>
+  <p>携带两样东西上抛：<code>originalError</code>（真正的失败原因）+ <code>retryContext</code>（放弃时的降级状态快照）。<strong>保留原始 stack</strong> 让上层日志能定位真正的出错点，而不是 <code>withRetry</code> 内部的抛出点。</p>
+  <div class="callout">
+    注意 <code>this.name = 'RetryError'</code>（不是 <code>'CannotRetryError'</code>）——历史命名遗留，上层按类型 <code>instanceof</code> 判断，不依赖 name 字符串。
+  </div>
+
+  <h3>3.2 FallbackTriggeredError——触发模型降级</h3>
+<pre><code><span class="k">export class</span> <span class="t">FallbackTriggeredError</span> <span class="k">extends</span> <span class="t">Error</span> {
+  <span class="k">constructor</span>(
+    <span class="k">public readonly</span> <span class="n">originalModel</span><span class="p">:</span> <span class="t">string</span>,
+    <span class="k">public readonly</span> <span class="n">fallbackModel</span><span class="p">:</span> <span class="t">string</span>,
+  ) {
+    <span class="k">super</span>(<span class="s">`Model fallback triggered: ${originalModel} -&gt; ${fallbackModel}`</span>)
+    <span class="k">this</span>.<span class="n">name</span> <span class="p">=</span> <span class="s">'FallbackTriggeredError'</span>
+  }
+}</code></pre>
+  <div class="callout green">
+    它不是"错误"，而是一个<strong>控制信号</strong>：连续 529 达阈值时抛出，携带 <code>原模型 → fallback 模型</code>，由 <code>query.ts</code> 捕获后切换模型重发整个请求（见 <code>[0]</code> 三类退出、<code>[6]</code>）。
+  </div>
+</section>
+
+<section id="sec-4">
+  <h2>四、速记口诀</h2>
+  <ul>
+    <li><strong>Persistent 三常量</strong>：退避封顶 5min · reset 上限 6h · 心跳 30s（仅 ant + 双重门控）。</li>
+    <li><strong>心跳本质</strong>：借 SystemAPIErrorMessage 通道制造 stdout 活动防 idle（TODO 待换专用通道）。</li>
+    <li><strong>RetryContext</strong>：可变副本，就地累积降级状态（fastMode / maxTokensOverride）传给下次 operation。</li>
+    <li><strong>initialConsecutive529Errors</strong>：把流式已发生的 529 预置进非流式 fallback 的计数器，保持语义一致。</li>
+    <li><strong>两错误类</strong>：CannotRetryError（放弃，带原 stack）· FallbackTriggeredError（控制信号，切模型）。</li>
+  </ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

@@ -16,10 +16,8 @@ import {
 
 export type { EffortLevel }
 
-// 注意：'ultracode' 不是 effort 级别。它是会话作用域的多 agent
-// 编排选项，由 harness（claude.ai/client）作为 system-reminder
-// 注入，与 effort 参数正交。EffortLevel / EffortValue
-// 绝不能包含 'ultracode'；/effort 仅接受下方列出的级别。
+// 注意：'ultracode' 不是 effort 级别。它是会话作用域的多 agent 编排选项，由 harness（claude.ai/client）作为 system-reminder
+// 注入，与 effort 参数正交。EffortLevel / EffortValue 绝不能包含 'ultracode'；/effort 仅接受下方列出的级别。
 export const EFFORT_LEVELS = [
   'low',
   'medium',
@@ -62,17 +60,14 @@ export function modelSupportsEffort(model: string): boolean {
   }
 
   // 重要：更改默认 effort 支持前请通知
-  // 模型发布 DRI 和研发团队。这是一个敏感的
-  // 设置，会极大影响模型质量和评价。
+  // 模型发布 DRI 和研发团队。这是一个敏感的设置，会极大影响模型质量和评价。
 
   // 对 1P 上的未知模型字符串默认为 true。
-  // 对 3P 不默认为 true，因为他们的模型字符串格式不同
-  //（如 anthropics/claude-code#30795）
+  // 对 3P 不默认为 true，因为他们的模型字符串格式不同（如 anthropics/claude-code#30795）
   return getAPIProvider() === 'firstParty'
 }
 
-// Effort max/xhigh 限制已移除 —— 所有支持 effort 的模型
-// 现在都可以使用这些级别。API 错误由用户负责。
+// Effort max/xhigh 限制已移除 —— 所有支持 effort 的模型现在都可以使用这些级别。API 错误由用户负责。
 export function modelSupportsMaxEffort(_model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(_model, 'max_effort')
   if (supported3P !== undefined) {

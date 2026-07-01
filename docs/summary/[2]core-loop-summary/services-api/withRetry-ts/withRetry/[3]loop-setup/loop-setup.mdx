@@ -1,0 +1,110 @@
+---
+title: "[3] 生成器签名与循环前置"
+description: withRetry 生成器主体的开场——三参数签名（getClient 惰性建 client / operation 真正发请求 / options 配置）、maxRetries 解析、retryContext 初始化、四个循环外状态变量（client / consecutive529Errors / lastError / persistentAttempt），以及 for 循环的上界 maxRetries+1（首次尝试不算重试）（src/services/api/withRetry.ts:168-187）。
+---
+
+# [3] 生成器签名与循环前置
+
+> 从这里开始进入 `withRetry` 生成器主体。本节是循环开始**之前**的一切：参数怎么收、状态变量怎么初始化、for 循环的边界为什么是 `maxRetries + 1`（`withRetry.ts:168-187`）。
+
+---
+
+## 一、生成器签名
+
+```typescript
+export async function* withRetry<T>(
+  getClient: () => Promise<Anthropic>,
+  operation: (client: Anthropic, attempt: number, context: RetryContext) => Promise<T>,
+  options: RetryOptions,
+): AsyncGenerator<SystemAPIErrorMessage, T> {
+```
+
+| 参数 | 类型 | 职责 |
+|---|---|---|
+| `getClient` | `() => Promise<Anthropic>` | **惰性**创建 client；认证错误后会被再次调用以换新 client |
+| `operation` | `(client, attempt, context) => Promise<T>` | 真正发一次请求的闭包，由 `queryModel` 传入 |
+| `options` | `RetryOptions` | 模型 / fallbackModel / signal / querySource 等配置（见 `[2]`） |
+
+> **为什么 `getClient` 是闭包而非直接传 client**：认证失败（401/token revoked/Bedrock/Vertex）时要丢弃旧 client、刷新凭证后重建。传一个"建 client 的方法"而非"已建好的 client"，让 `withRetry` 能在循环里按需重建（见 `[4]`）。
+>
+> **为什么 `operation` 收 `attempt` 和 `context`**：`attempt` 用于日志/埋点；`context`（`RetryContext`）携带累积的降级状态（maxTokens / fastMode），让每次重试能用调整后的参数发请求。
+
+---
+
+## 二、循环前置：四个状态变量 + retryContext
+
+```typescript
+const maxRetries = getMaxRetries(options)
+const retryContext: RetryContext = {
+  model: options.model,
+  thinkingConfig: options.thinkingConfig,
+  ...(isFastModeEnabled() && { fastMode: options.fastMode }),
+}
+let client: Anthropic | null = null
+let consecutive529Errors = options.initialConsecutive529Errors ?? 0
+let lastError: unknown
+let persistentAttempt = 0
+```
+
+### 2.1 `maxRetries`
+
+`getMaxRetries(options)`（详见 `[10]`）：`options.maxRetries` → 环境变量 `CLAUDE_CODE_MAX_RETRIES` → `DEFAULT_MAX_RETRIES`（10）。
+
+### 2.2 `retryContext` 初始化
+
+只在 **fast mode 全局启用**时才带 `fastMode` 字段（用展开运算条件注入）。`model` 和 `thinkingConfig` 从 options 拷入，后续可能被就地改写。
+
+### 2.3 四个 `let` 状态变量
+
+| 变量 | 初值 | 作用 | 在哪改 |
+|---|---|---|---|
+| `client` | `null` | 当前 Anthropic client，懒建 | `[4]` 创建/重建 |
+| `consecutive529Errors` | `initialConsecutive529Errors ?? 0` | 连续 529 计数（可预置，见 `[2]`） | `[6]` 自增 |
+| `lastError` | `undefined` | 上一次的错误，供下轮判断（陈旧连接、循环耗尽兜底） | `[5]` catch 入口赋值 |
+| `persistentAttempt` | `0` | persistent 模式独立的尝试计数 | `[8]` 自增 |
+
+> **为什么 persistent 要独立计数器**：persistent 模式把 for 循环的 `attempt` 夹在 `maxRetries` 让循环不终止（见 `[8]`），所以 `attempt` 不再反映真实尝试次数。退避计算和埋点改用 `persistentAttempt`，它一直增长。
+
+---
+
+## 三、for 循环的边界
+
+```typescript
+for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+  if (options.signal?.aborted) {
+    throw new APIUserAbortError()
+  }
+  // … try / catch（见 [4]~[8]）
+}
+throw new CannotRetryError(lastError, retryContext)   // 循环正常结束 = 全部失败
+```
+
+### 3.1 为什么是 `maxRetries + 1`
+
+`attempt` 从 1 开始：第 1 次是"首次尝试"，不算重试。`maxRetries=10` 意味着允许 10 次**重试**，加上首次尝试，总共最多 `11` 次 `operation` 调用——所以上界是 `maxRetries + 1`。
+
+| attempt | 含义 |
+|---|---|
+| 1 | 首次尝试 |
+| 2 ~ 11 | 第 1 ~ 10 次重试 |
+| 循环结束后 | 全部失败 → `throw CannotRetryError` |
+
+### 3.2 每轮开头的 abort 检查
+
+`options.signal?.aborted` 在**每轮最开始**检查——用户按 ESC 后，即使正排队等重试，下一轮一进来就抛 `APIUserAbortError` 立即退出。这是除了 `sleep` 内部 abort 之外的第二道中止防线。
+
+### 3.3 循环外的兜底 throw
+
+for 循环若**正常跑完**（没有任何一轮 `return` 成功、也没在 catch 里 throw），说明重试全部用尽——末尾 `throw new CannotRetryError(lastError, retryContext)`，带上最后一次的错误。
+
+> persistent 模式永远到不了这里：`attempt` 被夹住，for 循环不会自然结束（见 `[8]`）。
+
+---
+
+## 速记口诀
+
+- **三参数**：getClient（惰性建/重建）· operation（发请求）· options（配置）。
+- **四状态**：client（懒建）· consecutive529Errors（可预置）· lastError（供下轮）· persistentAttempt（独立计数）。
+- **上界 maxRetries+1**：首次尝试不算重试，10 次重试 = 最多 11 次调用。
+- **两道中止线**：每轮开头 signal 检查 + sleep 内部 abort。
+- **循环跑完 = 全失败** → 末尾 CannotRetryError。

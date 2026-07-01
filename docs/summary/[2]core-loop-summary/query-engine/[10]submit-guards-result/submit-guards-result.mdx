@@ -1,0 +1,201 @@
+---
+title: "[10] 守卫、结果提取与终局：USD 预算 / 结构化输出重试 / isResultSuccessful / result yield"
+description: submitMessage 第八阶段（循环内守卫 + 循环后结果提取）——循环内守卫（USD 预算超限→yield error_max_budget_usd+return、结构化输出重试上限→yield error_max_structured_output_retries+return）、循环后结果提取（messages.findLast assistant|user、为何允许列表限 assistant|user——stop hooks 把 progress/attachment 内联 push 会污染 last）、isResultSuccessful 失败→yield error_during_execution（errors[] 通过 errorLogWatermark 按轮次作用域+ede_diagnostic 前缀）、成功路径（从 assistant 最后 text 块提取 textResult排除 SYNTHETIC_MESSAGES、isApiError、yield result: success 含 structured_output/fast_mode_state/usage/cost/permission_denials）（src/QueryEngine.ts:1233-1470）。
+---
+
+# [10] 守卫、结果提取与终局：USD 预算 / 结构化输出 / result
+
+> 本节覆盖 `1233-1470`——`submitMessage` 的**循环内守卫**（预算/重试上限）与**循环后结果提取**（从消息列表找最后一条消息、判断成功失败、yield 最终 `result`）。这是每轮的终局判断点。
+
+---
+
+## 一、⭐ 循环内守卫：USD 预算 / 结构化输出重试上限
+
+### 1.1 USD 预算超限
+
+```typescript
+if (maxBudgetUsd !== undefined && getTotalCost() >= maxBudgetUsd) {
+  if (persistSession) {
+    if (isEnvTruthy('CLAUDE_CODE_EAGER_FLUSH') || isEnvTruthy('CLAUDE_CODE_IS_COWORK')) {
+      await flushSessionStorage()
+    }
+  }
+  yield {
+    type: 'result',
+    subtype: 'error_max_budget_usd',
+    is_error: true,
+    num_turns: turnCount,
+    stop_reason: lastStopReason,
+    errors: [`Reached maximum budget ($${maxBudgetUsd}). Increase the limit with --max-budget-usd or start a new session.`],
+    ...
+  }
+  return
+}
+```
+
+> **守卫位置**：在 `for-await query()` 循环**内**，每条消息后检查。一旦超限，立即 yield `error_max_budget_usd` 并 `return`——不再消费后续消息。
+
+### 1.2 结构化输出重试上限
+
+```typescript
+if (message.type === 'user' && jsonSchema) {
+  const currentCalls = countToolCalls(this.mutableMessages, SYNTHETIC_OUTPUT_TOOL_NAME)
+  const callsThisQuery = currentCalls - initialStructuredOutputCalls
+  const maxRetries = parseInt(process.env.MAX_STRUCTURED_OUTPUT_RETRIES || '5', 10)
+  if (callsThisQuery >= maxRetries) {
+    yield {
+      type: 'result',
+      subtype: 'error_max_structured_output_retries',
+      is_error: true,
+      num_turns: turnCount,
+      errors: [`Failed to provide valid structured output after ${maxRetries} attempts`],
+      ...
+    }
+    return
+  }
+}
+```
+
+> **为何只在 `user` 消息时检查**：结构化输出重试是在**每个回合的 `user` 消息后**判断——如果一个回合多次调用 `StructuredOutput` 工具（且都失败），下一回合开始时 `callsThisQuery` 已超限，守卫触发。不在 `assistant` 时检查是因为 `assistant` 时还没开始新一轮重试。
+
+> **`callsThisQuery` 计算**：`currentCalls - initialStructuredOutputCalls`——只计**本轮新增**的调用，避免跨轮累计误判。
+
+---
+
+## 二、⭐ 循环后结果提取：messages.findLast(assistant | user)
+
+```typescript
+const result = messages.findLast(
+  m => m.type === 'assistant' || m.type === 'user',
+)
+```
+
+> **为何允许列表限 `assistant | user`**：stop hooks（`query.ts` 的 `handleStopHooks`）会把 **`progress` / `attachment` 消息**内联 push 到 `messages`（通过 `yield* handleStopHooks`）。如果列表是 `messages.at(-1)`，可能取到 `progress`/`attachment` 而非真正的对话结束消息——`textResult` 提取会返回空（导致 `-p` 模式输出空行）。`findLast(assistant | user)` 确保取到的是**真正的对话结果**。
+
+> **`isResultSuccessful` 能处理两者**：全 `tool_result` 块的 `user` 消息也是**合法的成功终止状态**（如工具执行完成后模型不再回复，只返回工具结果）。
+
+### edeResultType / edeLastContentType（error_during_execution 诊断用）
+
+```typescript
+const edeResultType = result?.type ?? 'undefined'
+const edeLastContentType =
+  result?.type === 'assistant'
+    ? (last(result.message!.content as BetaContentBlock[])?.type ?? 'none')
+    : 'n/a'
+```
+
+> **用途**：在 `error_during_execution` 的 `errors[]` 中作为 **`ede_diagnostic` 前缀**——帮助诊断失败原因（result 类型、最后一个内容块类型、stop_reason）。
+
+---
+
+## 三、⭐ isResultSuccessful 失败 → error_during_execution
+
+```typescript
+if (!isResultSuccessful(result, lastStopReason)) {
+  yield {
+    type: 'result',
+    subtype: 'error_during_execution',
+    is_error: true,
+    num_turns: turnCount,
+    stop_reason: lastStopReason,
+    errors: (() => {
+      const all = getInMemoryErrors()
+      const start = errorLogWatermark ? all.lastIndexOf(errorLogWatermark) + 1 : 0
+      return [
+        `[ede_diagnostic] result_type=${edeResultType} last_content_type=${edeLastContentType} stop_reason=${lastStopReason}`,
+        ...all.slice(start).map(_ => _.error),
+      ]
+    })(),
+    ...
+  }
+  return
+}
+```
+
+### errors[]：按轮次作用域
+
+```typescript
+const all = getInMemoryErrors()
+const start = errorLogWatermark ? all.lastIndexOf(errorLogWatermark) + 1 : 0
+return [
+  `[ede_diagnostic] ...`,
+  ...all.slice(start).map(_ => _.error),
+]
+```
+
+> **基于引用的水位线**（`[8]`）：`errorLogWatermark` 是进循环前最后一条 in-memory error。`all.lastIndexOf(errorLogWatermark)` 找到它在当前数组中的位置，从其后开始收集——**只取本轮新增错误**。如果 `errorLogWatermark` 已被 `shift()` 掉（环形缓冲区滚动），`lastIndexOf` 返回 `-1`，则从 `0` 开始收集全部（安全兜底）。
+
+> **ede_diagnostic 前缀**：包含 `result_type` / `last_content_type` / `stop_reason`，帮助诊断失败原因。
+
+---
+
+## 四、成功路径：textResult 提取 + yield result: success
+
+### 4.1 提取 textResult
+
+```typescript
+let textResult = ''
+let isApiError = false
+
+if (result.type === 'assistant') {
+  const lastContent = last(result.message!.content as BetaContentBlock[])
+  if (
+    lastContent?.type === 'text' &&
+    !SYNTHETIC_MESSAGES.has(lastContent.text)
+  ) {
+    textResult = lastContent.text
+  }
+  isApiError = Boolean(result.isApiErrorMessage)
+}
+```
+
+> **为何排除 `SYNTHETIC_MESSAGES`**：`SYNTHETIC_MESSAGES` 是一个 `Set`，包含「占位符文本」（如 `''` 空串或调试用假内容）。排除它们避免把假内容当作 `textResult`。
+
+> **`isApiErrorMessage`**：标记这个 assistant 消息是否来自 API 错误（如 429/500），最终 `result.is_error` 会据此设为 `true`（但 `subtype` 仍是 `success`——区分「执行失败」与「API 失败」）。
+
+### 4.2 yield result: success
+
+```typescript
+yield {
+  type: 'result',
+  subtype: 'success',
+  is_error: isApiError,
+  duration_ms: Date.now() - startTime,
+  duration_api_ms: getTotalAPIDuration(),
+  num_turns: turnCount,
+  result: textResult,
+  stop_reason: lastStopReason,
+  session_id: getSessionId(),
+  total_cost_usd: getTotalCost(),
+  usage: this.totalUsage,
+  modelUsage: getModelUsage(),
+  permission_denials: this.permissionDenials,
+  structured_output: structuredOutputFromTool,
+  fast_mode_state: getFastModeState(mainLoopModel, initialAppState.fastMode),
+  uuid: randomUUID(),
+}
+```
+
+| 字段 | 说明 |
+|---|---|
+| `is_error` | `isApiError`（API 错误时为 `true`） |
+| `duration_ms` | 从 submitMessage 开始到现在的总耗时 |
+| `duration_api_ms` | API 调用的累计耗时（不含本地处理） |
+| `num_turns` | 总轮次数 |
+| `result` | `textResult`（assistant 最后一个 text 块） |
+| `stop_reason` | `lastStopReason`（真实的停止原因） |
+| `structured_output` | `structuredOutputFromTool`（`[9]` 从 attachment 提取） |
+| `fast_mode_state` | fast mode 状态 |
+| `permission_denials` | 本轮被拒绝的工具调用（`[3]` `wrappedCanUseTool` 追踪） |
+
+> 这是 `submitMessage` 的**正常终局**——循环结束后，yield 成功的 `result` 并隐式返回。
+
+---
+
+## 速记口诀
+
+- **循环内守卫**：USD 预算超限 → `error_max_budget_usd` + `return`；结构化输出重试上限 → `error_max_structured_output_retries` + `return`。
+- **结果提取**：`messages.findLast(assistant | user)`——排除 progress/attachment（stop hooks 会污染 last）。
+- **`isResultSuccessful` 失败**→ `error_during_execution`，`errors[]` 按 `errorLogWatermark` 按轮次作用域 + `ede_diagnostic` 前缀。
+- **成功路径**：从 assistant 最后 text 块提取 `textResult`（排除 `SYNTHETIC_MESSAGES`），`isApiError`，yield `result: success`。
+- **`result` 字段**：`duration_ms` / `duration_api_ms` / `num_turns` / `stop_reason` / `structured_output` / `fast_mode_state` / `permission_denials`。

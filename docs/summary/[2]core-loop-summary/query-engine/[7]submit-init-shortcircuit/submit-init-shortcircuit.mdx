@@ -1,0 +1,144 @@
+---
+title: "[7] 初始化消息与本地命令短路：systemInit yield + !shouldQuery 路径"
+description: submitMessage 第五阶段——仅缓存加载 skills/plugins（Promise.all 避免阻塞）、yield buildSystemInitMessage（tools/mcp/model/permissionMode/commands/agents/skills/plugins/fastMode 清单）、!shouldQuery 时走本地 slash 命令短路路径（遍历 messagesFromUserInput yield user replay/合成 assistant/compact_boundary、持久化、yield result: success 并 return，不进 query 循环）（src/QueryEngine.ts:686-811）。
+---
+
+# [7] 初始化消息与本地命令短路：systemInit yield + !shouldQuery 路径
+
+> 本节覆盖 `686-811`——`submitMessage` 的第五阶段：**准备进入循环前的最后步骤**——加载 skills/plugins、yield 系统初始化消息给 SDK、处理「不需要调用 API」的本地命令短路路径。
+
+---
+
+## 一、仅缓存加载 skills/plugins
+
+```typescript
+headlessProfilerCheckpoint('before_skills_plugins')
+const [skills, { enabled: enabledPlugins }] = await Promise.all([
+  getSlashCommandToolSkills(getCwd()),
+  loadAllPluginsCacheOnly(),
+])
+headlessProfilerCheckpoint('after_skills_plugins')
+```
+
+| 调用 | 作用 |
+|---|---|
+| `getSlashCommandToolSkills(getCwd())` | 获取 slash 命令形式的技能工具（`/skill:xxx`） |
+| `loadAllPluginsCacheOnly()` | **仅走缓存**加载已启用的插件列表 |
+
+> **为什么 `cacheOnly`**：headless/SDK/CCR 启动不能阻塞在**插件网络请求**上。插件通过 `CLAUDE_CODE_SYNC_PLUGIN_INSTALL`（headlessPluginInstall）或 `CLAUDE_CODE_PLUGIN_SEED_DIR` 在此之前填充缓存；需要新源的 SDK 调用方可调用 `/reload-plugins`。
+
+> **skills + enabledPlugins**：后续传给 `buildSystemInitMessage`，让 SDK 知道当前可用的 slash 技能与插件。
+
+---
+
+## 二、buildSystemInitMessage：系统初始化消息
+
+```typescript
+yield buildSystemInitMessage({
+  tools,
+  mcpClients,
+  model: mainLoopModel,
+  permissionMode: initialAppState.toolPermissionContext.mode as PermissionMode,
+  commands,
+  agents,
+  skills,
+  plugins: enabledPlugins,
+  fastMode: initialAppState.fastMode,
+})
+```
+
+| 字段 | 说明 |
+|---|---|
+| `tools` | 当前工具表（包含核心 + 可能的已发现延迟工具） |
+| `mcpClients` | MCP 服务器连接列表 |
+| `model` | 本轮主循环模型 |
+| `permissionMode` | 权限模式（`always_allow` / `auto` / `manual` 等） |
+| `commands` | slash 命令定义 |
+| `agents` | 子 agent 定义列表 |
+| `skills` | slash 技能工具列表 |
+| `plugins` | 已启用插件列表 |
+| `fastMode` | fast mode 状态 |
+
+> **`buildSystemInitMessage`**（`src/utils/messages/systemInit.ts`）产出 `SDKMessage` 类型的 `system` 消息（`subtype: 'init'`），SDK 用它来初始化 UI（如工具列表、权限模式显示）。
+
+---
+
+## 三、⭐ !shouldQuery 短路路径：本地 slash 命令结果
+
+```typescript
+if (!shouldQuery) {
+  // 返回本地 slash 命令的结果
+  for (const msg of messagesFromUserInput) {
+    if (msg.type === 'user' && ...) {
+      yield { /* user replay with stripped ansi */ }
+    }
+    if (msg.type === 'system' && msg.subtype === 'local_command' && ...) {
+      yield localCommandOutputToSDKAssistantMessage(msg.content, msg.uuid)
+    }
+    if (msg.type === 'system' && msg.subtype === 'compact_boundary') {
+      yield { /* SDK compact_boundary */ }
+    }
+  }
+
+  if (persistSession) {
+    await recordTranscript(messages)
+    if (isEnvTruthy('CLAUDE_CODE_EAGER_FLUSH') || isEnvTruthy('CLAUDE_CODE_IS_COWORK')) {
+      await flushSessionStorage()
+    }
+  }
+
+  yield {
+    type: 'result',
+    subtype: 'success',
+    is_error: false,
+    duration_ms: Date.now() - startTime,
+    duration_api_ms: getTotalAPIDuration(),
+    num_turns: messages.length - 1,
+    result: resultText ?? '',
+    stop_reason: null,
+    session_id: getSessionId(),
+    total_cost_usd: getTotalCost(),
+    usage: this.totalUsage,
+    modelUsage: getModelUsage(),
+    permission_denials: this.permissionDenials,
+    fast_mode_state: getFastModeState(mainLoopModel, initialAppState.fastMode),
+    uuid: randomUUID(),
+  }
+  return
+}
+```
+
+> **`!shouldQuery` 的来源**：`processUserInput`（`[5]`）返回 `shouldQuery: false`，表示输入是**本地 slash 命令**（如 `/help`、`/force-snip`），不需要调用 API。
+
+### 短路路径做的事
+
+1. **遍历 `messagesFromUserInput`** yield 消息：
+   - **`user` 且含 `LOCAL_COMMAND_STDOUT_TAG` / `STDERR_TAG`**：yield `user` replay（strip ansi，`isReplay: !msg.isCompactSummary`）
+   - **`system` 且 `subtype: 'local_command'**：yield 合成的 `assistant` 消息（`localCommandOutputToSDKAssistantMessage`），让 RC 渲染成 assistant 风格
+   - **`compact_boundary`**：yield SDK `compact_boundary` 消息
+
+2. **持久化**：`recordTranscript(messages)` + 可选 `flushSessionStorage`（同 `[6]` 策略）
+
+3. **yield result: success**：包含 `resultText`（命令输出文本）、`duration_ms`、`usage` 等，然后 `return`——**不进入 `query()` 循环**。
+
+> **本地命令为何不走 query**：这些命令的结果完全由本地产生（如 `/help` 的帮助文本），调用 API 只浪费 token 与时间。短路路径让本地命令秒级返回。
+
+---
+
+## 四、记录 yield 时间点
+
+```typescript
+headlessProfilerCheckpoint('system_message_yielded')
+```
+
+> **作用**：记录系统初始化消息被 yield 的时间点，用于 headless 模式的延迟追踪（从 submitMessage 开始到 system_message_yielded 的时间 = 初始化耗时）。
+
+---
+
+## 速记口诀
+
+- **仅缓存加载**：`getSlashCommandToolSkills` + `loadAllPluginsCacheOnly`（Promise.all，避免插件网络阻塞）。
+- **systemInit yield**：`buildSystemInitMessage` 传 tools/mcp/model/permissionMode/commands/agents/skills/plugins/fastMode。
+- **`!shouldQuery` 短路**：遍历 `messagesFromUserInput` yield user replay/assistant/compact_boundary → 持久化 → yield `result: success` → `return`（不进 query 循环）。
+- **本地命令结果**：user 消息 strip ansi；local_command 转合成 assistant；compact_boundary yield SDK 消息。
+- **headlessProfilerCheckpoint**：`system_message_yielded` 记录 yield 时间点。

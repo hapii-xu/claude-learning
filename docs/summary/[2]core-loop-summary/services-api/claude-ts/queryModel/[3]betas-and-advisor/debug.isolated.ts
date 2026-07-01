@@ -23,7 +23,7 @@ import { runQueryModel } from '../_debug/harness.js'
 await runQueryModel({
   features: ['ADVISOR'],
   options: {
-    querySource: 'repl_main_thread', // 改成 'compact' 看 isAgenticQuery 变 false
+    querySource: 'compact', // 改成 'compact' 看 isAgenticQuery 变 false
     advisorModel: 'qwen3.7-plus',
   },
 })

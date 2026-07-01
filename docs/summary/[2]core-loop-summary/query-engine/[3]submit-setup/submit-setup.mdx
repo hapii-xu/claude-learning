@@ -1,0 +1,111 @@
+---
+title: "[3] submitMessage 开篇：解构、清理与权限包装"
+description: submitMessage 的第一阶段——从 this.config 解构约 20 个字段、每轮开头清理按轮作用域状态（discoveredSkillNames.clear / permissionDenials=[] / setCwd）、用 wrappedCanUseTool 包住权限回调以追踪拒绝、确定初始模型与 thinking 配置。这是进入系统提示构建之前的「准备工作」（src/QueryEngine.ts:294-396）。
+---
+
+# [3] submitMessage 开篇：解构、清理与权限包装
+
+> `submitMessage`（`294-1470`）是 QueryEngine 的核心，本节是它的**第一阶段**（`294-396`）：把构造时存下的 `config` 摊开、把上一轮的残留状态清掉、把权限回调包一层用于记账、定下本轮的模型与 thinking 模式。做完这些才进入系统提示构建（`[4]`）。
+
+---
+
+## 一、从 this.config 解构
+
+`298-321` 把 `this.config` 一次性解构成局部变量（带默认值）：
+
+```typescript
+const {
+  cwd, commands, tools, mcpClients,
+  verbose = false, thinkingConfig, maxTurns, maxBudgetUsd, taskBudget,
+  canUseTool, customSystemPrompt, appendSystemPrompt,
+  userSpecifiedModel, fallbackModel, jsonSchema,
+  getAppState, setAppState,
+  replayUserMessages = false, includePartialMessages = false,
+  agents = [], setSDKStatus, orphanedPermission,
+} = this.config
+```
+
+> 为什么解构：后续 1100 多行频繁用这些值，解构成裸名既简洁又避免反复 `this.config.x`。带默认值的（`verbose`/`replayUserMessages`/`includePartialMessages`/`agents`）在此统一兜底。
+
+---
+
+## 二、每轮开头的状态清理
+
+```typescript
+this.discoveredSkillNames.clear()
+this.permissionDenials = []
+setCwd(cwd)
+const persistSession = !isSessionPersistenceDisabled()
+const startTime = Date.now()
+```
+
+| 动作 | 为什么放最前 |
+|---|---|
+| `discoveredSkillNames.clear()` | 按轮作用域，防 SDK 多轮无界增长（`[2]`） |
+| `permissionDenials = []` | 本轮 result 只该报告本轮的拒绝 |
+| `setCwd(cwd)` | 把进程 CWD 同步到本 engine 的工作目录 |
+| `persistSession` | 一次性求值是否持久化，后续多处用 |
+| `startTime` | 计 `duration_ms`，所有 result 都带 |
+
+---
+
+## 三、⭐ wrappedCanUseTool：权限拒绝追踪
+
+`349-377` 把外部传入的 `canUseTool` 包一层，在放行/拒绝之外**记账拒绝**：
+
+```typescript
+const wrappedCanUseTool: CanUseToolFn = async (tool, input, ctx, msg, toolUseID, force) => {
+  const result = await canUseTool(tool, input, ctx, msg, toolUseID, force)
+  if (result.behavior !== 'allow') {
+    this.permissionDenials.push({
+      type: 'permission_denial',
+      tool_name: sdkCompatToolName(tool.name),
+      tool_use_id: toolUseID,
+      tool_input: input,
+    })
+  }
+  return result
+}
+```
+
+- **透明代理**：原样转发参数与返回值，只在 `behavior !== 'allow'` 时副作用式 push 一条拒绝记录。
+- `sdkCompatToolName(tool.name)`：把内部工具名转成 SDK 兼容名（如 MCP 工具的命名）。
+- 这条 `permissionDenials` 数组最终出现在每个 `result` 消息的 `permission_denials` 字段里（`[10]`），让 SDK 调用方知道哪些工具被拒。
+
+> **为什么不在 canUseTool 内部记**：`canUseTool` 是外部注入的（REPL/SDK 各有实现），engine 不该要求每个实现都自带记账。包一层是**关注点分离**：权限判定归 canUseTool，拒绝统计归 engine。
+
+---
+
+## 四、初始模型与 thinking 配置
+
+```typescript
+const initialAppState = getAppState()
+const initialMainLoopModel = userSpecifiedModel
+  ? parseUserSpecifiedModel(userSpecifiedModel)
+  : getMainLoopModel()
+
+const initialThinkingConfig: ThinkingConfig = thinkingConfig
+  ? thinkingConfig
+  : shouldEnableThinkingByDefault() !== false
+    ? { type: 'adaptive' }
+    : { type: 'disabled' }
+```
+
+| 决策 | 优先级 |
+|---|---|
+| **模型** | `userSpecifiedModel`（显式指定）> `getMainLoopModel()`（全局默认） |
+| **thinking** | 显式 `thinkingConfig` > `shouldEnableThinkingByDefault()` → `adaptive` / `disabled` |
+
+- `initialAppState` 快照一次（后续 `fastMode`、`toolPermissionContext` 都从它取，避免重复 `getAppState()`）。
+- `initialMainLoopModel` 是「初始」值——`[6]` 里 slash 命令可能通过 `modelFromUserInput` 覆盖它，得到最终 `mainLoopModel`。
+
+> **adaptive vs disabled**：`adaptive` 让模型按需自行决定思考预算；`disabled` 完全关闭 thinking。默认开（除非环境/配置显式关）。
+
+---
+
+## 速记口诀
+
+- **解构**：~20 个 config 字段摊成裸名 + 默认值兜底。
+- **三清理**：`discoveredSkillNames.clear()`（防增长）· `permissionDenials=[]`（本轮作用域）· `setCwd(cwd)`（同步 CWD）。
+- **wrappedCanUseTool**：透明代理 + 拒绝记账，`behavior !== 'allow'` 才 push；关注点分离。
+- **初始模型/thinking**：显式值优先，否则全局默认 / adaptive。

@@ -1,0 +1,120 @@
+---
+title: "[7] 重试闸门与 max_tokens 溢出调参"
+description: withRetry catch 块的"是否还能重试"决策——persistent 瞬时容量豁免、attempt>maxRetries 耗尽闸门、AWS/GCP 云认证缓存清理、shouldRetry 总闸门（非 APIError 或不可重试则抛 CannotRetryError），以及 max_tokens 上下文溢出的特殊处理（解析 input+max_tokens>limit，重算 availableContext 写入 maxTokensOverride 后 continue）（src/services/api/withRetry.ts:364-424）。
+---
+
+# [7] 重试闸门与 max_tokens 溢出调参
+
+> 走到这里，说明错误不是 fast mode 也不是已处理的 529。本节是**通用重试的总闸门**：先判断"这个错误到底该不该重试"，放行后再处理一类特殊错误——max_tokens 上下文溢出（`withRetry.ts:364-424`）。
+
+---
+
+## 一、persistent 豁免标志
+
+```typescript
+const persistent = isPersistentRetryEnabled() && isTransientCapacityError(error)
+```
+
+`persistent` 在本节开头算好，贯穿后面的闸门和退避（`[8]`）：只有**无人值守模式 + 瞬时容量错误（429/529）**时才为真。它的作用是**绕过下面所有"该放弃"的闸门**，实现无限重试。
+
+---
+
+## 二、⭐ 三道放弃闸门
+
+错误要通过三道检查才能进入实际重试，任何一道不过都 `throw CannotRetryError`：
+
+### 闸门 1：重试次数耗尽
+
+```typescript
+if (attempt > maxRetries && !persistent) {
+  throw new CannotRetryError(error, retryContext)
+}
+```
+
+`attempt` 已超过 `maxRetries`（即这是最后一次尝试且又失败了）→ 放弃。但 **persistent 豁免**：无人值守模式不受次数上限约束。
+
+### 闸门 2 + 3：云认证处理 + shouldRetry
+
+```typescript
+// AWS/GCP 错误不总是 APIError，但可以重试
+const handledCloudAuthError =
+  handleAwsCredentialError(error) || handleGcpCredentialError(error)
+if (
+  !handledCloudAuthError &&
+  (!(error instanceof APIError) || !shouldRetry(error))
+) {
+  throw new CannotRetryError(error, retryContext)
+}
+```
+
+- **`handleAwsCredentialError` / `handleGcpCredentialError`**：若是 Bedrock/Vertex 认证错误，**清掉对应凭证缓存**并返回 `true`（详见 `[10]`）。这是认证刷新暗线（B）的另一半——清缓存后，下一轮 `[4]` 会重建 client。
+- **若不是云认证错误**：再看 `shouldRetry`——非 APIError 或 `shouldRetry(error)` 返回 false → 放弃。`shouldRetry` 是个大决策函数，详见 `[10]`。
+
+> **闸门逻辑的短路顺序**：先尝试云认证处理（有副作用：清缓存）；只有它没处理、且错误又不满足 `shouldRetry`，才放弃。所以云认证错误**总能重试**（清完缓存继续），其余错误交给 `shouldRetry` 裁决。
+
+---
+
+## 三、max_tokens 上下文溢出调参
+
+通过闸门后，先看是不是一类需要**调参再重试**的特殊错误：
+
+```typescript
+if (error instanceof APIError) {
+  const overflowData = parseMaxTokensContextOverflowError(error)
+  if (overflowData) {
+    const { inputTokens, contextLimit } = overflowData
+
+    const safetyBuffer = 1000
+    const availableContext = Math.max(0, contextLimit - inputTokens - safetyBuffer)
+    if (availableContext < FLOOR_OUTPUT_TOKENS) {
+      logError(new Error(`availableContext ${availableContext} is less than FLOOR_OUTPUT_TOKENS ${FLOOR_OUTPUT_TOKENS}`))
+      throw error
+    }
+    // 确保至少有足够 thinking + 1 个 output token 的空间
+    const minRequired =
+      (retryContext.thinkingConfig.type === 'enabled'
+        ? retryContext.thinkingConfig.budgetTokens
+        : 0) + 1
+    const adjustedMaxTokens = Math.max(FLOOR_OUTPUT_TOKENS, availableContext, minRequired)
+    retryContext.maxTokensOverride = adjustedMaxTokens
+
+    logEvent('tengu_max_tokens_context_overflow_adjustment', {
+      inputTokens, contextLimit, adjustedMaxTokens, attempt,
+    })
+    continue
+  }
+}
+```
+
+### 3.1 这是什么错误
+
+请求的 `input + max_tokens > 上下文窗口`——API 返回 400，消息形如 `input length and max_tokens exceed context limit: 188059 + 20000 > 200000`。`parseMaxTokensContextOverflowError`（见 `[10]`）从消息正则解析出 `inputTokens` / `contextLimit`。
+
+### 3.2 怎么调
+
+| 步骤 | 计算 |
+|---|---|
+| 算可用空间 | `availableContext = contextLimit - inputTokens - 1000(safety)` |
+| 太小则放弃 | `availableContext < FLOOR_OUTPUT_TOKENS(3000)` → `throw error`（连最低输出都放不下） |
+| 算最低要求 | `minRequired = thinking 预算 + 1`（thinking 启用时） |
+| 取最终值 | `adjustedMaxTokens = max(FLOOR, available, minRequired)` |
+| 写回 + 重试 | `retryContext.maxTokensOverride = adjustedMaxTokens`，`continue` |
+
+下一轮 `operation` 读到 `maxTokensOverride`，用更小的 `max_tokens` 重发，请求就能放进窗口。
+
+> **暗线 E（状态副本）在这里**：调整后的 max_tokens 写进 `retryContext` 就地传递，`continue` 立即重试（不走退避——这不是容量问题，等待无意义）。
+
+### 3.3 向后兼容说明
+
+源码注释：有了 extended-context-window beta，这个 400 错误**理论上不该再出现**——API 改用 `model_context_window_exceeded` stop_reason 表达。这段保留是为了**向后兼容**老的 API 行为。
+
+---
+
+## 速记口诀
+
+- **persistent 豁免**：无人值守 + 瞬时容量错误 → 绕过所有放弃闸门。
+- **三闸门**：① attempt 超 maxRetries（persistent 豁免）② 云认证处理（清缓存返回 true）③ shouldRetry 裁决。
+- **云认证错误总能重试**：清完缓存继续，下轮 [4] 重建 client。
+- **max_tokens 溢出**：解析 input/limit → 算 availableContext → 写 maxTokensOverride → continue（不退避）。
+- **太小放弃**：availableContext < 3000 → throw（连最低输出都放不下）。
+- **此 400 现已被 stop_reason 取代**，保留为向后兼容。

@@ -1,0 +1,256 @@
+---
+title: "[9] switch(message.type) 全分支：assistant/progress/user + 用量累计 + attachment 三类 + system（snipReplay/compact/api_error）"
+description: submitMessage 第七阶段（循环内的 switch 分支）——tombstone 跳过；assistant 捕获 stop_reason、push mutableMessages、yield* normalizeMessage；progress/user/attachment push + 内联 recordTranscript（防延迟 progress 与已记录 tool_result 交错导致链分叉孤儿化）；stream_event 用量累计（message_start 重置+updateUsage、message_delta 累计+捕获真实 stop_reason、message_stop 累计到 totalUsage+推 _usageSink）；attachment 三类（structured_output 提取 data、max_turns_reached yield error_max_turns+return、queued_command replay user）；system（snipReplay 重放/compact_boundary yield SDK 边界+splice 释放压缩前消息 GC、api_error yield api_retry）；tool_use_summary yield SDK 摘要（src/QueryEngine.ts:947-1231）。
+---
+
+# [9] switch(message.type) 全分支：用量累计 + 内联记录 + snipReplay
+
+> 本节覆盖 `947-1231`——`submitMessage` 循环内的 **`switch(message.type)` 全分支处理**。每个从 `query()` yield 出来的消息类型都在此被分类处理：push 到状态、记录 transcript、yield SDK 消息、累计用量、检查守卫条件。
+
+---
+
+## 一、tombstone：跳过
+
+```typescript
+case 'tombstone':
+  // Tombstone 消息是用于删除消息的控制信号，跳过它们
+  break
+```
+
+> **tombstone**：删除信号，不产出任何内容，直接跳过。
+
+---
+
+## 二、assistant：捕获 stop_reason + normalizeMessage
+
+```typescript
+case 'assistant': {
+  const msg = message as Message
+  const stopReason = msg.message?.stop_reason as string | null | undefined
+  if (stopReason != null) {
+    lastStopReason = stopReason
+  }
+  this.mutableMessages.push(msg)
+  yield* normalizeMessage(msg)
+  break
+}
+```
+
+- **`stopReason` 捕获**：流式下 `content_block_stop` 时 `stop_reason` 为 `null`，真正的值通过 `message_delta` 到达（见下方 `stream_event`）。此处也检查一次以防遗漏。
+- **`push`**：追加到 `mutableMessages`（会话状态）。
+- **`yield* normalizeMessage(msg)`**：把内部 `Message` 转成 `SDKMessage` 并 yield（`normalizeMessage` 在 `src/utils/queryHelpers.ts`）。
+
+---
+
+## 三、progress / user / attachment：push + **内联 recordTranscript**
+
+```typescript
+case 'progress': {
+  const msg = message as Message
+  this.mutableMessages.push(msg)
+  // 内联记录，这样下一次 ask() 调用里的去重循环就会把它当作已记录
+  if (persistSession) {
+    messages.push(msg)
+    void recordTranscript(messages)
+  }
+  yield* normalizeMessage(msg)
+  break
+}
+```
+
+> **为何内联**：`progress` 消息（工具执行的进度更新）**延迟记录**时会与 `mutableMessages` 中已记录的 `tool_result` 交错，导致去重遍历把 `startingParentUuid` 冻结在错误的消息上——**链分叉，恢复时对话变成孤儿**。内联 `recordTranscript` 确保每条 progress 立即落盘，去重索引正确。
+
+**`user`** 和 **`attachment`** 同理：`push` + 内联 `recordTranscript` + `yield* normalizeMessage`。
+
+---
+
+## 四、⭐ stream_event：用量累计（message_start / delta / stop）
+
+```typescript
+case 'stream_event': {
+  const event = (message as unknown as { event: Record<string, unknown> }).event
+  if (event.type === 'message_start') {
+    currentMessageUsage = EMPTY_USAGE
+    const eventMessage = event.message as { usage: BetaMessageDeltaUsage }
+    currentMessageUsage = updateUsage(currentMessageUsage, eventMessage.usage)
+  }
+  if (event.type === 'message_delta') {
+    currentMessageUsage = updateUsage(currentMessageUsage, event.usage as BetaMessageDeltaUsage)
+    const delta = event.delta as { stop_reason?: string | null }
+    if (delta.stop_reason != null) {
+      lastStopReason = delta.stop_reason
+    }
+  }
+  if (event.type === 'message_stop') {
+    this.totalUsage = accumulateUsage(this.totalUsage, currentMessageUsage)
+    try { _usageSink?.(this.totalUsage, mainLoopModel) } catch {}
+  }
+
+  if (includePartialMessages) {
+    yield { type: 'stream_event', event, ... }
+  }
+  break
+}
+```
+
+| event | 动作 |
+|---|---|
+| **`message_start`** | 重置 `currentMessageUsage` + 从 `event.message.usage` 初始化 |
+| **`message_delta`** | 累计到 `currentMessageUsage` + 捕获真实 `stop_reason`（`content_block_stop` 时的 `null` 会被覆盖） |
+| **`message_stop`** | 累计到 `totalUsage`（跨轮总账）+ 推 `_usageSink`（调试面板，fire-and-forget） |
+
+> **`stop_reason` 为何从 `message_delta` 捕获**：流式响应时，`content_block_stop` yield 的 assistant 消息 `stop_reason` 是 `null`；真正的 `stop_reason` 只在 `message_delta` 事件中到达。如果不在此处捕获，`lastStopReason` 永远是 `null`，`result.stop_reason` 永远不准确。
+
+> **`includePartialMessages`**：`true` 时 yield 原始 SSE 事件（`stream_event`），用于需要逐 token 的场景（如调试面板）。
+
+---
+
+## 五、attachment 三类
+
+### 5.1 structured_output：提取数据
+
+```typescript
+if (attachment.type === 'structured_output') {
+  structuredOutputFromTool = attachment.data
+}
+```
+
+> **`structuredOutputFromTool`**：最终放入 `result.structured_output`（`[10]`）。
+
+### 5.2 max_turns_reached：yield error_max_turns + return
+
+```typescript
+else if (attachment.type === 'max_turns_reached') {
+  if (persistSession) {
+    if (isEnvTruthy('CLAUDE_CODE_EAGER_FLUSH') || isEnvTruthy('CLAUDE_CODE_IS_COWORK')) {
+      await flushSessionStorage()
+    }
+  }
+  yield {
+    type: 'result',
+    subtype: 'error_max_turns',
+    is_error: true,
+    num_turns: attachment.turnCount as number,
+    stop_reason: lastStopReason,
+    errors: [`Reached maximum number of turns (${attachment.maxTurns})`],
+    ...
+  }
+  return
+}
+```
+
+> **`max_turns` 终局**：`query()` 内部检测到超过 `maxTurns`，yield `max_turns_reached` attachment。`submitMessage` 收到后立即 **yield `error_max_turns` result 并 `return`**——不再继续循环。
+
+### 5.3 queued_command：replay user
+
+```typescript
+else if (replayUserMessages && attachment.type === 'queued_command') {
+  yield {
+    type: 'user',
+    message: { role: 'user', content: attachment.prompt },
+    session_id: getSessionId(),
+    parent_tool_use_id: null,
+    uuid: attachment.source_uuid || msg.uuid,
+    timestamp: msg.timestamp,
+    isReplay: true,
+  } as unknown as SDKUserMessageReplay
+}
+```
+
+> **`queued_command`**：排队的 autonomy 命令（如 `/schedule` 创建的定时任务）在轮次间被认领后，作为 `user` 消息 replay 给 SDK。
+
+---
+
+## 六、system：snipReplay / compact_boundary / api_error
+
+### 6.1 snipReplay：重放（收缩 mutableMessages）
+
+```typescript
+const snipResult = this.config.snipReplay?.(msg, this.mutableMessages)
+if (snipResult !== undefined) {
+  if (snipResult.executed) {
+    this.mutableMessages.length = 0
+    this.mutableMessages.push(...snipResult.messages)
+  }
+  break
+}
+```
+
+> **`snipReplay`**（`[1]` / `[11]`）：在 `HISTORY_SNIP` 启用时由 `ask()` 注入。它判断 `msg` 是否为 snip 边界；是则重放并返回裁剪后的消息。**`snipResult.executed` 为 `true` 时，清空并替换 `mutableMessages`**——收缩内存占用。
+
+### 6.2 compact_boundary：yield SDK 边界 + **splice 释放 GC**
+
+```typescript
+if (msg.subtype === 'compact_boundary' && msg.compactMetadata) {
+  const compactMsg = msg as SystemCompactBoundaryMessage
+  const mutableBoundaryIdx = this.mutableMessages.length - 1
+  if (mutableBoundaryIdx > 0) {
+    this.mutableMessages.splice(0, mutableBoundaryIdx)
+  }
+  const localBoundaryIdx = messages.length - 1
+  if (localBoundaryIdx > 0) {
+    messages.splice(0, localBoundaryIdx)
+  }
+
+  yield {
+    type: 'system',
+    subtype: 'compact_boundary',
+    compact_metadata: toSDKCompactMetadata(compactMsg.compactMetadata),
+    ...
+  }
+}
+```
+
+> **为何 `splice` 释放 GC**：`query.ts` 内部已使用 `getMessagesAfterCompactBoundary()` 只取边界之后的消息，QueryEngine 的 `mutableMessages` 需要同步裁剪——**释放压缩前的历史，让 GC 回收**（内存治理暗线，`[0]` 第六节）。
+
+### 6.3 api_error：yield api_retry
+
+```typescript
+if (msg.subtype === 'api_error') {
+  const apiErrorMsg = msg as Message & { ... }
+  yield {
+    type: 'system',
+    subtype: 'api_retry',
+    attempt: apiErrorMsg.retryAttempt,
+    max_retries: apiErrorMsg.maxRetries,
+    retry_delay_ms: apiErrorMsg.retryInMs,
+    error_status: apiErrorMsg.error.status ?? null,
+    error: categorizeRetryableAPIError(apiErrorMsg.error),
+    ...
+  }
+}
+```
+
+> **`api_error`**：`query.ts` 在 API 调用失败且重试时 yield 的消息。`submitMessage` 把它转成 SDK 的 `api_retry` 通知，让 UI 显示重试状态。
+
+---
+
+## 七、tool_use_summary：yield SDK 摘要
+
+```typescript
+case 'tool_use_summary': {
+  const msg = message as Message & { summary: unknown; precedingToolUseIds: unknown }
+  yield {
+    type: 'tool_use_summary',
+    summary: msg.summary,
+    preceding_tool_use_ids: msg.precedingToolUseIds,
+    session_id: getSessionId(),
+    uuid: msg.uuid,
+  }
+  break
+}
+```
+
+> **`tool_use_summary`**：工具调用的 haiku 摘要（如 "Called 3 tools: WebSearch, WebFetch, Bash"）。SDK 用它显示工具使用概况。
+
+---
+
+## 速记口诀
+
+- **tombstone**：跳过（删除信号）。
+- **assistant**：捕获 `stop_reason`、push `mutableMessages`、`yield* normalizeMessage`。
+- **progress/user/attachment**：push + **内联 recordTranscript**（防链分叉孤儿化）+ `yield* normalizeMessage`。
+- **stream_event**：`message_start` 重置 + 初始化、`message_delta` 累计 + 捕获真实 `stop_reason`、`message_stop` 累计到 `totalUsage` + 推 `_usageSink`。
+- **attachment 三类**：`structured_output` 提取数据、`max_turns_reached` → yield `error_max_turns` + `return`、`queued_command` → replay user。
+- **system 三类**：`snipReplay` 重放（收缩 `mutableMessages`）、`compact_boundary` → yield SDK 边界 + **splice 释放 GC**、`api_error` → yield `api_retry`。
+- **`tool_use_summary`**：yield SDK 摘要消息。

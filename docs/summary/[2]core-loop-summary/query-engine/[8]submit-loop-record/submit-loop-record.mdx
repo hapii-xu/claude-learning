@@ -1,0 +1,188 @@
+---
+title: "[8] 进入循环：fileHistory 快照 + 状态初始化 + for-await query + transcript 记录"
+description: submitMessage 第六阶段（进入 query 循环）——fileHistoryEnabled 时对可选 user 消息 fileHistoryMakeSnapshot、循环前状态初始化（currentMessageUsage/turnCount/hasAcknowledgedInitialMessages/structuredOutputFromTool/lastStopReason/errorLogWatermark/initialStructuredOutputCalls）、for-await query() 入口（传 messages/systemPrompt/userContext/systemContext/wrappedCanUseTool/toolUseContext/fallbackModel/querySource='sdk'/maxTurns/taskBudget）、transcript 记录策略（compact_boundary 前先 flush 到 preservedSegment.tailUuid；assistant 用 fire-and-forget 不阻塞 generator；enqueueWrite 保序）、初始消息 ack（首次 transcript 后 yield messagesToAck isReplay: true）（src/QueryEngine.ts:813-945）。
+---
+
+# [8] 进入循环：fileHistory 快照 + 状态初始化 + for-await query
+
+> 本节覆盖 `813-945`——`submitMessage` 的第六阶段：**真正进入 `query()` 循环**之前的准备、以及循环内的**transcript 记录策略**。这是 `submitMessage` 最复杂的部分：循环状态初始化、循环入口、消息记录分支、初始消息确认。
+
+---
+
+## 一、fileHistory 快照
+
+```typescript
+if (fileHistoryEnabled() && persistSession) {
+  const _sel = messageSelector()
+  const _filter = _sel?.selectableUserMessagesFilter ?? ((_msg: unknown) => true)
+  messagesFromUserInput.filter(_filter).forEach(message => {
+    void fileHistoryMakeSnapshot(
+      (updater: (prev: FileHistoryState) => FileHistoryState) => {
+        setAppState(prev => ({
+          ...prev,
+          fileHistory: updater(prev.fileHistory),
+        }))
+      },
+      message.uuid,
+    )
+  })
+}
+```
+
+> **`fileHistory`**：文件变更快照机制，用于 **undo/diff** 功能。每条**可选的** user 消息（通过 `selectableUserMessagesFilter`）都会触发一次快照——记录该消息对应的文件状态，后续可以回滚到这一点。
+
+- **`void fileHistoryMakeSnapshot`**：快照是异步的，但这里不 await——不阻塞主流程。
+- **`setAppState` 投影**：快照结果更新 `AppState.fileHistory`（持久化在 AppState，不进 mutableMessages）。
+
+---
+
+## 二、循环前状态初始化
+
+```typescript
+let currentMessageUsage: NonNullableUsage = EMPTY_USAGE
+let turnCount = 1
+let hasAcknowledgedInitialMessages = false
+let structuredOutputFromTool: unknown
+let lastStopReason: string | null = null
+const errorLogWatermark = getInMemoryErrors().at(-1)
+const initialStructuredOutputCalls = jsonSchema
+  ? countToolCalls(this.mutableMessages, SYNTHETIC_OUTPUT_TOOL_NAME)
+  : 0
+```
+
+| 变量 | 作用 | 生命周期 |
+|---|---|---|
+| `currentMessageUsage` | **当前消息**的用量（每个 `message_start` 重置） | 每轮更新 |
+| `turnCount` | 当前轮次计数（`user` 消息时 `++`） | 每轮更新 |
+| `hasAcknowledgedInitialMessages` | 是否已确认初始用户消息（只执行一次 ack） | 一次性标志 |
+| `structuredOutputFromTool` | 从 `StructuredOutput` 工具调用提取的结构化输出 | 最终放入 `result.structured_output` |
+| `lastStopReason` | 最近一次 `stop_reason`（从 `message_delta` 捕获） | 每轮更新 |
+| `errorLogWatermark` | **本轮前的**最后一条 in-memory error（按引用的水位线） | 进循环前固定 |
+| `initialStructuredOutputCalls` | 本轮前的结构化输出调用计数（守卫上限用） | 进循环前固定 |
+
+### errorLogWatermark：基于引用的水位线
+
+```typescript
+const errorLogWatermark = getInMemoryErrors().at(-1)
+```
+
+> **为什么不用长度索引**：`getInMemoryErrors()` 是一个**环形缓冲区**（100 条），当满了会 `shift()` 掉旧元素——长度索引会漂移。用**引用**作水位线最稳：找不到返回 `-1`，则从 `0` 开始收集全部（安全兜底）。后续在 `[10]` 的 `error_during_execution` 中用它来按轮次作用域 `errors[]`。
+
+---
+
+## 三、⭐ for-await query() 入口
+
+```typescript
+for await (const message of query({
+  messages,
+  systemPrompt,
+  userContext,
+  systemContext,
+  canUseTool: wrappedCanUseTool,
+  toolUseContext: processUserInputContext,
+  fallbackModel,
+  querySource: 'sdk',
+  maxTurns,
+  taskBudget,
+})) {
+  // [9] switch(message.type) 处理
+}
+```
+
+### 传入的参数
+
+| 参数 | 值 |
+|---|---|
+| `messages` | `[...this.mutableMessages]` 快照副本 |
+| `systemPrompt` | `[4]` 组装的完整系统提示 |
+| `userContext` | `[4]` 合并了 coordinator 的 userContext |
+| `systemContext` | `fetchSystemPromptParts` 返回的 systemContext |
+| `canUseTool` | `wrappedCanUseTool`（`[3]` 权限拒绝追踪包装） |
+| `toolUseContext` | 第二次重建的 `processUserInputContext`（`[6]`） |
+| `fallbackModel` | 降级模型（config 传入） |
+| `querySource` | `'sdk'`（标记 headless/SDK 路径） |
+| `maxTurns` | 最大轮次限制 |
+| `taskBudget` | 任务预算（可选） |
+
+> **`querySource: 'sdk'`**：内部用于区分调用来源（vs `'repl'`），影响权限提示、错误处理等行为。
+
+---
+
+## 四、⭐ transcript 记录策略
+
+### 4.1 compact_boundary 前先 flush（防 relink 失败）
+
+```typescript
+if (
+  message.type === 'assistant' ||
+  message.type === 'user' ||
+  (message.type === 'system' && message.subtype === 'compact_boundary')
+) {
+  if (
+    persistSession &&
+    message.type === 'system' &&
+    message.subtype === 'compact_boundary'
+  ) {
+    const compactMsg = message as SystemCompactBoundaryMessage
+    const tailUuid = compactMsg.compactMetadata?.preservedSegment?.tailUuid
+    if (tailUuid) {
+      const tailIdx = this.mutableMessages.findLastIndex(m => m.uuid === tailUuid)
+      if (tailIdx !== -1) {
+        await recordTranscript(this.mutableMessages.slice(0, tailIdx + 1))
+      }
+    }
+  }
+  messages.push(message as Message)
+  if (persistSession) {
+    // assistant 用 fire-and-forget，其余 await
+    if (message.type === 'assistant') {
+      void recordTranscript(messages)
+    } else {
+      await recordTranscript(messages)
+    }
+  }
+}
+```
+
+| 消息类型 | 记录策略 |
+|---|---|
+| **compact_boundary** | **先 flush 到 `preservedSegment.tailUuid`**，再 push + await |
+| **assistant** | fire-and-forget `void recordTranscript(messages)` |
+| **user / 其它** | await `recordTranscript(messages)` |
+
+> **为何 compact_boundary 要先 flush**：SDK 子进程可能在轮次之间被杀（claude-desktop 杀 CLI）。如果不 flush，`tailUuid` 指向的消息从未写入磁盘 → 恢复时 `applyPreservedSegmentRelinks` 的 `tail→head` 遍历失败 → 直接返回不裁剪 → 恢复时加载完整的压缩前历史。flush 确保 `preservedSegment` 的尾部已经落盘，relink 能成功。
+
+> **为何 assistant 用 fire-and-forget**：`claude.ts` 每个内容块 yield 一个 assistant 消息，然后在 `message_delta` 时改写最后一个消息的 `usage/stop_reason`——依赖写入队列 100ms 的 lazy jsonStringify。如果在此处 `await`，会阻塞 `ask()` 的 generator，导致 `message_delta` 必须等所有块消费完才能执行；drain 定时器（从块 1 开始）会先到期。交互式 CC 不受影响（`useLogMessages.ts` 是 fire-and-forget）。`enqueueWrite` 保序使 fire-and-forget 安全。
+
+### 4.2 初始消息 ack
+
+```typescript
+if (!hasAcknowledgedInitialMessages && messagesToAck.length > 0) {
+  hasAcknowledgedInitialMessages = true
+  for (const msgToAck of messagesToAck) {
+    if (msgToAck.type === 'user') {
+      yield {
+        type: 'user',
+        message: msgToAck.message,
+        session_id: getSessionId(),
+        parent_tool_use_id: null,
+        uuid: msgToAck.uuid,
+        timestamp: msgToAck.timestamp,
+        isReplay: true,
+      } as unknown as SDKUserMessageReplay
+    }
+  }
+}
+```
+
+> **`messagesToAck`**：来自 `[6]` 的 `replayableMessages`（受 `replayUserMessages` 门控）。在**首次 transcript 记录后** yield 回去（`isReplay: true`），告诉 SDK「这些消息已被接受」。只执行一次（`hasAcknowledgedInitialMessages` 守卫）。
+
+---
+
+## 速记口诀
+
+- **fileHistory 快照**：`fileHistoryEnabled` + `persistSession` → 对可选 user 消息 `void fileHistoryMakeSnapshot`（异步不阻塞）。
+- **循环前状态**：`currentMessageUsage` / `turnCount` / `lastStopReason` 每轮更新；`errorLogWatermark`（基于引用）+ `initialStructuredOutputCalls` 进循环前固定。
+- **for-await query 入口**：传 messages 快照 / systemPrompt / userContext / wrappedCanUseTool / toolUseContext / fallbackModel / querySource='sdk' / maxTurns / taskBudget。
+- **transcript 策略**：compact_boundary **先 flush** 到 `tailUuid`（防 relink 失败）；assistant **fire-and-forget**（不阻塞 generator）；其余 await。
+- **初始消息 ack**：首次 transcript 记录后 yield `messagesToAck`（`isReplay: true`），只执行一次。

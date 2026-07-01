@@ -1,0 +1,112 @@
+---
+title: "[1] 模块级常量与前台 529 重试白名单"
+description: withRetry 文件头部的四个调参常量（DEFAULT_MAX_RETRIES / FLOOR_OUTPUT_TOKENS / MAX_529_RETRIES / BASE_DELAY_MS），以及决定"哪些请求在 529 过载时才值得重试"的前台白名单 FOREGROUND_529_RETRY_SOURCES 与 shouldRetry529——核心思想是容量级联期间，后台 source（摘要/标题/分类器）立即放弃以避免 3-10× 网关放大（src/services/api/withRetry.ts:50-88）。
+---
+
+# [1] 模块级常量与前台 529 重试白名单
+
+> 本节是 `withRetry` 的"配置层"。先认识四个贯穿全文的调参常量，再重点理解一个关键设计决策：**为什么不是所有请求都该在 529 过载时重试**——前台白名单 `FOREGROUND_529_RETRY_SOURCES` 就是这个问题的答案（`withRetry.ts:50-88`）。
+
+---
+
+## 一、四个模块常量
+
+```typescript
+const DEFAULT_MAX_RETRIES = 10       // 默认重试上限
+const FLOOR_OUTPUT_TOKENS = 3000     // max_tokens 溢出调参时的输出下限
+const MAX_529_RETRIES = 3            // 连续 529 多少次后触发模型 fallback
+export const BASE_DELAY_MS = 500     // 指数退避的基数
+```
+
+| 常量 | 值 | 服务于哪条路径 | 详见 |
+|---|---|---|---|
+| `DEFAULT_MAX_RETRIES` | 10 | `getMaxRetries` 的兜底值，决定 for 循环上界 | `[3]` `[10]` |
+| `FLOOR_OUTPUT_TOKENS` | 3000 | max_tokens 上下文溢出时，可用空间低于它就放弃 | `[7]` |
+| `MAX_529_RETRIES` | 3 | 连续 529 达到它 → `FallbackTriggeredError` 切模型 | `[6]` |
+| `BASE_DELAY_MS` | 500 | `getRetryDelay` 指数退避 `500 × 2^(attempt-1)` 的基数 | `[8]` `[9]` |
+
+> `BASE_DELAY_MS` 是唯一 `export` 的常量——测试要断言退避序列（500 / 1000 / 2000…），需要引用它。
+
+---
+
+## 二、⭐ 前台 529 重试白名单
+
+### 2.1 一个反直觉的决策：不是所有 529 都该重试
+
+429（限流）几乎总该重试，但 **529（服务过载）不同**。529 意味着 Anthropic 后端正在容量级联——此时**每一次重试都在给已经过载的网关加压**。源码注释把这个放大效应说得很直白：
+
+```typescript
+// 用户会阻塞等待结果的前台 query source —— 这些会在 529 时重试。
+// 其他所有 source（摘要、标题、建议、分类器）都会立即放弃：在容量级联期间，
+// 每次重试都会带来 3-10× 的网关放大，而用户根本看不到这些失败。新增的
+// source 默认不重试 —— 仅当用户在等待结果时才加到这里。
+```
+
+> **关键判断标准**：用户是否正阻塞等待这个结果？是 → 重试值得；否 → 放弃，省下的容量留给真正有人看的请求。
+
+### 2.2 白名单成员
+
+```typescript
+const FOREGROUND_529_RETRY_SOURCES = new Set<QuerySource>([
+  'repl_main_thread',                          // REPL 主对话
+  'repl_main_thread:outputStyle:custom',
+  'repl_main_thread:outputStyle:Explanatory',
+  'repl_main_thread:outputStyle:Learning',
+  'sdk',                                        // SDK 调用
+  'agent:custom', 'agent:default', 'agent:builtin',  // 子 agent
+  'compact',                                    // 压缩（用户在等压缩完成）
+  'hook_agent', 'hook_prompt',                  // hook 触发的查询
+  'verification_agent',                         // 验证 agent
+  'side_question',                              // 旁路提问
+  'auto_mode',                                  // 安全分类器（auto-mode 正确性依赖它）
+  ...(feature('BASH_CLASSIFIER') ? (['bash_classifier'] as const) : []),
+])
+```
+
+| 类别 | 成员 | 为何前台 |
+|---|---|---|
+| 主对话 | `repl_main_thread*` / `sdk` | 用户直接在等回答 |
+| 子 agent | `agent:custom/default/builtin` | agent 结果是用户任务的一部分 |
+| 压缩 / 验证 | `compact` / `verification_agent` / `side_question` | 阻塞主流程，用户在等 |
+| Hook | `hook_agent` / `hook_prompt` | hook 输出影响后续行为 |
+| 安全分类器 | `auto_mode` / `bash_classifier` | **必须完成**才能保证 auto-mode 正确性 |
+
+> **几个易错点**（源码注释特别澄清）：
+> - 安全分类器 `yoloClassifier.ts` 用的是 `'auto_mode'`，**不是** `'yolo_classifier'`（后者只是类型用）。
+> - `bash_classifier` 仅 ant 可用，用 `feature('BASH_CLASSIFIER')` 门控，让该字符串能从外部构建里被 tree-shake（写在 `excluded-strings.txt`）。
+
+### 2.3 哪些是"后台"被放弃的？
+
+不在白名单里的 source——**摘要、标题生成、prompt 建议、各种分类器**——在 529 时**立即抛 `CannotRetryError`**（见 `[6]`）。它们的失败用户根本看不到，没必要为它们放大网关压力。
+
+---
+
+## 三、判定函数 `shouldRetry529`
+
+```typescript
+function shouldRetry529(querySource: QuerySource | undefined): boolean {
+  // undefined → 重试（对未打标的调用路径采取保守策略）
+  return (
+    querySource === undefined || FOREGROUND_529_RETRY_SOURCES.has(querySource)
+  )
+}
+```
+
+| 输入 | 返回 | 含义 |
+|---|---|---|
+| `undefined`（未打标） | `true` | **保守**：拿不准就重试，宁可多放大也别误伤前台 |
+| 白名单内 | `true` | 前台请求，重试 |
+| 其他（后台） | `false` | 立即放弃 |
+
+> **为什么 `undefined → 重试**：调用方没传 `querySource` 时无法判断前后台，保守策略是当成前台对待。代价是偶尔多重试一次，但不会误杀用户在等的请求。
+
+这个函数在 `[6]` 的 529 处理里被调用：`is529Error(error) && !shouldRetry529(options.querySource)` → 后台 drop。
+
+---
+
+## 速记口诀
+
+- **四常量**：MAX_RETRIES=10 · FLOOR=3000 · MAX_529=3 · BASE_DELAY=500（唯一 export）。
+- **白名单本质**：用户在阻塞等待 = 前台 = 529 时重试；后台（摘要/标题/分类器）= 立即放弃。
+- **为什么**：529 容量级联期，每次重试 3-10× 网关放大，后台失败用户看不到。
+- **shouldRetry529**：白名单内 或 undefined → 重试；其余 → drop。

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>catch 入口与 Fast mode 降级三分支 — withRetry 缓存保护</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* Code */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* Callout */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* Tables */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* Flow card */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* Card grid */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* Arch layers */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* Mode cards */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* Mermaid placeholder box */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-badge">核心循环 · 重试引擎 · 第 5 节</div>
+  <h1>catch 入口与 <span>Fast mode 降级三分支</span></h1>
+  <p class="hero-sub">
+    <strong>catch 块的第一段</strong> —— lastError 记录 + 调试日志，以及 Fast mode 命中 429/529 时的降级三分支：overage 永久关闭、短 retry-after 同模型重试保缓存、长 retry-after 冷却切标速；外加 API 拒绝 fast mode 参数的永久关闭。persistent 模式全跳过。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>withRetry.ts:252–311</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>暗线 C · Fast mode</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>3 + 1 分支</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>保 prompt 缓存</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、catch 入口</a></li>
+    <li><a href="#sec-2">二、429/529 三分支</a></li>
+    <li><a href="#sec-3">三、API 拒绝参数</a></li>
+    <li><a href="#sec-4">四、决策图</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<section id="sec-1">
+  <h2>一、catch 入口</h2>
+<pre><code>} <span class="k">catch</span> (<span class="n">error</span>) {
+  <span class="n">lastError</span> <span class="p">=</span> <span class="n">error</span>
+  <span class="n">logForDebugging</span>(
+    <span class="s">`API error (attempt ${attempt}/${maxRetries + 1}): ${</span>
+      <span class="n">error</span> <span class="k">instanceof</span> <span class="t">APIError</span> ? <span class="s">`${error.status} ${error.message}`</span> : <span class="n">errorMessage</span>(<span class="n">error</span>)
+    <span class="s">}`</span>,
+    { <span class="n">level</span><span class="p">:</span> <span class="s">'error'</span> },
+  )</code></pre>
+  <p>两件事：把 <code>error</code> 存进 <code>lastError</code>（供下一轮的 client 重建判断、循环耗尽兜底），再打一条 debug 日志（APIError 显示 <code>status + message</code>，其他显示通用错误消息）。</p>
+</section>
+
+<section id="sec-2">
+  <h2>二、⭐ Fast mode 命中 429/529 的降级三分支</h2>
+<pre><code><span class="k">if</span> (
+  <span class="n">wasFastModeActive</span> <span class="p">&amp;&amp;</span>
+  !<span class="n">isPersistentRetryEnabled</span>() <span class="p">&amp;&amp;</span>
+  <span class="n">error</span> <span class="k">instanceof</span> <span class="t">APIError</span> <span class="p">&amp;&amp;</span>
+  (<span class="n">error</span>.<span class="n">status</span> <span class="p">===</span> <span class="num">429</span> <span class="p">||</span> <span class="n">is529Error</span>(<span class="n">error</span>))
+) {
+  <span class="c">// … 三分支</span>
+}</code></pre>
+  <p>进入条件：<strong>这次请求是 fast mode 发的</strong>（<code>wasFastModeActive</code>，见 <code>[4]</code> 的快照）+ <strong>非 persistent</strong> + 429/529。</p>
+  <div class="callout purple">
+    <strong>为什么 persistent 跳过（源码注释）：</strong>persistent 模式想要的是分块 keep-alive 路径（<code>[8]</code>），而不是 fast mode 的缓存保护。而且 fast mode 的短重试分支用 <code>continue</code> 会绕过 attempt 夹断逻辑，导致 for 循环提前终止——所以 persistent 必须跳过整个 fast mode 块。
+  </div>
+
+  <h3>分支 1：overage 不可用 → 永久关闭</h3>
+<pre><code><span class="k">const</span> <span class="n">overageReason</span> <span class="p">=</span> <span class="n">error</span>.<span class="n">headers</span>?.<span class="n">get</span>(<span class="s">'anthropic-ratelimit-unified-overage-disabled-reason'</span>)
+<span class="k">if</span> (<span class="n">overageReason</span> !== <span class="k">null</span> <span class="p">&amp;&amp;</span> <span class="n">overageReason</span> !== <span class="k">undefined</span>) {
+  <span class="n">handleFastModeOverageRejection</span>(<span class="n">overageReason</span>)
+  <span class="n">retryContext</span>.<span class="n">fastMode</span> <span class="p">=</span> <span class="k">false</span>
+  <span class="k">continue</span>
+}</code></pre>
+  <p>如果 429 明确是因为 <strong>extra usage（overage）不可用</strong>（响应头带原因），fast mode 没法继续——<code>handleFastModeOverageRejection</code> 永久禁用 + 写 <code>retryContext.fastMode = false</code> + <code>continue</code> 立即用标准速度重试。</p>
+
+  <h3>分支 2：短 retry-after → 同模型 sleep 重试（保缓存）</h3>
+<pre><code><span class="k">const</span> <span class="n">retryAfterMs</span> <span class="p">=</span> <span class="n">getRetryAfterMs</span>(<span class="n">error</span>)
+<span class="k">if</span> (<span class="n">retryAfterMs</span> !== <span class="k">null</span> <span class="p">&amp;&amp;</span> <span class="n">retryAfterMs</span> <span class="p">&lt;</span> <span class="n">SHORT_RETRY_THRESHOLD_MS</span>) {
+  <span class="c">// 短 retry-after：等待并在 fast mode 仍激活的情况下重试，</span>
+  <span class="c">// 以保留 prompt 缓存（重试时使用同一个模型名）。</span>
+  <span class="k">await</span> <span class="n">sleep</span>(<span class="n">retryAfterMs</span>, <span class="n">options</span>.<span class="n">signal</span>, { <span class="n">abortError</span> })
+  <span class="k">continue</span>
+}</code></pre>
+  <p><code>SHORT_RETRY_THRESHOLD_MS = 20 秒</code>。retry-after 短（&lt; 20s），值得等——<strong>不切模型</strong>，sleep 后用同一个 fast mode 模型名重试。</p>
+  <div class="callout green">
+    <strong>暗线 E（缓存）在这里：</strong>fast mode 和标准速度是<strong>不同模型名</strong>，切换会让 prompt 缓存键变化、缓存失效。等待短就忍一下用同模型，保住缓存。
+  </div>
+
+  <h3>分支 3：长/未知 retry-after → 冷却切标准速度</h3>
+<pre><code><span class="k">const</span> <span class="n">cooldownMs</span> <span class="p">=</span> <span class="t">Math</span>.<span class="n">max</span>(
+  <span class="n">retryAfterMs</span> ?? <span class="n">DEFAULT_FAST_MODE_FALLBACK_HOLD_MS</span>,
+  <span class="n">MIN_COOLDOWN_MS</span>,
+)
+<span class="k">const</span> <span class="n">cooldownReason</span><span class="p">:</span> <span class="t">CooldownReason</span> <span class="p">=</span> <span class="n">is529Error</span>(<span class="n">error</span>) ? <span class="s">'overloaded'</span> : <span class="s">'rate_limit'</span>
+<span class="n">triggerFastModeCooldown</span>(<span class="t">Date</span>.<span class="n">now</span>() <span class="p">+</span> <span class="n">cooldownMs</span>, <span class="n">cooldownReason</span>)
+<span class="k">if</span> (<span class="n">isFastModeEnabled</span>()) {
+  <span class="n">retryContext</span>.<span class="n">fastMode</span> <span class="p">=</span> <span class="k">false</span>
+}
+<span class="k">continue</span></code></pre>
+  <p>retry-after 长或未知：不值得用 fast mode 死等——进入<strong>冷却</strong>（切到标准速度模型）。</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>常量</th><th>值</th><th>作用</th></tr>
+      <tr><td><code>DEFAULT_FAST_MODE_FALLBACK_HOLD_MS</code></td><td>30 分钟</td><td>retry-after 未知时的默认冷却时长</td></tr>
+      <tr><td><code>MIN_COOLDOWN_MS</code></td><td>10 分钟</td><td>冷却下限，防止来回切换抖动</td></tr>
+    </table>
+  </div>
+  <p><code>cooldownReason</code> 按 529（<code>overloaded</code>）/ 429（<code>rate_limit</code>）区分，供 fast mode 模块记录。<code>continue</code> 后下一轮就用标准速度模型。</p>
+</section>
+
+<section id="sec-3">
+  <h2>三、分支 4：API 拒绝 fast mode 参数 → 永久关闭</h2>
+<pre><code><span class="k">if</span> (<span class="n">wasFastModeActive</span> <span class="p">&amp;&amp;</span> <span class="n">isFastModeNotEnabledError</span>(<span class="n">error</span>)) {
+  <span class="n">handleFastModeRejectedByAPI</span>()
+  <span class="n">retryContext</span>.<span class="n">fastMode</span> <span class="p">=</span> <span class="k">false</span>
+  <span class="k">continue</span>
+}</code></pre>
+  <p>与前三分支并列的第四种情况：API 返回 400 "Fast mode is not enabled"（例如 org 根本没启用 fast mode）。这不是容量问题，而是<strong>配置问题</strong>——<code>handleFastModeRejectedByAPI</code> 永久禁用，标准速度重试。</p>
+  <div class="callout">
+    <code>isFastModeNotEnabledError</code> 靠字符串匹配错误消息判断（见 <code>[9]</code>），源码标了 TODO：将来 API 加专用响应头后改用头判断，字符串匹配太脆。
+  </div>
+</section>
+
+<section id="sec-4">
+  <h2>四、三分支决策图</h2>
+  <div class="mermaid-box">fast mode 命中 429/529 且非 persistent
+   │
+   ├─ overage 头存在?  ──是──→ 分支1：永久关 fast mode · continue
+   │                   └否
+   │
+   ├─ retry-after &lt; 20s?  ──是──→ 分支2：sleep + 同模型重试（保缓存）· continue
+   │                      └否/未知
+   │
+   └──────────────────────────→ 分支3：冷却切标速（下限 10min）· continue
+
+另：API 返回 "Fast mode is not enabled"  ──→ 分支4：永久关（配置问题）· continue</div>
+</section>
+
+<section id="sec-5">
+  <h2>五、速记口诀</h2>
+  <ul>
+    <li><strong>进入条件</strong>：wasFastModeActive + 非 persistent + 429/529。</li>
+    <li><strong>分支1 overage 不可用</strong> → 永久关 fast mode。</li>
+    <li><strong>分支2 短 retry-after(&lt;20s)</strong> → sleep + 同模型重试（保缓存）。</li>
+    <li><strong>分支3 长/未知 retry-after</strong> → 冷却切标速（下限 10min 防抖动）。</li>
+    <li><strong>分支4 API 拒绝 fast mode 参数</strong> → 永久关（配置问题，非容量）。</li>
+    <li><strong>四分支都 continue</strong>：不走退避，立即用调整后状态重试。</li>
+    <li><strong>persistent 全跳过</strong>：它要 keep-alive 分块路径，且短重试 continue 会破坏 attempt 夹断。</li>
+  </ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

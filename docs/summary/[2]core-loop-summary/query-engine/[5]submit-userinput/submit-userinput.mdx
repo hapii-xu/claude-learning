@@ -1,0 +1,139 @@
+---
+title: "[5] 输入处理：processUserInput 分发 + orphaned 权限 + 消息推送"
+description: submitMessage 第三阶段——第一次构建 processUserInputContext（含 setMessages 回写、handleElicitation、fileHistory/attribution 投影器）、处理孤立权限 orphanedPermission（每 engine 生命周期只一次）、调用 processUserInput 分发 slash 命令或把用户输入转成 messages、把新消息 push 到 mutableMessages（src/QueryEngine.ts:467-575）。
+---
+
+# [5] 输入处理：processUserInput 分发 + orphaned 权限 + 消息推送
+
+> 本节覆盖 `467-575`——`submitMessage` 的第三阶段：把用户输入（`prompt`）通过 `processUserInput` 转成消息列表，并处理孤立权限请求。这是进入持久化（`[6]`）之前的关键步骤：**输入分发的终点**。
+
+---
+
+## 一、processUserInputContext：第一次构建（会修改 messages）
+
+```typescript
+let processUserInputContext: ProcessUserInputContext = {
+  messages: this.mutableMessages,
+  setMessages: fn => { this.mutableMessages = fn(this.mutableMessages) },
+  onChangeAPIKey: () => {},
+  handleElicitation: this.config.handleElicitation,
+  options: {
+    commands, debug: false, tools, verbose,
+    mainLoopModel: initialMainLoopModel,
+    thinkingConfig: initialThinkingConfig,
+    mcpClients, mcpResources: {},
+    ideInstallationStatus: null,
+    isNonInteractiveSession: true,
+    customSystemPrompt, appendSystemPrompt,
+    agentDefinitions: { activeAgents: agents, allAgents: [] },
+    theme: resolveThemeSetting(getGlobalConfig().theme),
+    maxBudgetUsd,
+  },
+  getAppState, setAppState,
+  abortController: this.abortController,
+  readFileState: this.readFileState,
+  nestedMemoryAttachmentTriggers: new Set<string>(),
+  loadedNestedMemoryPaths: this.loadedNestedMemoryPaths,
+  dynamicSkillDirTriggers: new Set<string>(),
+  discoveredSkillNames: this.discoveredSkillNames,
+  setInProgressToolUseIDs: () => {},
+  setResponseLength: () => {},
+  updateFileHistoryState: (prev: FileHistoryState) => FileHistoryState) => { /* setAppState 投影 */ },
+  updateAttributionState: (prev: AttributionState) => AttributionState) => { /* setAppState 投影 */ },
+  setSDKStatus,
+}
+```
+
+> **为什么叫 `processUserInputContext`**：它传给 `processUserInput`（`src/utils/processUserInput/index.ts`），后者用这个上下文来执行 slash 命令、处理输入、可能修改消息列表。
+
+### 关键字段
+
+| 字段 | 作用 |
+|---|---|
+| `messages` + `setMessages` | **会修改消息数组**的 slash 命令（如 `/force-snip`）通过 `setMessages` 回写；print 模式写回 `mutableMessages`，交互模式写 `AppState` |
+| `handleElicitation` | 处理 MCP `-32042` 错误触发的 URL 询问（`config.handleElicitation`） |
+| `updateFileHistoryState` / `updateAttributionState` | 让 slash 命令能更新 fileHistory / attribution 状态 |
+
+> `setMessages` 在**交互模式下**会通过 `setAppState` 写 `AppState.messages`；在 **print 模式下**直接写 `this.mutableMessages`——让后续的 `push`（`[6]`）和 fileHistory 快照能看到变化。
+
+---
+
+## 二、handleOrphanedPermission：孤立权限处理（每 engine 一次）
+
+```typescript
+if (orphanedPermission && !this.hasHandledOrphanedPermission) {
+  this.hasHandledOrphanedPermission = true
+  for await (const message of handleOrphanedPermission(
+    orphanedPermission,
+    tools,
+    this.mutableMessages,
+    processUserInputContext,
+  )) {
+    yield message
+  }
+}
+```
+
+- **孤立权限**：前一轮中，用户对某个工具权限请求进行了操作（如 allow），但随后对话被中断/退出，权限结果没来得及写回状态。本轮启动时，`orphanedPermission` 携带这个「孤儿」请求。
+- **每 engine 一次**：`hasHandledOrphanedPermission` 守卫确保只处理一次——避免重复 yield 权限相关消息。
+- `handleOrphanedPermission` 的产出（消息）**立即 yield**，不进 `mutableMessages`（权限确认消息 UI 会特殊处理）。
+
+---
+
+## 三、⭐ processUserInput：分发输入
+
+```typescript
+const {
+  messages: messagesFromUserInput,
+  shouldQuery,
+  allowedTools,
+  model: modelFromUserInput,
+  resultText,
+} = await processUserInput({
+  input: prompt,
+  mode: 'prompt',
+  setToolJSX: () => {},
+  context: { ...processUserInputContext, messages: this.mutableMessages },
+  messages: this.mutableMessages,
+  uuid: options?.uuid,
+  isMeta: options?.isMeta,
+  querySource: 'sdk',
+})
+```
+
+`processUserInput` 是**分发中枢**：
+
+| 输入 | 输出 |
+|---|---|
+| slash 命令（`/help`、`/force-snip`） | `shouldQuery: false` + `messagesFromUserInput`（含命令输出） |
+| 普通文本 prompt | `shouldQuery: true` + `messagesFromUserInput`（转成 `user` 消息） |
+| 特殊命令（如 `/model` 切模型） | `modelFromUserInput` 覆盖初始模型 |
+
+- `allowedTools`：slash 命令可能更新「始终允许的工具列表」（如 `/allow bash`）。
+- `resultText`：本地命令的结果文本（`!shouldQuery` 短路路径会用，见 `[7]`）。
+
+> `querySource: 'sdk'` 标记这是 headless/SDK 路径的调用（vs REPL 的 `'repl'`），影响权限提示等行为。
+
+---
+
+## 四、push 新消息 + 快照
+
+```typescript
+this.mutableMessages.push(...messagesFromUserInput)
+const messages = [...this.mutableMessages]
+```
+
+- **`push` 到 `mutableMessages`**：这是本 engine 的**真理之源**（会话状态）。
+- **`messages = [...this.mutableMessages]`**：快照一份副本，后续传给 `query()`（`[8]`）——query 循环内 push 的消息会追加到这个副本，最终 `submitMessage` 结束时要把**副本的增量**同步回 `mutableMessages`（见 `[8]` 的 `messages.push(message)`）。
+
+> **为什么快照**：`query()` 内部会修改消息数组（如 push assistant/user/attachment）。如果直接传 `mutableMessages`，query 内的副作用会直接影响 engine 状态；快照后，engine 可以在 query 结束时**选择性同步**（如 [8] 中 `messages.push(message)` 走的是副本同步回去）。
+
+---
+
+## 速记口诀
+
+- **processUserInputContext（第一次）**：含 `setMessages` 回写（print 模式改 `mutableMessages`、交互模式改 `AppState`）、`handleElicitation`、投影器（fileHistory/attribution）。
+- **孤立权限**：`orphanedPermission` + `hasHandledOrphanedPermission` 守卫 → 每引擎一次，for-await yield。
+- **processUserInput 分发**：slash 命令 → `shouldQuery: false` + 本地输出；普通 prompt → `shouldQuery: true` + user 消息。
+- **push + 快照**：`mutableMessages.push(...)` + `messages = [...this.mutableMessages]`（副本）。
+- **`querySource: 'sdk'`**：headless/SDK 路径标记，影响权限行为。

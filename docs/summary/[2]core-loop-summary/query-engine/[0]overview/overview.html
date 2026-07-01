@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QueryEngine 总览与心智模型 — 会话级对话调度器深度学习</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 0 节</div>
+  <h1>QueryEngine <span>总览与心智模型</span></h1>
+  <p class="hero-sub">
+    <strong>会话级对话调度器</strong>完整拆解 —— 它在底层「单轮执行器」<code>query()</code> 之上，维护跨轮持久状态（消息历史 / 用量 / 权限拒绝 / 文件缓存），把每次 <code>query()</code> 的一轮产出累计成完整会话。核心方法 <code>submitMessage()</code> 约 1200 行，独占 [3]~[10] 八节。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>QueryEngine.ts:1-1695</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>四层调用链</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>submitMessage 6 阶段</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>5 种 result · 3 条暗线</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、四层调用链</a></li>
+    <li><a href="#sec-2">二、vs query()</a></li>
+    <li><a href="#sec-3">三、SDKMessage 流</a></li>
+    <li><a href="#sec-4">四、执行阶段地图</a></li>
+    <li><a href="#sec-5">五、result 全表</a></li>
+    <li><a href="#sec-6">六、三条暗线</a></li>
+    <li><a href="#sec-7">七、阅读建议</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、四层调用链 ════════════════ -->
+<section id="sec-1">
+  <h2>一、四层调用链：它在哪一层</h2>
+  <p>从「一次性脚本调用」到「真正发请求」，纵向有四层，QueryEngine 居中：</p>
+  <div class="mermaid-box">ask()                  ← QueryEngine.ts:1545   一次性便捷入口（建临时 engine 跑一轮）
+   │  new QueryEngine(...) + yield* engine.submitMessage(...)
+   ▼
+QueryEngine            ← QueryEngine.ts:223     ★本系列主角：会话状态拥有者
+   │  submitMessage() 每轮调用
+   ▼
+submitMessage()        ← QueryEngine.ts:294     单次用户提交的执行器
+   │  for await (const m of query({...}))
+   ▼
+query() → queryLoop()  ← src/query.ts           while(true) 回合循环（调 API + 跑工具）</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>层</th><th>职责</th><th>位置</th></tr>
+      <tr><td><code>ask()</code></td><td>一次性封装：建临时 engine、注入 snipReplay、跑一轮、回写文件缓存</td><td><code>1545-1695</code></td></tr>
+      <tr><td><strong>QueryEngine 类</strong></td><td><strong>拥有会话状态：消息历史 / 用量 / 权限拒绝 / 文件缓存 / abort</strong></td><td><code>223-1543</code></td></tr>
+      <tr><td><strong>submitMessage()</strong></td><td><strong>单轮执行器：输入处理 → 系统提示 → query 循环 → result</strong></td><td><code>294-1470</code></td></tr>
+      <tr><td><code>query()</code> / <code>queryLoop()</code></td><td>回合循环：预处理 → 调 API → 跑工具 → 判终止</td><td><code>src/query.ts</code></td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>一句话定位：</strong>QueryEngine = query() 的「会话外壳」。<code>query()</code> 只懂「这一轮」；QueryEngine 把多轮串起来、记账、持久化，并对外暴露 SDK 友好的消息流。
+  </div>
+</section>
+
+<!-- ════════════════ 二、vs query() ════════════════ -->
+<section id="sec-2">
+  <h2>二、QueryEngine vs query()：分工</h2>
+  <p><code>query()</code> 是无状态的「单轮纯执行」：给它 messages，它 yield 这一轮的产出然后结束。<strong>跨轮要记住的东西</strong>全在 QueryEngine 的实例字段里：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>持久状态字段</th><th>作用</th><th>节</th></tr>
+      <tr><td><code>mutableMessages</code></td><td>完整对话历史，跨轮累计，compact 边界处会裁剪 GC</td><td>[2]</td></tr>
+      <tr><td><code>totalUsage</code></td><td>token 用量累计（每个 message_stop 累加）</td><td>[9]</td></tr>
+      <tr><td><code>permissionDenials</code></td><td>本轮被拒绝的工具调用，供 SDK result 报告</td><td>[3]</td></tr>
+      <tr><td><code>readFileState</code></td><td>文件读取缓存（Read 工具的 freshness 判定基础）</td><td>[2]</td></tr>
+      <tr><td><code>abortController</code></td><td>中断信号，供 <code>interrupt()</code> / ACP bridge 使用</td><td>[2]</td></tr>
+    </table>
+  </div>
+  <div class="callout blue">
+    <strong>类比：</strong><code>query()</code> 是「一局游戏」的裁判（吹哨、记这一局比分）；QueryEngine 是「整场比赛」的记分牌——累计总分、记录犯规、保存录像（transcript），并在每局之间把场地交接好。
+  </div>
+</section>
+
+<!-- ════════════════ 三、SDKMessage 流 ════════════════ -->
+<section id="sec-3">
+  <h2>三、submitMessage 是 SDK / headless 的生成器</h2>
+  <p><code>submitMessage()</code> 是 <code>async function*</code>，产出的是 <strong><code>SDKMessage</code></strong>（对外协议类型，不是内部 <code>Message</code>）。调用方（print.ts / SDK / RC）<code>for-await</code> 消费它来驱动输出或 UI：</p>
+<pre><code><span class="k">async</span> <span class="p">*</span><span class="n">submitMessage</span>(
+  <span class="n">prompt</span><span class="p">:</span> <span class="t">string</span> <span class="p">|</span> <span class="t">ContentBlockParam</span>[],
+  <span class="n">options</span><span class="p">?:</span> { <span class="n">uuid</span><span class="p">?:</span> <span class="t">string</span>; <span class="n">isMeta</span><span class="p">?:</span> <span class="t">boolean</span> },
+)<span class="p">:</span> <span class="t">AsyncGenerator</span>&lt;<span class="t">SDKMessage</span>, <span class="t">void</span>, <span class="t">unknown</span>&gt;</code></pre>
+  <p>它 yield 的 SDKMessage 主要类型：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>SDKMessage 类型</th><th>何时 yield</th></tr>
+      <tr><td><code>system</code>（init）</td><td>开头一次：<code>buildSystemInitMessage</code>（工具/模型/权限模式/skills/plugins 清单）</td></tr>
+      <tr><td><code>assistant</code> / <code>user</code></td><td>每轮模型回复 / 工具结果（经 <code>normalizeMessage</code>）</td></tr>
+      <tr><td><code>system</code>（compact_boundary / api_retry）</td><td>压缩边界 / API 重试通知</td></tr>
+      <tr><td><code>stream_event</code></td><td>仅 <code>includePartialMessages</code> 时：逐 token 的原始 SSE 事件</td></tr>
+      <tr><td><code>tool_use_summary</code></td><td>工具调用的 haiku 摘要</td></tr>
+      <tr><td><code>result</code></td><td><strong>最后一次</strong>：本轮终局（success 或各类 error）</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 四、执行阶段地图 ════════════════ -->
+<section id="sec-4">
+  <h2>四、⭐ submitMessage 执行阶段地图</h2>
+  <p>把 1200 行按执行顺序看成 <strong>6 个阶段</strong>，正好对应 [3]~[10]：</p>
+  <div class="mermaid-box">③ setup            294-396   解构 / 清理 / wrappedCanUseTool / 初始模型
+     │
+     ▼
+④ systemprompt     398-465   fetchSystemPromptParts / asSystemPrompt 三层拼接
+     │
+     ▼
+⑤ userinput        467-575   processUserInput 分发 / orphaned 权限 / push
+     │
+     ▼
+⑥ persist + ack    577-684   transcript 持久化 / replayable / 重建 context
+     │
+     ▼
+⑦ init + 短路      686-811   buildSystemInitMessage / !shouldQuery 本地命令短路
+     │
+     ▼
+⑧⑨⑩ query 循环    813-1470  record → switch(message.type) → guards → result</div>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>小节文件</th><th>主题</th><th>行号</th></tr>
+      <tr><td><code>[1]module-config</code></td><td>模块级设施 + <code>QueryEngineConfig</code> 类型</td><td>1-195</td></tr>
+      <tr><td><code>[2]class-constructor</code></td><td>类骨架：私有字段 + 构造 + 生命周期方法</td><td>197-274, 1472-1543</td></tr>
+      <tr><td><code>[3]submit-setup</code></td><td>解构 / 状态清理 / <code>wrappedCanUseTool</code> / 初始模型</td><td>294-396</td></tr>
+      <tr><td><code>[4]submit-systemprompt</code></td><td>系统提示三层拼接 + 结构化输出 hook</td><td>398-465</td></tr>
+      <tr><td><code>[5]submit-userinput</code></td><td><code>processUserInput</code> 分发 + orphaned 权限 + push</td><td>467-575</td></tr>
+      <tr><td><code>[6]submit-persist-ack</code></td><td>transcript 持久化 + replayable + 重建 context</td><td>577-684</td></tr>
+      <tr><td><code>[7]submit-init-shortcircuit</code></td><td>systemInit yield + <code>!shouldQuery</code> 本地命令短路</td><td>686-811</td></tr>
+      <tr><td><code>[8]submit-loop-record</code></td><td>进 query 循环 + transcript 记录策略 + ack</td><td>813-945</td></tr>
+      <tr><td><code>[9]submit-loop-switch</code></td><td><code>switch(message.type)</code> 全分支 + 用量累计</td><td>947-1231</td></tr>
+      <tr><td><code>[10]submit-guards-result</code></td><td>预算守卫 + 结果提取 + result yield</td><td>1233-1470</td></tr>
+      <tr><td><code>[11]ask-wrapper</code></td><td><code>ask()</code> 一次性封装</td><td>1545-1695</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 五、result 全表 ════════════════ -->
+<section id="sec-5">
+  <h2>五、result subtype 全表（终局信号）</h2>
+  <p><code>submitMessage</code> 最终一定 yield 一条 <code>type: 'result'</code>，<code>subtype</code> 表明本轮结局：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>subtype</th><th>is_error</th><th>触发点</th><th>errors[] 来源</th></tr>
+      <tr><td><code>success</code></td><td>false（除非 API 错误）</td><td>正常完成 / <code>!shouldQuery</code> 本地命令</td><td>—</td></tr>
+      <tr><td><code>error_max_turns</code></td><td>true</td><td>attachment <code>max_turns_reached</code></td><td>"Reached maximum number of turns"</td></tr>
+      <tr><td><code>error_max_budget_usd</code></td><td>true</td><td><code>getTotalCost() &gt;= maxBudgetUsd</code></td><td>"Reached maximum budget"</td></tr>
+      <tr><td><code>error_max_structured_output_retries</code></td><td>true</td><td>结构化输出调用数超上限</td><td>"Failed to provide valid structured output"</td></tr>
+      <tr><td><code>error_during_execution</code></td><td>true</td><td><code>!isResultSuccessful(...)</code></td><td>ede_diagnostic + 按轮次作用域的 errors</td></tr>
+    </table>
+  </div>
+  <div class="callout">
+    <strong>为什么按轮次作用域 errors[]：</strong><code>error_during_execution</code> 用 <code>errorLogWatermark</code>（进循环前快照的最后一条错误）作水位线，只收集本轮新增错误——否则会把整个进程的历史错误（ripgrep 超时、ENOENT…）全 dump 出来。详见 [8]、[10]。
+  </div>
+</section>
+
+<!-- ════════════════ 六、三条暗线 ════════════════ -->
+<section id="sec-6">
+  <h2>六、三条贯穿全文的暗线</h2>
+  <div class="card-grid">
+    <div class="card blue">
+      <div class="card-icon">🧵</div>
+      <div class="card-title">① 会话状态持久化</div>
+      <div class="card-body"><code>mutableMessages</code> 是真理之源，每轮 push assistant/user/progress/attachment；遇 compact_boundary 用 <code>splice(0, idx)</code> 把压缩前历史释放给 GC。（[9]）</div>
+    </div>
+    <div class="card green">
+      <div class="card-icon">💾</div>
+      <div class="card-title">② transcript 持久化策略</div>
+      <div class="card-body">用户消息在进循环前就写盘（保 <code>--resume</code>），assistant 用 fire-and-forget（不阻塞 generator 的 drain 定时器），compact 边界前先 flush 到 <code>preservedSegment.tailUuid</code>。（[6]、[8]）</div>
+    </div>
+    <div class="card orange">
+      <div class="card-icon">🧹</div>
+      <div class="card-title">③ 内存治理</div>
+      <div class="card-body"><code>discoveredSkillNames</code> 每次 submitMessage 开头清空（防 SDK 多轮无界增长）；snipReplay 重放后收缩 mutableMessages。（[2]/[3]、[9]/[11]）</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════ 七、阅读建议 ════════════════ -->
+<section id="sec-7">
+  <h2>七、阅读建议</h2>
+  <ol>
+    <li><strong>先读本文</strong>建立四层调用链 + 阶段地图 + result 全表。</li>
+    <li><strong>主干路线</strong>：<code>[3]→[4]→[5]→[8]→[9]→[10]</code>（一次正常对话从输入到结果的完整执行流）。</li>
+    <li><strong>补充路线</strong>：<code>[1]</code>（模块设施与 Config 契约）、<code>[2]</code>（类与生命周期方法）、<code>[6]</code>（持久化细节）、<code>[7]</code>（slash 命令短路）、<code>[11]</code>（ask 封装）。</li>
+    <li>本系列<strong>只讲 QueryEngine 这一层</strong>；循环内部的压缩家族、恢复家族、工具执行等，见姊妹系列 <code>query-ts/queryLoop/</code>。</li>
+  </ol>
+
+  <h3>速记口诀</h3>
+  <ul>
+    <li><strong>一句话</strong>：QueryEngine = query() 的会话外壳，记账 + 持久化 + 对外发 SDKMessage 流。</li>
+    <li><strong>四层链</strong>：<code>ask</code> → <code>QueryEngine</code> → <code>submitMessage</code> → <code>query/queryLoop</code>。</li>
+    <li><strong>六阶段</strong>：setup → systemprompt → userinput → persist/ack → init/短路 → query 循环。</li>
+    <li><strong>五 result</strong>：success · max_turns · max_budget_usd · max_structured_output_retries · during_execution。</li>
+    <li><strong>三暗线</strong>：会话状态持久化 · transcript 持久化（fire-and-forget vs await）· 内存治理。</li>
+  </ul>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

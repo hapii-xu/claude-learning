@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>类骨架：字段、构造与生命周期方法 — QueryEngine 深度学习 第2节</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 2 节</div>
+  <h1>类骨架 <span>字段、构造与生命周期方法</span></h1>
+  <p class="hero-sub">
+    QueryEngine 这个「状态容器」本身：7 个私有字段 + 2 个按轮次作用域的 Set，<code>constructor</code> 做字段初始化，以及一组对外的生命周期方法（<code>interrupt</code> / <code>resetAbortController</code> / <code>getMessages</code> / <code>setModel</code>…）。这些是 submitMessage 读写的「画布」。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>QueryEngine.ts:197-274</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>+ 1472-1543</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>9 个状态字段</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>7 个生命周期方法</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、类的定位</a></li>
+    <li><a href="#sec-2">二、私有字段</a></li>
+    <li><a href="#sec-3">三、constructor</a></li>
+    <li><a href="#sec-4">四、生命周期方法</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、类的定位 ════════════════ -->
+<section id="sec-1">
+  <h2>一、类的定位（文档注释解读）</h2>
+  <p>类头注释（<code>197-222</code>）点明三件事：</p>
+  <ul>
+    <li><strong>一对话一实例</strong>：每个对话对应一个 QueryEngine。</li>
+    <li><strong>每次 <code>submitMessage()</code> 开启一轮</strong>：状态（消息、文件缓存、用量等）<strong>跨轮次持久化</strong>。</li>
+    <li><strong>三方共用</strong>：headless / SDK 路径，以及（未来阶段）REPL。它把原先散在 <code>ask()</code> 里的核心逻辑抽成了独立类。</li>
+  </ul>
+  <div class="callout">
+    <strong>一句话：</strong>QueryEngine 拥有「查询生命周期 + 会话状态」，是 <code>query()</code> 之上的有状态外壳。
+  </div>
+</section>
+
+<!-- ════════════════ 二、私有字段 ════════════════ -->
+<section id="sec-2">
+  <h2>二、⭐ 私有字段：会话状态的全部</h2>
+<pre><code><span class="k">private</span> <span class="n">config</span><span class="p">:</span> <span class="t">QueryEngineConfig</span>
+<span class="k">private</span> <span class="n">mutableMessages</span><span class="p">:</span> <span class="t">Message</span>[]
+<span class="k">private</span> <span class="n">abortController</span><span class="p">:</span> <span class="t">AbortController</span>
+<span class="k">private</span> <span class="n">permissionDenials</span><span class="p">:</span> <span class="t">SDKPermissionDenial</span>[]
+<span class="k">private</span> <span class="n">totalUsage</span><span class="p">:</span> <span class="t">NonNullableUsage</span>
+<span class="k">private</span> <span class="n">hasHandledOrphanedPermission</span> <span class="p">=</span> <span class="k">false</span>
+<span class="k">private</span> <span class="n">readFileState</span><span class="p">:</span> <span class="t">FileStateCache</span>
+<span class="k">private</span> <span class="n">discoveredSkillNames</span> <span class="p">=</span> <span class="k">new</span> <span class="t">Set</span>&lt;<span class="t">string</span>&gt;()
+<span class="k">private</span> <span class="n">loadedNestedMemoryPaths</span> <span class="p">=</span> <span class="k">new</span> <span class="t">Set</span>&lt;<span class="t">string</span>&gt;()</code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>字段</th><th>生命周期</th><th>作用</th></tr>
+      <tr><td><code>config</code></td><td>整个 engine</td><td>构造入参，submitMessage 解构使用</td></tr>
+      <tr><td><code>mutableMessages</code></td><td>跨轮持久</td><td>完整对话历史（真理之源）</td></tr>
+      <tr><td><code>abortController</code></td><td>可重置</td><td>中断信号；interrupt/reset 操作它</td></tr>
+      <tr><td><code>permissionDenials</code></td><td><strong>每轮清空</strong></td><td>本轮被拒工具调用，供 result 报告</td></tr>
+      <tr><td><code>totalUsage</code></td><td>跨轮累计</td><td>token 用量总账</td></tr>
+      <tr><td><code>hasHandledOrphanedPermission</code></td><td>整个 engine</td><td>孤立权限只处理一次的守卫</td></tr>
+      <tr><td><code>readFileState</code></td><td>跨轮持久</td><td>文件读取缓存</td></tr>
+      <tr><td><code>discoveredSkillNames</code></td><td><strong>每轮清空</strong></td><td>技能发现追踪（<code>was_discovered</code> 埋点）</td></tr>
+      <tr><td><code>loadedNestedMemoryPaths</code></td><td>跨轮持久</td><td>已加载的嵌套 memory 路径去重</td></tr>
+    </table>
+  </div>
+
+  <h3>2.1 为什么 discoveredSkillNames 每轮清空</h3>
+  <p>它需在 <code>submitMessage</code> 内<strong>两次</strong> <code>processUserInputContext</code> 重建之间保持（[5]/[6] 复用同一 Set），但必须在每次 <code>submitMessage</code> 开头 <code>.clear()</code>。</p>
+  <div class="callout red">
+    <strong>原因：</strong>SDK 模式下一个 engine 会跑很多轮，如果不清空，发现集会跨轮<strong>无界增长</strong>——这是内存治理暗线在类字段层的体现。<code>loadedNestedMemoryPaths</code> 则是有意跨轮持久（已加载的 memory 不该重复加载）。
+  </div>
+</section>
+
+<!-- ════════════════ 三、constructor ════════════════ -->
+<section id="sec-3">
+  <h2>三、constructor：字段初始化</h2>
+  <p><code>238-274</code> 的 constructor 逻辑极简（去掉 <code>logForDebugging</code> 后）：</p>
+<pre><code><span class="k">this</span>.<span class="n">config</span> <span class="p">=</span> <span class="n">config</span>
+<span class="k">this</span>.<span class="n">mutableMessages</span> <span class="p">=</span> <span class="n">config</span>.<span class="n">initialMessages</span> <span class="p">??</span> []
+<span class="k">this</span>.<span class="n">abortController</span> <span class="p">=</span> <span class="n">config</span>.<span class="n">abortController</span> <span class="p">??</span> <span class="n">createAbortController</span>()
+<span class="k">this</span>.<span class="n">permissionDenials</span> <span class="p">=</span> []
+<span class="k">this</span>.<span class="n">readFileState</span> <span class="p">=</span> <span class="n">config</span>.<span class="n">readFileCache</span>
+<span class="k">this</span>.<span class="n">totalUsage</span> <span class="p">=</span> <span class="n">EMPTY_USAGE</span></code></pre>
+  <ul>
+    <li><code>mutableMessages</code> 从 <code>initialMessages</code> 接续（恢复会话）或空数组起步。</li>
+    <li><code>abortController</code> 优先用外部传入（让 ACP bridge / SDK 共享同一信号），否则自建。</li>
+    <li><code>totalUsage</code> 从 <code>EMPTY_USAGE</code> 起累计。</li>
+  </ul>
+  <div class="callout blue">
+    文件里大量 <code>logForDebugging('[Hapii] ...')</code> 是本仓库（decompiled 学习版）加的<strong>阶段追踪日志</strong>，不影响逻辑——阅读源码时把它们当作「分隔线」即可。
+  </div>
+</section>
+
+<!-- ════════════════ 四、生命周期方法 ════════════════ -->
+<section id="sec-4">
+  <h2>四、生命周期方法（1472-1543）</h2>
+  <p>submitMessage 之外，类对外暴露一组操作 abort 信号与状态的方法：</p>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>方法</th><th>作用</th><th>要点</th></tr>
+      <tr><td><code>interrupt()</code></td><td><code>this.abortController.abort()</code></td><td>中止当前查询（用户按 ESC / Stop）</td></tr>
+      <tr><td><code>resetAbortController()</code></td><td>换一个全新未 abort 的 controller</td><td><strong>必须在 interrupt() 之后调用</strong>，否则下次拿到已 abort 的信号</td></tr>
+      <tr><td><code>getAbortSignal()</code></td><td>返回 <code>signal</code></td><td>供外部消费者（如 ACP bridge）监听</td></tr>
+      <tr><td><code>getMessages()</code></td><td>返回 <code>readonly Message[]</code></td><td>只读暴露 mutableMessages</td></tr>
+      <tr><td><code>getReadFileState()</code></td><td>返回文件缓存</td><td><code>ask()</code> 在 finally 回写它（[11]）</td></tr>
+      <tr><td><code>getSessionId()</code></td><td>返回全局 session id</td><td>代理 <code>getSessionId()</code></td></tr>
+      <tr><td><code>setModel(model)</code></td><td>改 <code>config.userSpecifiedModel</code></td><td>运行时切模型，下轮 submitMessage 生效</td></tr>
+    </table>
+  </div>
+
+  <h3>4.1 interrupt → reset 的配对</h3>
+<pre><code><span class="n">interrupt</span>()<span class="p">:</span> <span class="t">void</span> { <span class="k">this</span>.<span class="n">abortController</span>.<span class="n">abort</span>() }
+<span class="n">resetAbortController</span>()<span class="p">:</span> <span class="t">void</span> { <span class="k">this</span>.<span class="n">abortController</span> <span class="p">=</span> <span class="n">createAbortController</span>() }</code></pre>
+  <div class="callout">
+    <strong>为什么分两步：</strong><code>abort()</code> 是不可逆的——一旦 abort，这个 controller 的 signal 永远是 aborted。要让 engine 还能再跑下一轮，必须显式 <code>resetAbortController()</code> 换新。中断流程是「先 interrupt 停掉当前轮，再 reset 准备下一轮」。
+  </div>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

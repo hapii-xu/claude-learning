@@ -1,0 +1,145 @@
+---
+title: "[11] ask()：一次性便捷函数（建临时 engine + 注入 snipReplay + yield* submitMessage + finally 回写文件缓存）"
+description: ask() 一次性便捷函数（-p/--print 管道、SDK 调用、脚本自动化）——new QueryEngine（传 cwd/tools/commands/mcpClients/agents/canUseTool/getAppState/setAppState/initialMessages/readFileCache(cloneFileStateCache 隔离)/customSystemPrompt/appendSystemPrompt/userSpecifiedModel/fallbackModel/thinkingConfig/maxTurns/maxBudgetUsd/taskBudget/jsonSchema/verbose/handleElicitation/replayUserMessages/includePartialMessages/setSDKStatus/abortController/orphanedPermission）、HISTORY_SNIP 条件注入 snipReplay（isSnipBoundaryMessage 判断 + snipCompactIfNeeded store force:true）、try { yield* engine.submitMessage(prompt, {uuid, isMeta}) } finally { setReadFileCache(engine.getReadFileState()) }（src/QueryEngine.ts:1545-1695）。
+---
+
+# [11] ask()：一次性便捷函数（建临时 engine + finally 回写）
+
+> 本节覆盖 `1545-1695`——文件末尾的 `ask()` 函数：**一次性使用 QueryEngine 的便捷封装**。用于 `-p` / `--print` 管道模式、SDK 调用、脚本自动化。
+
+---
+
+## 一、定位：一次性入口
+
+```typescript
+export async function* ask({
+  commands, prompt, promptUuid, isMeta, cwd, tools, mcpClients,
+  verbose = false, thinkingConfig, maxTurns, maxBudgetUsd, taskBudget,
+  canUseTool, mutableMessages = [], getReadFileCache, setReadFileCache,
+  customSystemPrompt, appendSystemPrompt, userSpecifiedModel, fallbackModel,
+  jsonSchema, getAppState, setAppState, abortController,
+  replayUserMessages = false, includePartialMessages = false,
+  handleElicitation, agents = [], setSDKStatus, orphanedPermission,
+}): AsyncGenerator<SDKMessage, void, unknown>
+```
+
+> **适用场景**：
+> - `-p` / `--print` 管道模式（把 prompt 打在 stdin，读结果到 stdout）
+> - SDK 调用（一次对话，不维护状态）
+> - 脚本自动化（临时查一个东西）
+
+> **内部实现**：创建一个**临时 QueryEngine 实例**，执行一次 `submitMessage()`，然后销毁。
+
+---
+
+## 二、构造 QueryEngine：参数映射
+
+```typescript
+const engine = new QueryEngine({
+  cwd, tools, commands, mcpClients,
+  agents: agents ?? [],
+  canUseTool, getAppState, setAppState,
+  initialMessages: mutableMessages,
+  readFileCache: cloneFileStateCache(getReadFileCache()),
+  customSystemPrompt, appendSystemPrompt,
+  userSpecifiedModel, fallbackModel, thinkingConfig,
+  maxTurns, maxBudgetUsd, taskBudget, jsonSchema,
+  verbose, handleElicitation,
+  replayUserMessages, includePartialMessages,
+  setSDKStatus, abortController, orphanedPermission,
+  ...(feature('HISTORY_SNIP')
+    ? {
+        snipReplay: (yielded: Message, store: Message[]) => {
+          if (!snipProjection!.isSnipBoundaryMessage(yielded))
+            return undefined
+          return snipModule!.snipCompactIfNeeded(store, { force: true })
+        },
+      }
+    : {}),
+})
+```
+
+### 关键映射
+
+| ask 参数 | QueryEngineConfig 字段 |
+|---|---|
+| `mutableMessages` | `initialMessages` |
+| `getReadFileCache()` / `setReadFileCache()` | `readFileCache` / finally 回写 |
+
+### ⭐ readFileCache: cloneFileStateCache（隔离）
+
+```typescript
+readFileCache: cloneFileStateCache(getReadFileCache()),
+```
+
+> **为何克隆**：`ask()` 是**一次性**函数，多次调用之间不该共享文件缓存。克隆确保每次 `ask()` 从**初始文件状态**开始，避免上一次的读取缓存影响本次结果。
+
+> **finally 回写**：执行完成后，把 `engine.getReadFileState()` 回写——让本次 `ask()` 的文件缓存「沉淀」回外部存储，下次调用能复用。
+
+---
+
+## 三、⭐ HISTORY_SNIP 条件注入 snipReplay
+
+```typescript
+...(feature('HISTORY_SNIP')
+  ? {
+      snipReplay: (yielded: Message, store: Message[]) => {
+        if (!snipProjection!.isSnipBoundaryMessage(yielded))
+          return undefined
+        return snipModule!.snipCompactIfNeeded(store, { force: true })
+      },
+    }
+  : {})
+```
+
+- **`feature('HISTORY_SNIP')`**：只有在 `HISTORY_SNIP` feature 启用时才注入回调。
+- **`snipProjection!.isSnipBoundaryMessage(yielded)`**：判断 `yielded` 是否为 snip 边界（`[1]` 的 `snipProjection`）。
+- **`snipModule!.snipCompactIfNeeded(store, { force: true })`**：**强制重放**（`force: true`），返回 `{ messages: Message[]; executed: boolean }`。
+
+> **为何注入而非内联**：与 `[1]` 同理——snip 子类型字符串只能出现在被 feature 门控的模块里。注入回调让 `QueryEngine` 本文件不含被排除的字符串，通过 excluded-strings 检查。
+
+> **与 `[1]` `QueryEngineConfig.snipReplay` 的区别**：
+> - `[1]` 的 `snipReplay` 是**类型定义**，说明 `QueryEngine` 可接受此回调。
+> - 这里是**实际注入**——只有 `HISTORY_SNIP` 启用时才传。
+
+---
+
+## 四、⭐ try / finally：yield* submitMessage + 回写文件缓存
+
+```typescript
+try {
+  yield* engine.submitMessage(prompt, { uuid: promptUuid, isMeta })
+} finally {
+  setReadFileCache(engine.getReadFileState())
+}
+```
+
+### 4.1 yield*：委托产出
+
+```typescript
+yield* engine.submitMessage(prompt, { uuid: promptUuid, isMeta })
+```
+
+> **`yield*`**：把 `submitMessage` 的 **全部产出**透明转发给 `ask()` 的调用方。`submitMessage` yield 的每条 `SDKMessage`（system_init / assistant / user / result…）都会被 `ask()` yield 出去。
+
+### 4.2 finally：回写文件缓存
+
+```typescript
+finally {
+  setReadFileCache(engine.getReadFileState())
+}
+```
+
+> **为何在 finally**：无论 `submitMessage` 成功完成、抛出错误、还是被中断（`abort`），都要回写文件缓存——确保本次 `ask()` 的读取缓存（`Read` 工具的 freshness 判定基础）被保存，下次调用能复用。
+
+> **回写顺序**：`engine.getReadFileState()` 取的是 **执行过程中更新过的缓存**（`submitMessage` 内部通过 `toolUseContext.readFileState` 使用）。回写后，外部存储（通常是 `AppState` 或全局变量）拿到最新状态。
+
+---
+
+## 五、速记口诀
+
+- **`ask()` 定位**：一次性便捷入口（-p/--print / SDK / 脚本）。
+- **构造 QueryEngine**：参数逐项映射；`mutableMessages`→`initialMessages`；`readFileCache` 用 `cloneFileStateCache(getReadFileCache())` 隔离。
+- **`HISTORY_SNIP` 注入 `snipReplay`**：`isSnipBoundaryMessage` 判断 + `snipCompactIfNeeded(store, { force: true })`——把门控字符串留在被门控模块内。
+- **`try { yield* } finally`**：`yield*` 转发 `submitMessage` 全部产出；`finally` 回写 `engine.getReadFileState()`（确保缓存沉淀，下次调用可复用）。
+- **文件缓存克隆**：每次 `ask()` 从初始文件状态开始，避免多次调用间共享缓存。

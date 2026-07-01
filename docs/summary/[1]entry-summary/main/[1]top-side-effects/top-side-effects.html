@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>顶层副作用 · 并行预取的设计 — src/main.tsx:1-22</title>
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --orange:    #D77757;
+  --orange-lt: #f0e0d8;
+  --orange-dk: #b55e3a;
+  --blue:      #5769F7;
+  --blue-lt:   #dde0fe;
+  --blue-dk:   #3a4ed4;
+  --green:     #22a766;
+  --green-lt:  #d2f0e3;
+  --purple:    #7c5cbf;
+  --purple-lt: #ece6f9;
+  --red:       #d63b3b;
+  --red-lt:    #fde8e8;
+  --bg:        #faf8f5;
+  --bg2:       #f3f0eb;
+  --bg3:       #ebe7e0;
+  --text:      #2d2a26;
+  --text-2:    #5a5650;
+  --text-3:    #8a8480;
+  --border:    #ddd8d0;
+  --shadow:    0 2px 8px rgba(45,42,38,.08);
+  --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+  --radius:    8px;
+  --radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+section { margin-top: 52px; }
+
+h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--orange-dk);
+  border-bottom: 2px solid var(--orange-lt);
+  padding-bottom: 8px;
+  margin-bottom: 22px;
+  letter-spacing: .01em;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 18px 0 10px;
+}
+
+p { color: var(--text-2); margin-bottom: 10px; }
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+li { margin-bottom: 4px; }
+li code { font-size: .85em; }
+
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 24px 48px;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: var(--orange);
+  color: #fff;
+  font-size: .73rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.hero h1 span { color: var(--orange); }
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--text-2);
+  max-width: 680px;
+  margin: 0 auto 28px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-orange { background: var(--orange); }
+.dot-blue   { background: var(--blue); }
+.dot-purple { background: var(--purple); }
+.dot-green  { background: var(--green); }
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  list-style: none;
+}
+
+.nav-links a {
+  display: inline-block;
+  padding: 5px 14px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: border-color .15s, color .15s;
+}
+
+.nav-links a:hover {
+  border-color: var(--orange);
+  color: var(--orange-dk);
+  text-decoration: none;
+}
+
+/* ── Code ── */
+pre {
+  background: #1e1b18;
+  color: #e8e0d4;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  margin: 14px 0;
+  border: 1px solid #2e2a25;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: .84em;
+  background: var(--bg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--orange-dk);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+
+.k  { color: #c792ea; }
+.s  { color: #c3e88d; }
+.c  { color: #546e7a; font-style: italic; }
+.n  { color: #82aaff; }
+.t  { color: #ffcb6b; }
+.p  { color: #89ddff; }
+.num{ color: #f78c6c; }
+.cm { color: #697098; font-style: italic; }
+
+/* ── Callout ── */
+.callout {
+  border-left: 3px solid var(--orange);
+  background: #fff9f6;
+  padding: 12px 16px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 14px 0;
+  font-size: .9rem;
+  color: var(--text-2);
+}
+
+.callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+.callout.green { border-color: var(--green);  background: #f3fcf7; }
+.callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+.callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+.callout strong { color: var(--text); }
+
+/* ── Tables ── */
+.tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th {
+  background: var(--bg2);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+  font-size: .82rem;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+/* ── Flow card ── */
+.flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+}
+
+.flow-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: var(--orange);
+  color: #fff;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-body { flex: 1; }
+.flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+.flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+/* ── Card grid ── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+.card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+.card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+.card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+.card.orange { border-color: var(--orange-lt); }
+.card.blue   { border-color: var(--blue-lt); }
+.card.purple { border-color: var(--purple-lt); }
+.card.green  { border-color: var(--green-lt); }
+
+/* ── Arch layers ── */
+.arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.arch-row { display: flex; align-items: center; gap: 10px; }
+.arch-label {
+  flex-shrink: 0;
+  width: 150px;
+  text-align: right;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.arch-box {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  font-weight: 600;
+}
+.arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+.arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+.arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+/* ── Mode cards ── */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.mode-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+.mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+.mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+.mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+.mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+.mode-body p { margin-bottom: 6px; }
+.mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+/* ── Mermaid placeholder box ── */
+.mermaid-box {
+  background: #1e1b18;
+  border: 1px solid #2e2a25;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 14px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: #e8e0d4;
+  line-height: 1.7;
+  white-space: pre;
+}
+
+/* section anchor offset */
+.anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">启动入口 · 装配车间 · 第 1 节</div>
+  <h1>顶层副作用 <span>并行预取的设计</span></h1>
+  <p class="hero-sub">
+    <strong>src/main.tsx:1–22</strong> —— 为什么 profileCheckpoint / startMdmRawRead / startKeychainPrefetch 必须先于所有 import 运行：并行预取的设计动机与 ~135ms import 重叠、汇合点几乎零等待。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>3 个副作用</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>~180ms 收益</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>汇合点设计</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>饭前烧水类比</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、代码位置（1–22 行）</a></li>
+    <li><a href="#sec-2">二、为什么要这样排列？</a></li>
+    <li><a href="#sec-3">三、三个副作用详解</a></li>
+    <li><a href="#sec-4">四、并行收益计算</a></li>
+    <li><a href="#sec-5">五、类比：饭前烧水</a></li>
+    <li><a href="#sec-6">六、常见问题 FAQ</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、代码位置 ════════════════ -->
+<section id="sec-1">
+  <h2>一、代码位置（1–22 行）</h2>
+
+  <pre><code><span class="c">// src/main.tsx:1-22</span>
+<span class="c">// 这些副作用必须先于所有其他 import 运行：</span>
+<span class="c">// 1. profileCheckpoint 在重量级模块求值开始前标记入口</span>
+<span class="c">// 2. startMdmRawRead 触发 MDM 子进程（plutil/reg query），让它们与</span>
+<span class="c">//    下面剩余约 ~135ms 的 import 并行运行</span>
+<span class="c">// 3. startKeychainPrefetch 同时触发两次 macOS keychain 读取（OAuth + 旧版 API</span>
+<span class="c">//    key）—— 否则会在 applySafeConfigEnvironmentVariables() 内部同步顺序读取</span>
+<span class="c">//    （每次 macOS 启动约 ~65ms）</span>
+<span class="k">import</span> { profileCheckpoint } <span class="k">from</span> <span class="s">'./utils/startupProfiler.js'</span>;
+<span class="n">profileCheckpoint</span>(<span class="s">'main_tsx_entry'</span>);        <span class="c">// 第 12 行</span>
+
+<span class="k">import</span> { startMdmRawRead } <span class="k">from</span> <span class="s">'./utils/settings/mdm/rawRead.js'</span>;
+<span class="n">startMdmRawRead</span>();                          <span class="c">// 第 17 行</span>
+
+<span class="k">import</span> { startKeychainPrefetchCompleted, startKeychainPrefetch } <span class="k">from</span> <span class="s">'./utils/secureStorage/keychainPrefetch.js'</span>;
+<span class="n">startKeychainPrefetch</span>();                    <span class="c">// 第 22 行</span></code></pre>
+</section>
+
+<!-- ════════════════ 二、为什么要这样排列？ ════════════════ -->
+<section id="sec-2">
+  <h2>二、为什么要这样排列？</h2>
+
+  <h3>2.1 问题：import 是同步阻塞的</h3>
+
+  <div class="mermaid-box">sequenceDiagram
+    participant idx as cli.tsx
+    participant main as main.tsx 顶层
+    participant mdm as MDM 子进程\nplutil/reg query
+    participant kc as macOS Keychain\n两次顺序 spawn
+
+    idx ->> main: import('../main.jsx')
+    Note over main: profileCheckpoint('main_tsx_entry') 12 行
+    main ->> mdm: startMdmRawRead() 17 行（异步派生）
+    main ->> kc: startKeychainPrefetch() 22 行（异步 spawn）
+
+    Note over main: 执行 24-359 行的重型 import (~135ms)
+    Note over mdm: MDM 数据读取并行完成
+    Note over kc: OAuth + API key 读取并行完成
+
+    main ->> main: preAction:1154
+    main ->> main: await Promise.all([ensureMdmSettingsLoaded, ensureKeychainPrefetchCompleted])
+    Note over main: "汇合点"——几乎免费，子进程已完成
+    main ->> main: await init()</div>
+
+  <p><strong>时序解读</strong>：3 个副作用（12/17/22 行）各自派生异步子进程，然后立即继续执行剩下的重型 import（24–359 行，约 ~135ms）。子进程在 import 期间并行运行，到 preAction 的"汇合点"（1154 行）时早已完成，等待时间趋近于 0。</p>
+
+  <h3>2.2 汇合点：preAction 第一件事</h3>
+
+  <pre><code><span class="c">// src/main.tsx:1154（preAction hook 内）</span>
+<span class="k">await</span> <span class="n">Promise</span>.<span class="n">all</span>([
+  <span class="n">ensureMdmSettingsLoaded</span>(),
+  <span class="n">ensureKeychainPrefetchCompleted</span>()
+]);</code></pre>
+
+  <div class="callout blue">
+    <strong>为什么是 Promise.all 而非顺序 await？</strong> 两个预取任务彼此独立，同时等待比顺序 await 更快。而且子进程在 ~135ms 的 import 期间早已完成，这里"汇合"几乎零等待。
+  </div>
+</section>
+
+<!-- ════════════════ 三、三个副作用详解 ════════════════ -->
+<section id="sec-3">
+  <h2>三、三个副作用详解</h2>
+
+  <h3>3.1 <code>profileCheckpoint('main_tsx_entry')</code>（第 12 行）</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>作用</th><td>在重量级模块求值开始前标记入口时间点</td></tr>
+      <tr><th>位置</th><td><code>src/utils/startupProfiler.ts</code></td></tr>
+      <tr><th>消费</th><td>启动性能计时（用于 startup debug 输出）</td></tr>
+      <tr><th>是否异步</th><td>否（同步打点）</td></tr>
+    </table>
+  </div>
+
+  <div class="callout green">
+    <strong>为什么标记在 import 之前？</strong> 这是"起点"锚点——后续所有耗时测量都相对此点计算。如果放在重型 import 之后，起点本身就被延迟，无法真实反映"用户执行命令到可响应"的总时长。
+  </div>
+
+  <h3>3.2 <code>startMdmRawRead()</code>（第 17 行）</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>作用</th><td>触发 MDM（Mobile Device Management）子进程，读取 <code>plutil</code>（macOS）或 <code>reg query</code>（Windows）数据</td></tr>
+      <tr><th>位置</th><td><code>src/utils/settings/mdm/rawRead.ts</code></td></tr>
+      <tr><th>消费</th><td><code>ensureMdmSettingsLoaded()</code> 在 preAction:1154 汇合</td></tr>
+      <tr><th>子进程内容</th><td><code>plutil -p /Library/ManagedPreferences/com.anthropic.claude-code.plist</code>（macOS）或 <code>reg query HKLM\Software\Anthropic\ClaudeCode</code>（Windows）</td></tr>
+      <tr><th>是否异步</th><td>是（派生子进程后立即返回）</td></tr>
+    </table>
+  </div>
+
+  <div class="callout purple">
+    <strong>为什么需要预取？</strong> macOS 的 <code>plutil</code> 单次调用约 ~35-50ms，Windows 的 <code>reg query</code> 约 ~20-30ms。如果放到 preAction 同步执行，会阻塞初始化流水线。派生后并行运行，在 import 期间"免费"完成。
+  </div>
+
+  <h3>3.3 <code>startKeychainPrefetch()</code>（第 22 行）</h3>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>作用</th><td>同时触发两次 macOS keychain 读取（OAuth token + 旧版 API key）</td></tr>
+      <tr><th>位置</th><td><code>src/utils/secureStorage/keychainPrefetch.ts</code></td></tr>
+      <tr><th>消费</th><td><code>ensureKeychainPrefetchCompleted()</code> 在 preAction:1154 汇合</td></tr>
+      <tr><th>查询项</th><td><code>security find-internet-password -s 'api.anthropic.com'</code>（OAuth）<br><code>security find-generic-password -a 'claude-code-api-key'</code>（旧 API key）</td></tr>
+      <tr><th>是否异步</th><td>是（派生两个子进程后立即返回）</td></tr>
+    </table>
+  </div>
+
+  <div class="callout">
+    <strong>为什么需要预取？</strong> macOS 的 <code>security</code> 命令单次调用约 ~65ms（每次 macOS 启动）。如果不预取，在 <code>applySafeConfigEnvironmentVariables()</code> 内部会同步顺序读取（OAuth → 旧 key），总计 ~130ms。预取后并行运行，在 import 期间完成。
+  </div>
+
+  <div class="callout blue">
+    <strong>为什么读两次？</strong> 兼容逻辑——优先尝试 OAuth token，如果不存在再降级到旧 API key。两者独立查询，可并行执行。
+  </div>
+</section>
+
+<!-- ════════════════ 四、并行收益计算 ════════════════ -->
+<section id="sec-4">
+  <h2>四、并行收益计算</h2>
+
+  <h3>4.1 不并行（假设副作用在 import 之后）</h3>
+
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-body">
+        <div class="flow-title">[import ~135ms]</div>
+        <div class="flow-desc">重型模块求值</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-body">
+        <div class="flow-title">[MDM ~50ms]</div>
+        <div class="flow-desc">plutil/reg query</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-body">
+        <div class="flow-title">[Keychain OAuth ~65ms]</div>
+        <div class="flow-desc">security find-internet-password</div>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-body">
+        <div class="flow-title">[Keychain 旧key ~65ms]</div>
+        <div class="flow-desc">security find-generic-password</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="flow-title">总时长：~315ms</p>
+
+  <h3>4.2 并行（实际设计）</h3>
+
+  <div class="arch">
+    <div class="arch-row">
+      <div class="arch-label">并行任务</div>
+      <div class="arch-box dim">[MDM ~50ms] ┐</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-label"></div>
+      <div class="arch-box dim">[Keychain OAuth ~65ms] ├─→ [汇合点 ~0ms]</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-label"></div>
+      <div class="arch-box dim">[Keychain 旧key ~65ms] ┘ ──→ [后续初始化] ↗</div>
+    </div>
+    <div class="arch-row">
+      <div class="arch-label">主线程</div>
+      <div class="arch-box active">[import ~135ms] ────────────────────────┘</div>
+    </div>
+  </div>
+
+  <p class="flow-title">总时长：~135ms（import 为主瓶颈）</p>
+
+  <div class="callout green">
+    <strong>收益</strong>：~180ms（约 57%）的启动时间节省。
+  </div>
+</section>
+
+<!-- ════════════════ 五、类比：饭前烧水 ════════════════ -->
+<section id="sec-5">
+  <h2>五、类比：饭前烧水</h2>
+
+  <div class="callout">
+    <p><strong>并行预取 = 饭前先烧水</strong></p>
+    <p>水壶响之前先切菜、备料，开火炒菜时水已沸。</p>
+    <p>如果等锅热了再烧水，就要额外等 5 分钟——饭前烧水让等待时间几乎为零。</p>
+  </div>
+
+  <p>对应到代码：</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>类比</th><th>代码</th></tr>
+      <tr><td>"烧水"</td><td>派生子进程（MDM / keychain）</td></tr>
+      <tr><td>"切菜"</td><td>执行重型 import（~135ms）</td></tr>
+      <tr><td>"开火"</td><td>preAction 汇合点（await Promise.all）</td></tr>
+      <tr><td>"水已沸"</td><td>子进程已完成，等待时间趋近 0</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 六、常见问题 FAQ ════════════════ -->
+<section id="sec-6">
+  <h2>六、常见问题 FAQ</h2>
+
+  <div class="callout">
+    <p><strong>Q：为什么这三个副作用不放到 <code>cli.tsx</code> 里？</strong></p>
+    <p>A：<code>cli.tsx</code> 的职责是"快速路径拦截 + 动态 import main.tsx"。副作用是 <strong>main.tsx 的内部初始化需求</strong>，放在 cli.tsx 会混淆两个模块的边界。而且 <code>cli.tsx</code> 已经有 14 条快速路径拦截逻辑，再加副作用会让入口更复杂。</p>
+  </div>
+
+  <div class="callout blue">
+    <p><strong>Q：如果子进程在 preAction 之前还没完成怎么办？</strong></p>
+    <p>A：<code>await Promise.all([ensureMdmSettingsLoaded(), ensureKeychainPrefetchCompleted()])</code> 会<strong>等待直到完成</strong>。大多数情况下子进程在 ~135ms 的 import 期间早已完成；即使未完成，await 也会等——设计目标只是"并行重叠减少等待"，而非"不等结果"。</p>
+  </div>
+
+  <div class="callout purple">
+    <p><strong>Q：<code>profileCheckpoint</code> 为什么不是异步的？</strong></p>
+    <p>A：它只是打点（记录当前时间戳到内存），不需要 I/O 或子进程，同步执行即可。打点本身 &lt;1ms，不影响并行策略。</p>
+  </div>
+
+  <p><strong>下一步</strong>：[2] module-helpers —— 模块级辅助函数（遥测 / prefetch / settings 早加载）。</p>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

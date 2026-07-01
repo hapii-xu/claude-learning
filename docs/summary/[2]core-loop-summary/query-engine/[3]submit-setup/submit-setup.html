@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>submitMessage 开篇：解构、清理与权限包装 — QueryEngine 深度学习 第3节</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:    #D77757;
+      --orange-lt: #f0e0d8;
+      --orange-dk: #b55e3a;
+      --blue:      #5769F7;
+      --blue-lt:   #dde0fe;
+      --blue-dk:   #3a4ed4;
+      --green:     #22a766;
+      --green-lt:  #d2f0e3;
+      --purple:    #7c5cbf;
+      --purple-lt: #ece6f9;
+      --red:       #d63b3b;
+      --red-lt:    #fde8e8;
+      --bg:        #faf8f5;
+      --bg2:       #f3f0eb;
+      --bg3:       #ebe7e0;
+      --text:      #2d2a26;
+      --text-2:    #5a5650;
+      --text-3:    #8a8480;
+      --border:    #ddd8d0;
+      --shadow:    0 2px 8px rgba(45,42,38,.08);
+      --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+      --radius:    8px;
+      --radius-lg: 12px;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+    section { margin-top: 52px; }
+
+    h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--orange-dk);
+      border-bottom: 2px solid var(--orange-lt);
+      padding-bottom: 8px;
+      margin-bottom: 22px;
+      letter-spacing: .01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin: 18px 0 10px;
+    }
+
+    p { color: var(--text-2); margin-bottom: 10px; }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+    li code { font-size: .85em; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 56px 24px 48px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: var(--orange);
+      color: #fff;
+      font-size: .73rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.02em;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 span { color: var(--orange); }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text-2);
+      max-width: 680px;
+      margin: 0 auto 28px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-2);
+    }
+
+    .meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot-orange { background: var(--orange); }
+    .dot-blue   { background: var(--blue); }
+    .dot-purple { background: var(--purple); }
+    .dot-green  { background: var(--green); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: inline-block;
+      padding: 5px 14px;
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-2);
+      transition: border-color .15s, color .15s;
+    }
+
+    .nav-links a:hover {
+      border-color: var(--orange);
+      color: var(--orange-dk);
+      text-decoration: none;
+    }
+
+    /* ── Code ── */
+    pre {
+      background: #1e1b18;
+      color: #e8e0d4;
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.65;
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid #2e2a25;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: .84em;
+      background: var(--bg2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--orange-dk);
+    }
+
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+      border-radius: 0;
+    }
+
+    .k  { color: #c792ea; }
+    .s  { color: #c3e88d; }
+    .c  { color: #546e7a; font-style: italic; }
+    .n  { color: #82aaff; }
+    .t  { color: #ffcb6b; }
+    .p  { color: #89ddff; }
+    .num{ color: #f78c6c; }
+    .cm { color: #697098; font-style: italic; }
+
+    /* ── Callout ── */
+    .callout {
+      border-left: 3px solid var(--orange);
+      background: #fff9f6;
+      padding: 12px 16px;
+      border-radius: 0 var(--radius) var(--radius) 0;
+      margin: 14px 0;
+      font-size: .9rem;
+      color: var(--text-2);
+    }
+
+    .callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+    .callout.green { border-color: var(--green);  background: #f3fcf7; }
+    .callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+    .callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+    .callout strong { color: var(--text); }
+
+    /* ── Tables ── */
+    .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+      background: #fff;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    th {
+      background: var(--bg2);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      color: var(--text);
+      font-size: .82rem;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-2);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Flow card ── */
+    .flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .flow-num {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 50%;
+      font-size: .78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .flow-body { flex: 1; }
+    .flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+    .flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+    /* ── Card grid ── */
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+    .card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+    .card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+    .card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+    .card.orange { border-color: var(--orange-lt); }
+    .card.blue   { border-color: var(--blue-lt); }
+    .card.purple { border-color: var(--purple-lt); }
+    .card.green  { border-color: var(--green-lt); }
+
+    /* ── Arch layers ── */
+    .arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+    .arch-row { display: flex; align-items: center; gap: 10px; }
+    .arch-label {
+      flex-shrink: 0;
+      width: 150px;
+      text-align: right;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+    .arch-box {
+      flex: 1;
+      padding: 9px 16px;
+      border-radius: var(--radius);
+      font-size: .85rem;
+      font-weight: 600;
+    }
+    .arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+    .arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+    .arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+    /* ── Mode cards ── */
+    .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+    .mode-card {
+      background: #fff;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+    .mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+    .mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+    .mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+    .mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+    .mode-body p { margin-bottom: 6px; }
+    .mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+    /* ── Mermaid placeholder box ── */
+    .mermaid-box {
+      background: #1e1b18;
+      border: 1px solid #2e2a25;
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 14px 0;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: #e8e0d4;
+      line-height: 1.7;
+      white-space: pre;
+    }
+
+    /* section anchor offset */
+    .anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">核心循环 · 回合引擎 · 第 3 节</div>
+  <h1>submitMessage 开篇 <span>解构、清理与权限包装</span></h1>
+  <p class="hero-sub">
+    submitMessage 的第一阶段——从 <code>this.config</code> 解构约 20 个字段、每轮开头清理按轮作用域状态（discoveredSkillNames.clear / permissionDenials=[] / setCwd）、用 <code>wrappedCanUseTool</code> 包住权限回调以追踪拒绝、确定初始模型与 thinking 配置。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>QueryEngine.ts:294-396</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>解构 + 三清理</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>wrappedCanUseTool</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>模型/thinking 优先级</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、config 解构</a></li>
+    <li><a href="#sec-2">二、每轮清理</a></li>
+    <li><a href="#sec-3">三、wrappedCanUseTool</a></li>
+    <li><a href="#sec-4">四、初始模型/thinking</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、config 解构 ════════════════ -->
+<section id="sec-1">
+  <h2>一、从 this.config 解构</h2>
+  <p><code>298-321</code> 把 <code>this.config</code> 一次性解构成局部变量（带默认值）：</p>
+<pre><code><span class="k">const</span> {
+  <span class="n">cwd</span>, <span class="n">commands</span>, <span class="n">tools</span>, <span class="n">mcpClients</span>,
+  <span class="n">verbose</span> <span class="p">=</span> <span class="k">false</span>, <span class="n">thinkingConfig</span>, <span class="n">maxTurns</span>, <span class="n">maxBudgetUsd</span>, <span class="n">taskBudget</span>,
+  <span class="n">canUseTool</span>, <span class="n">customSystemPrompt</span>, <span class="n">appendSystemPrompt</span>,
+  <span class="n">userSpecifiedModel</span>, <span class="n">fallbackModel</span>, <span class="n">jsonSchema</span>,
+  <span class="n">getAppState</span>, <span class="n">setAppState</span>,
+  <span class="n">replayUserMessages</span> <span class="p">=</span> <span class="k">false</span>, <span class="n">includePartialMessages</span> <span class="p">=</span> <span class="k">false</span>,
+  <span class="n">agents</span> <span class="p">=</span> [], <span class="n">setSDKStatus</span>, <span class="n">orphanedPermission</span>,
+} <span class="p">=</span> <span class="k">this</span>.<span class="n">config</span></code></pre>
+  <div class="callout">
+    <strong>为什么解构：</strong>后续 1100 多行频繁用这些值，解构成裸名既简洁又避免反复 <code>this.config.x</code>。带默认值的在此统一兜底。
+  </div>
+</section>
+
+<!-- ════════════════ 二、每轮清理 ════════════════ -->
+<section id="sec-2">
+  <h2>二、每轮开头的状态清理</h2>
+<pre><code><span class="k">this</span>.<span class="n">discoveredSkillNames</span>.<span class="n">clear</span>()
+<span class="k">this</span>.<span class="n">permissionDenials</span> <span class="p">=</span> []
+<span class="n">setCwd</span>(<span class="n">cwd</span>)
+<span class="k">const</span> <span class="n">persistSession</span> <span class="p">=</span> <span class="p">!</span><span class="n">isSessionPersistenceDisabled</span>()
+<span class="k">const</span> <span class="n">startTime</span> <span class="p">=</span> <span class="t">Date</span>.<span class="n">now</span>()</code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>动作</th><th>为什么放最前</th></tr>
+      <tr><td><code>discoveredSkillNames.clear()</code></td><td>按轮作用域，防 SDK 多轮无界增长（[2]）</td></tr>
+      <tr><td><code>permissionDenials = []</code></td><td>本轮 result 只该报告本轮的拒绝</td></tr>
+      <tr><td><code>setCwd(cwd)</code></td><td>把进程 CWD 同步到本 engine 的工作目录</td></tr>
+      <tr><td><code>persistSession</code></td><td>一次性求值是否持久化，后续多处用</td></tr>
+      <tr><td><code>startTime</code></td><td>计 <code>duration_ms</code>，所有 result 都带</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 三、wrappedCanUseTool ════════════════ -->
+<section id="sec-3">
+  <h2>三、⭐ wrappedCanUseTool：权限拒绝追踪</h2>
+  <p><code>349-377</code> 把外部传入的 <code>canUseTool</code> 包一层，在放行/拒绝之外<strong>记账拒绝</strong>：</p>
+<pre><code><span class="k">const</span> <span class="n">wrappedCanUseTool</span><span class="p">:</span> <span class="t">CanUseToolFn</span> <span class="p">=</span> <span class="k">async</span> (<span class="n">tool</span>, <span class="n">input</span>, <span class="n">ctx</span>, <span class="n">msg</span>, <span class="n">toolUseID</span>, <span class="n">force</span>) <span class="p">=&gt;</span> {
+  <span class="k">const</span> <span class="n">result</span> <span class="p">=</span> <span class="k">await</span> <span class="n">canUseTool</span>(<span class="n">tool</span>, <span class="n">input</span>, <span class="n">ctx</span>, <span class="n">msg</span>, <span class="n">toolUseID</span>, <span class="n">force</span>)
+  <span class="k">if</span> (<span class="n">result</span>.<span class="n">behavior</span> <span class="p">!==</span> <span class="s">'allow'</span>) {
+    <span class="k">this</span>.<span class="n">permissionDenials</span>.<span class="n">push</span>({
+      <span class="n">type</span><span class="p">:</span> <span class="s">'permission_denial'</span>,
+      <span class="n">tool_name</span><span class="p">:</span> <span class="n">sdkCompatToolName</span>(<span class="n">tool</span>.<span class="n">name</span>),
+      <span class="n">tool_use_id</span><span class="p">:</span> <span class="n">toolUseID</span>,
+      <span class="n">tool_input</span><span class="p">:</span> <span class="n">input</span>,
+    })
+  }
+  <span class="k">return</span> <span class="n">result</span>
+}</code></pre>
+  <ul>
+    <li><strong>透明代理</strong>：原样转发参数与返回值，只在 <code>behavior !== 'allow'</code> 时副作用式 push 一条拒绝记录。</li>
+    <li><code>sdkCompatToolName(tool.name)</code>：把内部工具名转成 SDK 兼容名（如 MCP 工具的命名）。</li>
+    <li>这条 <code>permissionDenials</code> 数组最终出现在每个 <code>result</code> 消息的 <code>permission_denials</code> 字段里（[10]），让 SDK 调用方知道哪些工具被拒。</li>
+  </ul>
+  <div class="callout blue">
+    <strong>为什么不在 canUseTool 内部记：</strong><code>canUseTool</code> 是外部注入的（REPL/SDK 各有实现），engine 不该要求每个实现都自带记账。包一层是<strong>关注点分离</strong>：权限判定归 canUseTool，拒绝统计归 engine。
+  </div>
+</section>
+
+<!-- ════════════════ 四、初始模型/thinking ════════════════ -->
+<section id="sec-4">
+  <h2>四、初始模型与 thinking 配置</h2>
+<pre><code><span class="k">const</span> <span class="n">initialAppState</span> <span class="p">=</span> <span class="n">getAppState</span>()
+<span class="k">const</span> <span class="n">initialMainLoopModel</span> <span class="p">=</span> <span class="n">userSpecifiedModel</span>
+  <span class="p">?</span> <span class="n">parseUserSpecifiedModel</span>(<span class="n">userSpecifiedModel</span>)
+  <span class="p">:</span> <span class="n">getMainLoopModel</span>()
+
+<span class="k">const</span> <span class="n">initialThinkingConfig</span><span class="p">:</span> <span class="t">ThinkingConfig</span> <span class="p">=</span> <span class="n">thinkingConfig</span>
+  <span class="p">?</span> <span class="n">thinkingConfig</span>
+  <span class="p">:</span> <span class="n">shouldEnableThinkingByDefault</span>() <span class="p">!==</span> <span class="k">false</span>
+    <span class="p">?</span> { <span class="n">type</span><span class="p">:</span> <span class="s">'adaptive'</span> }
+    <span class="p">:</span> { <span class="n">type</span><span class="p">:</span> <span class="s">'disabled'</span> }</code></pre>
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>决策</th><th>优先级</th></tr>
+      <tr><td><strong>模型</strong></td><td><code>userSpecifiedModel</code>（显式指定）&gt; <code>getMainLoopModel()</code>（全局默认）</td></tr>
+      <tr><td><strong>thinking</strong></td><td>显式 <code>thinkingConfig</code> &gt; <code>shouldEnableThinkingByDefault()</code> &rarr; <code>adaptive</code> / <code>disabled</code></td></tr>
+    </table>
+  </div>
+  <ul>
+    <li><code>initialAppState</code> 快照一次（后续 <code>fastMode</code>、<code>toolPermissionContext</code> 都从它取，避免重复 <code>getAppState()</code>）。</li>
+    <li><code>initialMainLoopModel</code> 是「初始」值——[6] 里 slash 命令可能通过 <code>modelFromUserInput</code> 覆盖它，得到最终 <code>mainLoopModel</code>。</li>
+  </ul>
+  <div class="callout green">
+    <strong>adaptive vs disabled：</strong><code>adaptive</code> 让模型按需自行决定思考预算；<code>disabled</code> 完全关闭 thinking。默认开（除非环境/配置显式关）。
+  </div>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

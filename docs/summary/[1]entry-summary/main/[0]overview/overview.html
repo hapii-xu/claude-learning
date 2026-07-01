@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>总览与心智模型 · src/main.tsx — 5743 行全景拆解</title>
+  <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --orange:    #D77757;
+  --orange-lt: #f0e0d8;
+  --orange-dk: #b55e3a;
+  --blue:      #5769F7;
+  --blue-lt:   #dde0fe;
+  --blue-dk:   #3a4ed4;
+  --green:     #22a766;
+  --green-lt:  #d2f0e3;
+  --purple:    #7c5cbf;
+  --purple-lt: #ece6f9;
+  --red:       #d63b3b;
+  --red-lt:    #fde8e8;
+  --bg:        #faf8f5;
+  --bg2:       #f3f0eb;
+  --bg3:       #ebe7e0;
+  --text:      #2d2a26;
+  --text-2:    #5a5650;
+  --text-3:    #8a8480;
+  --border:    #ddd8d0;
+  --shadow:    0 2px 8px rgba(45,42,38,.08);
+  --shadow-lg: 0 4px 20px rgba(45,42,38,.12);
+  --radius:    8px;
+  --radius-lg: 12px;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+
+section { margin-top: 52px; }
+
+h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--orange-dk);
+  border-bottom: 2px solid var(--orange-lt);
+  padding-bottom: 8px;
+  margin-bottom: 22px;
+  letter-spacing: .01em;
+}
+
+h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 18px 0 10px;
+}
+
+p { color: var(--text-2); margin-bottom: 10px; }
+
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+ul, ol { padding-left: 20px; color: var(--text-2); margin-bottom: 10px; }
+li { margin-bottom: 4px; }
+li code { font-size: .85em; }
+
+/* ── Hero ── */
+.hero {
+  background: linear-gradient(135deg, #fff9f6 0%, #f5f1ff 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 56px 24px 48px;
+  text-align: center;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: var(--orange);
+  color: #fff;
+  font-size: .73rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 20px;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.hero h1 span { color: var(--orange); }
+
+.hero-sub {
+  font-size: 1rem;
+  color: var(--text-2);
+  max-width: 680px;
+  margin: 0 auto 28px;
+}
+
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.meta-pill .dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-orange { background: var(--orange); }
+.dot-blue   { background: var(--blue); }
+.dot-purple { background: var(--purple); }
+.dot-green  { background: var(--green); }
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  list-style: none;
+}
+
+.nav-links a {
+  display: inline-block;
+  padding: 5px 14px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: border-color .15s, color .15s;
+}
+
+.nav-links a:hover {
+  border-color: var(--orange);
+  color: var(--orange-dk);
+  text-decoration: none;
+}
+
+/* ── Code ── */
+pre {
+  background: #1e1b18;
+  color: #e8e0d4;
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  font-family: var(--font-mono);
+  font-size: .82rem;
+  line-height: 1.65;
+  overflow-x: auto;
+  margin: 14px 0;
+  border: 1px solid #2e2a25;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: .84em;
+  background: var(--bg2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--orange-dk);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+
+.k  { color: #c792ea; }
+.s  { color: #c3e88d; }
+.c  { color: #546e7a; font-style: italic; }
+.n  { color: #82aaff; }
+.t  { color: #ffcb6b; }
+.p  { color: #89ddff; }
+.num{ color: #f78c6c; }
+.cm { color: #697098; font-style: italic; }
+
+/* ── Callout ── */
+.callout {
+  border-left: 3px solid var(--orange);
+  background: #fff9f6;
+  padding: 12px 16px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 14px 0;
+  font-size: .9rem;
+  color: var(--text-2);
+}
+
+.callout.blue  { border-color: var(--blue);   background: #f5f6ff; }
+.callout.green { border-color: var(--green);  background: #f3fcf7; }
+.callout.purple{ border-color: var(--purple); background: #f8f5ff; }
+.callout.red   { border-color: var(--red);    background: #fff4f4; }
+
+.callout strong { color: var(--text); }
+
+/* ── Tables ── */
+.tbl-wrap { overflow-x: auto; margin: 14px 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .88rem;
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+th {
+  background: var(--bg2);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+  font-size: .82rem;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+td {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  vertical-align: top;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg); }
+
+/* ── Flow card ── */
+.flow-steps { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+
+.flow-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+}
+
+.flow-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: var(--orange);
+  color: #fff;
+  border-radius: 50%;
+  font-size: .78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flow-body { flex: 1; }
+.flow-title { font-weight: 600; font-size: .88rem; color: var(--text); }
+.flow-desc  { font-size: .82rem; color: var(--text-2); margin-top: 2px; }
+
+/* ── Card grid ── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0; }
+
+.card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.card-icon { font-size: 1.4rem; margin-bottom: 8px; }
+.card-title { font-weight: 700; font-size: .95rem; color: var(--text); margin-bottom: 6px; }
+.card-body  { font-size: .83rem; color: var(--text-2); line-height: 1.6; }
+
+.card.orange { border-color: var(--orange-lt); }
+.card.blue   { border-color: var(--blue-lt); }
+.card.purple { border-color: var(--purple-lt); }
+.card.green  { border-color: var(--green-lt); }
+
+/* ── Arch layers ── */
+.arch { display: flex; flex-direction: column; gap: 6px; margin: 14px 0; }
+.arch-row { display: flex; align-items: center; gap: 10px; }
+.arch-label {
+  flex-shrink: 0;
+  width: 150px;
+  text-align: right;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-3);
+}
+.arch-box {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  font-size: .85rem;
+  font-weight: 600;
+}
+.arch-box.active { background: var(--orange-lt); color: var(--orange-dk); border: 1.5px solid var(--orange); }
+.arch-box.dim    { background: var(--bg2); color: var(--text-3); border: 1.5px solid var(--border); }
+.arch-box.blue   { background: var(--blue-lt); color: var(--blue-dk); border: 1.5px solid var(--blue); }
+
+/* ── Mode cards ── */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.mode-card {
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.mode-header { padding: 12px 16px; font-weight: 700; font-size: .92rem; font-family: var(--font-mono); }
+.mode-header.orange { background: var(--orange-lt); color: var(--orange-dk); }
+.mode-header.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+.mode-header.purple { background: var(--purple-lt); color: var(--purple); }
+.mode-body { padding: 12px 16px; font-size: .83rem; color: var(--text-2); }
+.mode-body p { margin-bottom: 6px; }
+.mode-body .trigger { font-family: var(--font-mono); color: var(--blue); font-size: .78rem; }
+
+/* ── Mermaid placeholder box ── */
+.mermaid-box {
+  background: #1e1b18;
+  border: 1px solid #2e2a25;
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 14px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: .78rem;
+  color: #e8e0d4;
+  line-height: 1.7;
+  white-space: pre;
+}
+
+/* section anchor offset */
+.anchor { display: block; margin-top: -72px; padding-top: 72px; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════ HERO ════════════════════════════════ -->
+<div class="hero">
+  <div class="hero-badge">启动入口 · 装配车间 · 第 0 节</div>
+  <h1>总览与心智模型 <span>src/main.tsx</span></h1>
+  <p class="hero-sub">
+    <strong>5743 行 Commander.js 主程序全景拆解</strong>—— 20 个顶层函数地图、与 cli.tsx 的责任边界（14 条快速路径）、文件按职责切片、三条贯穿全文的暗线（并行预取 / argv 重写 / 派发决策树）、以及 14 节学习索引。
+  </p>
+  <div class="meta-row">
+    <span class="meta-pill"><span class="dot dot-orange"></span>5743 行代码</span>
+    <span class="meta-pill"><span class="dot dot-blue"></span>58 个子命令</span>
+    <span class="meta-pill"><span class="dot dot-purple"></span>163 个 option</span>
+    <span class="meta-pill"><span class="dot dot-green"></span>20 个顶层函数</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#sec-1">一、文件规模一览</a></li>
+    <li><a href="#sec-2">二、20 个顶层函数地图</a></li>
+    <li><a href="#sec-3">三、与 cli.tsx 的责任分工</a></li>
+    <li><a href="#sec-4">四、文件按职责切片</a></li>
+    <li><a href="#sec-5">五、14 节学习索引</a></li>
+    <li><a href="#sec-6">六、三条贯穿全文的暗线</a></li>
+    <li><a href="#sec-7">七、cli.tsx ↔ main.tsx 协作总图</a></li>
+    <li><a href="#sec-8">八、常见问题 FAQ</a></li>
+  </ul>
+</div>
+
+<div class="page-wrap">
+
+<!-- ════════════════ 一、文件规模一览 ════════════════ -->
+<section id="sec-1">
+  <h2>一、文件规模一览</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>指标</th><th>数量</th><th>说明</th></tr>
+      <tr><td>总行数</td><td>5743</td><td><code>wc -l</code> 实测</td></tr>
+      <tr><td><code>.command(...)</code> 调用</td><td>58</td><td>含 stub 和父命令</td></tr>
+      <tr><td><code>.option(...)</code> / <code>.addOption(...)</code></td><td>163</td><td>主命令 + 所有子命令累计</td></tr>
+      <tr><td><code>.action(...)</code> 调用</td><td>52</td><td>每个可执行命令一个</td></tr>
+      <tr><td>导出函数</td><td>2</td><td><code>main</code> + <code>startDeferredPrefetches</code></td></tr>
+      <tr><td>顶层非导出函数</td><td>20</td><td>见下方地图</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 二、20 个顶层函数地图 ════════════════ -->
+<section id="sec-2">
+  <h2>二、20 个顶层函数地图</h2>
+
+  <div class="mermaid-box">flowchart TD
+    subgraph top["顶层副作用（1-22 行）"]
+        A1["profileCheckpoint('main_tsx_entry') 12 行"]
+        A2["startMdmRawRead() 17 行"]
+        A3["startKeychainPrefetch() 22 行"]
+    end
+
+    subgraph helpers["模块级辅助（360–717 行）"]
+        B1["遥测族：logManagedSettings / logSessionTelemetry / getCertEnvVarTelemetry / logStartupTelemetry"]
+        B2["prefetch：prefetchSystemContextIfSafe / startDeferredPrefetches"]
+        B3["settings 早加载：loadSettingsFromFlag / loadSettingSourcesFromFlag / eagerLoadSettings"]
+        B4["initializeEntrypoint（设 CLAUDE_CODE_ENTRYPOINT）"]
+    end
+
+    B5["runMigrations（484–510）"]
+
+    subgraph pending["三套 pending 单例（718–763 行）"]
+        C1["_pendingConnect（DIRECT_CONNECT）"]
+        C2["_pendingAssistantChat（KAIROS）"]
+        C3["_pendingSSH（SSH_REMOTE）"]
+    end
+
+    subgraph mainFn["main() 函数（777–1072 行）"]
+        D1["安全 env + warning handler"]
+        D2["argv 重写四分支"]
+        D3["clientType 9 种推断"]
+        D4["eagerLoadSettings + run()"]
+    end
+
+    E1["getInputPrompt（1074–1107）"]
+
+    subgraph runFn["run() + preAction（1122–1209 行）"]
+        F1["preAction 9 步流水线"]
+        F2["汇合点：await init()"]
+    end
+
+    subgraph options["Option 注册（1211–1493 + 4567–4695）"]
+        G1["163 个 option 6 大类"]
+    end
+
+    subgraph action["主 action（1495–4566 行，3070 行）"]
+        H1["早期处理（[9]）"]
+        H2["setup + MCP 连接（[10]）"]
+        H3["派发决策树（[11]）"]
+    end
+
+    subgraph subs["子命令地图（4720–5546 行）"]
+        I1["58 个子命令注册"]
+    end
+
+    subgraph tail["尾部辅助（5562–5743 行）"]
+        J1["logTenguInit / maybeActivateProactive"]
+        J2["maybeActivateBrief / resetCursor"]
+        J3["extractTeammateOptions"]
+    end
+
+    top --> helpers
+    helpers --> B5
+    B5 --> pending
+    pending --> mainFn
+    mainFn --> E1
+    E1 --> runFn
+    runFn --> options
+    options --> action
+    action --> subs
+    subs --> tail</div>
+</section>
+
+<!-- ════════════════ 三、与 cli.tsx 的责任分工 ════════════════ -->
+<section id="sec-3">
+  <h2>三、与 cli.tsx 的责任分工</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>职责</th><th>cli.tsx（真入口）</th><th>main.tsx（装配车间）</th></tr>
+      <tr><td>快速路径拦截</td><td>14 条（<code>--version</code> / <code>--dump-system-prompt</code> / MCP servers / daemon / bridge / tmux 等）</td><td>—</td></tr>
+      <tr><td>argv 重写</td><td>—</td><td>4 分支（cc:// URL / <code>--handle-uri</code> / <code>assistant</code> / <code>ssh</code>）</td></tr>
+      <tr><td>CLI 语法定义</td><td>—</td><td>Commander.js <code>program.name().option().command().action()</code> 全注册</td></tr>
+      <tr><td>初始化流水线</td><td>—</td><td>preAction 9 步</td></tr>
+      <tr><td>模式分发</td><td>—</td><td>主 action 的 headless / 9 交互分支</td></tr>
+    </table>
+  </div>
+
+  <h3>14 条快速路径</h3>
+  <p><strong>cli.tsx 拦截，零模块加载</strong>：</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>#</th><th>触发条件</th><th>拦截内容</th></tr>
+      <tr><td>1</td><td><code>--version</code> / <code>-v</code> / <code>-V</code></td><td>零模块加载，直接打印</td></tr>
+      <tr><td>2</td><td><code>--dump-system-prompt</code></td><td>打印系统提示词后退出</td></tr>
+      <tr><td>3</td><td><code>--claude-in-chrome-mcp</code> / <code>--chrome-native-host</code> / <code>--computer-use-mcp</code></td><td>对应 MCP server 模式</td></tr>
+      <tr><td>4</td><td><code>--acp</code></td><td>Agent Client Protocol stdio</td></tr>
+      <tr><td>5</td><td><code>weixin</code></td><td>微信集成</td></tr>
+      <tr><td>6</td><td><code>--daemon-worker=&lt;kind&gt;</code></td><td>Daemon supervisor 派生</td></tr>
+      <tr><td>7</td><td><code>remote-control</code> / <code>rc</code> / <code>remote</code> / <code>sync</code> / <code>bridge</code></td><td>Bridge 模式</td></tr>
+      <tr><td>8</td><td><code>daemon [subcommand]</code></td><td>Daemon 长驻进程</td></tr>
+      <tr><td>9</td><td><code>autonomy ...</code>（部分查询）</td><td>状态查询快速路径</td></tr>
+      <tr><td>10</td><td><code>--bg</code> / <code>--background</code></td><td>后台 daemon 模式</td></tr>
+      <tr><td>11</td><td><code>job ...</code></td><td>Template job 命令</td></tr>
+      <tr><td>12</td><td><code>environment-runner</code></td><td>BYOC runner</td></tr>
+      <tr><td>13</td><td><code>self-hosted-runner</code></td><td>自托管 runner</td></tr>
+      <tr><td>14</td><td><code>--tmux + --worktree</code> 组合</td><td><code>execIntoTmuxWorktree(args)</code> 直接 exec</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 四、文件按职责切片 ════════════════ -->
+<section id="sec-4">
+  <h2>四、文件按职责切片（5743 行）</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>行号范围</th><th>内容</th><th>对应小节</th></tr>
+      <tr><td><code>1-22</code></td><td>顶层副作用（3 个必须先于 import 的调用）</td><td>[1] top-side-effects</td></tr>
+      <tr><td><code>24-359</code></td><td>主体 imports（Commander / chalk / lodash / services 等）</td><td>—</td></tr>
+      <tr><td><code>360-483</code></td><td>模块级函数和常量（遥测 / prefetch / settings 早加载）</td><td>[2] module-helpers</td></tr>
+      <tr><td><code>484-510</code></td><td><code>runMigrations()</code> 9 项幂等 migration</td><td>[3] run-migrations</td></tr>
+      <tr><td><code>512-717</code></td><td>Settings 早加载 / <code>initializeEntrypoint()</code></td><td>[2] module-helpers</td></tr>
+      <tr><td><code>718-763</code></td><td>三套 pending 模块单例类型 + 初始化</td><td>[4] pending-singletons</td></tr>
+      <tr><td><code>777-1072</code></td><td><code>main()</code> 导出函数（argv 重写 + clientType 推断 + 调用 run）</td><td>[5] main-fn-argv</td></tr>
+      <tr><td><code>1074-1107</code></td><td><code>getInputPrompt()</code>（stdin 3 秒超时拼接）</td><td>[6] get-input-prompt</td></tr>
+      <tr><td><code>1122-1209</code></td><td><code>run()</code> 开头 + preAction hook（9 步流水线）</td><td>[7] run-preaction</td></tr>
+      <tr><td><code>1211-1493</code></td><td>主命令 <code>program.name()</code> + 所有 <code>.option(...)</code> 注册</td><td>[8] options-registry</td></tr>
+      <tr><td><code>1495-2300</code></td><td>主 <code>.action()</code> 早期处理</td><td>[9] action-early</td></tr>
+      <tr><td><code>2300-3424</code></td><td>主 action 中段（setup + MCP 连接）</td><td>[10] action-setup-mcp</td></tr>
+      <tr><td><code>3425-4566</code></td><td>主 action 末段（headless 派发 + 9 交互分支决策树）</td><td>[11] action-dispatch</td></tr>
+      <tr><td><code>4567-4695</code></td><td>worktree/tmux/ant/remote 等 option</td><td>[8] options-registry</td></tr>
+      <tr><td><code>4720-5546</code></td><td>全部子命令注册（<code>mcp</code> → <code>task</code>）</td><td>[12] subcommands-map</td></tr>
+      <tr><td><code>5562-5743</code></td><td>尾部辅助（<code>logTenguInit</code> / <code>maybeActivateProactive</code> / <code>extractTeammateOptions</code>）</td><td>[13] tail-helpers</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 五、14 节学习索引 ════════════════ -->
+<section id="sec-5">
+  <h2>五、14 节学习索引</h2>
+
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>#</th><th>小节</th><th>主题</th><th>源码行号</th></tr>
+      <tr><td>0</td><td><strong>overview</strong></td><td>总览与心智模型（本节）</td><td>全文</td></tr>
+      <tr><td>1</td><td><strong>top-side-effects</strong></td><td>顶层 3 行副作用：并行预取的设计动机</td><td>1–22</td></tr>
+      <tr><td>2</td><td><strong>module-helpers</strong></td><td>模块级辅助：遥测/prefetch/settings 早加载</td><td>360–483, 512–717</td></tr>
+      <tr><td>3</td><td><strong>run-migrations</strong></td><td><code>runMigrations</code> 幂等 migration + 版本门控</td><td>484–510</td></tr>
+      <tr><td>4</td><td><strong>pending-singletons</strong></td><td>三套 pending 单例：argv 预解析 → action 消费</td><td>718–763</td></tr>
+      <tr><td>5</td><td><strong>main-fn-argv</strong></td><td><code>main()</code> 四件事 + argv 重写四分支 + clientType</td><td>777–1072</td></tr>
+      <tr><td>6</td><td><strong>get-input-prompt</strong></td><td><code>getInputPrompt</code>：stdin 拼接与超时兜底</td><td>1074–1107</td></tr>
+      <tr><td>7</td><td><strong>run-preaction</strong></td><td><code>run()</code> + preAction 9 步流水线</td><td>1122–1209</td></tr>
+      <tr><td>8</td><td><strong>options-registry</strong></td><td>163 个 option 注册（6 大类目录）</td><td>1211–1493, 4567–4695</td></tr>
+      <tr><td>9</td><td><strong>action-early</strong></td><td>主 action 早期处理</td><td>1495–2300</td></tr>
+      <tr><td>10</td><td><strong>action-setup-mcp</strong></td><td>主 action 中段：setup + MCP 连接</td><td>2300–3424</td></tr>
+      <tr><td>11</td><td><strong>action-dispatch</strong></td><td>主 action 末段：headless 派发 + 9 交互分支决策树</td><td>3425–4566</td></tr>
+      <tr><td>12</td><td><strong>subcommands-map</strong></td><td>58 个 Commander 子命令注册地图</td><td>4720–5546</td></tr>
+      <tr><td>13</td><td><strong>tail-helpers</strong></td><td>尾部辅助：logTenguInit / proactive / brief</td><td>5562–5743</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ════════════════ 六、三条贯穿全文的暗线 ════════════════ -->
+<section id="sec-6">
+  <h2>六、三条贯穿全文的暗线</h2>
+
+  <h3>6.1 并行预取（[1] top-side-effects）</h3>
+  <p>顶层 3 行副作用（<code>profileCheckpoint</code> / <code>startMdmRawRead</code> / <code>startKeychainPrefetch</code>）必须先于所有 import，让子进程与 ~135ms 的重型 import <strong>并行运行</strong>，在 preAction 的"汇合点"（<code>1154</code>）等待完成。</p>
+
+  <div class="callout green">
+    <strong>类比</strong>：像饭前先烧水——水壶响之前先切菜，开火时水已沸。
+  </div>
+
+  <h3>6.2 argv 重写四分支（[5] main-fn-argv）</h3>
+  <p><code>main()</code> 的 4 条 argv 重写（cc:// URL / <code>--handle-uri</code> / <code>assistant</code> KAIROS / <code>ssh</code> 远程）通过<strong>模块级 pending 单例</strong>把数据传给主 action，绕过 Commander 的 <code>(prompt, options)</code> 二参数限制。</p>
+
+  <div class="callout blue">
+    <strong>为什么不用函数参数？</strong> Commander 的 <code>parseAsync</code> 自动分发到 <code>.action(handler)</code>，<code>main()</code> 无法给 action 传额外参数。
+  </div>
+
+  <h3>6.3 派发决策树（[11] action-dispatch）</h3>
+  <p>主 action 末段的 <strong>9 条交互分支</strong>全部汇聚到 <code>launchRepl()</code>，形成交互式入口的唯一出口函数。</p>
+
+  <div class="mermaid-box">flowchart TD
+    A[主 action 进入交互模式] --> B{-p/--print?}
+    B -- 是 --> C[runHeadless\nreturn]
+    B -- 否 --> D{--continue?}
+    D -- 是 --> E[loadConversationForResume\nlaunchRepl]
+    D -- 否 --> F{_pendingConnect.url?}
+    F -- 是 --> G[createDirectConnectSession\nlaunchRepl]
+    F -- 否 --> H{_pendingSSH.host?}
+    H -- 是 --> I[createSSHSession\nlaunchRepl]
+    H -- 否 --> J{_pendingAssistantChat?}
+    J -- 是 --> K[discoverAssistantSessions\nlaunchRepl]
+    J -- 否 --> L{--resume?}
+    L -- 是 --> M[解析 sessionId\nlaunchRepl]
+    L -- 否 --> N[全新会话\nlaunchRepl]</div>
+</section>
+
+<!-- ════════════════ 七、cli.tsx ↔ main.tsx 协作总图 ════════════════ -->
+<section id="sec-7">
+  <h2>七、cli.tsx ↔ main.tsx 协作总图</h2>
+
+  <div class="mermaid-box">flowchart TD
+    A[用户执行 claude args] --> B[cli.tsx main函数]
+
+    B --> C{argv 快速路径扫描}
+
+    subgraph quick["cli.tsx 快速路径（main.tsx 不加载）"]
+        D1["1: --version/-v"]
+        D2["2: --dump-system-prompt"]
+        D3["3: --chrome/--computer-use-mcp"]
+        D4["4: --acp"]
+        D5["5: weixin"]
+        D6["6: --daemon-worker=..."]
+        D7["7: remote-control/rc/bridge"]
+        D8["8: daemon subcommand"]
+        D9["9: autonomy 状态查询"]
+        D10["10: --bg/--background"]
+        D11["11: job ..."]
+        D12["12: environment-runner"]
+        D13["13: self-hosted-runner"]
+        D14["14: --tmux+--worktree 组合"]
+    end
+
+    C -- 命中 --> quick --> Z[提前 return]
+
+    C -- 未命中 --> R["startCapturingEarlyInput()"]
+    R --> S["import('../main.jsx')\n取 main 别名 cliMain\n约 ~135ms"]
+    S --> T["await cliMain()"]
+
+    subgraph main["main.tsx 处理"]
+        U["main() 4 件事"]
+        V["1. 安全 env + warning handler"]
+        W["2. argv 重写四分支"]
+        X["3. clientType + isNonInteractive 判定"]
+        Y["4. eagerLoadSettings + await run()"]
+        U --> V --> W --> X --> Y
+    end
+
+    T --> main
+
+    Y --> AA["Commander preAction\n9 步流水线"]
+    AA --> BB{路由到哪个命令}
+    BB --> CC[子命令 action\nmcp/auth/plugin/doctor等]
+    BB --> DD[主 action\n3070 行]
+    DD --> EE{headless?}
+    EE -- 是 --> FF[runHeadless\ncli/print.ts]
+    EE -- 否 --> GG[9 个分支\n全部汇聚至 launchRepl]</div>
+</section>
+
+<!-- ════════════════ 八、常见问题 FAQ ════════════════ -->
+<section id="sec-8">
+  <h2>八、常见问题 FAQ</h2>
+
+  <div class="callout">
+    <p><strong>Q：为什么 main.tsx 顶层只有三行副作用？为什么必须排在所有 import 之前？</strong></p>
+    <p>A：因为 Bun/Node 在求值 <code>import</code> 时是<strong>同步阻塞</strong>的。<code>startMdmRawRead()</code> 和 <code>startKeychainPrefetch()</code> 各自派生异步子进程，如果放在重型 import 之后，就必须等 ~135ms 的 import 完成才能启动，与 import 并行的机会就丢了。注释里专门写明了"这三个副作用必须先于所有其他 import 运行"。</p>
+  </div>
+
+  <div class="callout blue">
+    <p><strong>Q：<code>_pendingConnect</code> / <code>_pendingAssistantChat</code> / <code>_pendingSSH</code> 为什么是模块级变量，而不是函数参数？</strong></p>
+    <p>A：Commander 的 <code>parseAsync</code> 自动把 argv 路由到对应 <code>.action(handler)</code>。<code>main()</code> 无法直接给 action handler 传额外参数——Commander 只给 <code>(prompt, options)</code> 两个参数。模块级变量是唯一在"argv 预解析（main 阶段）"和"action 消费（run 阶段）"之间通信的方式。</p>
+  </div>
+
+  <div class="callout purple">
+    <p><strong>Q：preAction 在 <code>--help</code> 时不跑，这意味着什么？</strong></p>
+    <p>A：意味着 <code>claude --help</code> 是"零副作用"的——不读 keychain、不跑 migrations、不做 init，几乎瞬时响应。这是 Commander 的内建行为（<code>-h/--help</code> 匹配后直接打印并 exit）。反之，任何真实执行（哪怕 <code>claude mcp list</code>）都会先过 preAction 的 9 步流水线。</p>
+  </div>
+
+  <div class="callout green">
+    <p><strong>Q：主 action 为什么这么大（3070 行）？应该拆分吗？</strong></p>
+    <p>A：历史演进的结果。这 3070 行实际上是 Claude Code 的"会话装配工厂"——它需要根据 20+ 个 option 的组合（resume/teleport/SSH/cc://…）决定怎么建立会话。拆分的难点在于这些分支之间共享大量中间变量（<code>setup()</code>、<code>enabledTools</code>、<code>mcpClients</code>、<code>sessionConfig</code> 等），提取为独立函数会有大量参数传递。从可读性角度看，流程图（七节中的决策树）比把它拆成 20 个小函数更容易理解。</p>
+  </div>
+
+  <p><strong>下一步</strong>：逐节深入——从 [1] top-side-effects 开始，理解"并行预取"的设计动机。</p>
+</section>
+
+</div><!-- .page-wrap -->
+</body>
+</html>

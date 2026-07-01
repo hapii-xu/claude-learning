@@ -1,0 +1,141 @@
+---
+title: "[6] transcript 持久化与消息确认：早写 + 策略 + replayable"
+description: submitMessage 第四阶段——在进 query 循环前就 recordTranscript(messages)（保证 --resume 从用户消息被接受起就能恢复）、区分 bare/交互模式的 fire-and-forget vs await + eager flush 策略、过滤 replayableMessages（user 非 meta 非 toolResult + 通过 selector；或 compact_boundary）、更新 permission context、第二次重建 processUserInputContext（setMessages 变 no-op）（src/QueryEngine.ts:577-684）。
+---
+
+# [6] transcript 持久化与消息确认：早写 + 策略 + replayable
+
+> 本节覆盖 `577-684`——`submitMessage` 的第四阶段：**在进入 `query()` 循环之前**就把当前消息持久化到 transcript，并准备「需要向 SDK 确认的重放消息」。这是 transcript 持久化策略的核心（`[0]` 三条暗线之②）。
+
+---
+
+## 一、⭐ transcript 早写：为何在 query 之前
+
+```typescript
+if (persistSession && messagesFromUserInput.length > 0) {
+  const transcriptPromise = recordTranscript(messages)
+  if (isBareMode()) {
+    void transcriptPromise  // fire-and-forget
+  } else {
+    await transcriptPromise
+    if (isEnvTruthy('CLAUDE_CODE_EAGER_FLUSH') || isEnvTruthy('CLAUDE_CODE_IS_COWORK')) {
+      await flushSessionStorage()
+    }
+  }
+}
+```
+
+| 场景 | 策略 | 原因 |
+|---|---|---|
+| **bare/SIMPLE 模式** | `void`（fire-and-forget） | 脚本化调用不会中途被杀后 `--resume`，异步写不阻塞 |
+| **交互模式** | `await` + 可选 `flushSessionStorage` | 确保写盘后再继续，`--resume` 能恢复 |
+
+> **为什么要早写**：如果进程在 API 调用之前被杀（如 cowork 用户点 Stop），transcript 至少包含**用户消息被接受的那一刻**——`getLastSessionLog` 能返回非 null，`--resume` 能从这点起恢复。否则，用户消息永不落盘，恢复起点丢失。
+
+> **eager flush（CLAUDE_CODE_EAGER_FLUSH / IS_COWORK）**：主动 flush 确保数据从缓冲区写进磁盘。cowork 模式下进程可能随时被杀，flush 保证恢复点完整。
+
+---
+
+## 二、replayableMessages：需要向 SDK 确认的消息
+
+```typescript
+const _selector = messageSelector()
+const replayableMessages = messagesFromUserInput.filter(
+  msg =>
+    (msg.type === 'user' &&
+      !msg.isMeta &&
+      !msg.toolUseResult &&
+      (_selector?.selectableUserMessagesFilter(msg) ?? true)) ||
+    (msg.type === 'system' && msg.subtype === 'compact_boundary'),
+)
+const messagesToAck = replayUserMessages ? replayableMessages : []
+```
+
+| 过滤条件 | 说明 |
+|---|---|
+| `msg.type === 'user'` | 只确认用户消息（assistant 消息由 API 产生） |
+| `!msg.isMeta` | 跳过合成的 caveat/元信息消息 |
+| `!msg.toolUseResult` | 跳过工具结果（它们会从 query 中被确认） |
+| `selector?.selectableUserMessagesFilter(msg) ?? true` | 跳过非用户撰写的消息（任务通知等） |
+| `compact_boundary` | 总是确认压缩边界（SDK 需要知道历史裁剪） |
+
+> **`messagesToAck`**：`replayUserMessages` 门控（SDK 模式下通常为 `true`）。这些消息会在 `[8]` 的 `for-await query` 循环中**首次 transcript 记录后** yield 回去（`isReplay: true`），让 SDK 知道「这些消息已被接受」。
+
+---
+
+## 三、更新 permission context
+
+```typescript
+setAppState(prev => ({
+  ...prev,
+  toolPermissionContext: {
+    ...prev.toolPermissionContext,
+    alwaysAllowRules: {
+      ...prev.toolPermissionContext.alwaysAllowRules,
+      command: allowedTools,
+    },
+  },
+}))
+```
+
+- `allowedTools` 来自 `processUserInput`（`[5]`），可能被 slash 命令修改（如 `/allow bash`）。
+- 更新到 `AppState.toolPermissionContext.alwaysAllowRules.command`，让本轮及后续轮次遵守新的允许列表。
+
+---
+
+## 四、第二次重建 processUserInputContext
+
+```typescript
+const mainLoopModel = modelFromUserInput ?? initialMainLoopModel
+
+processUserInputContext = {
+  messages,
+  setMessages: () => {},  // ← now no-op
+  onChangeAPIKey: () => {},
+  handleElicitation: this.config.handleElicitation,
+  options: {
+    commands, debug: false, tools, verbose,
+    mainLoopModel,  // ← updated
+    thinkingConfig: initialThinkingConfig,
+    mcpClients, mcpResources: {},
+    ideInstallationStatus: null,
+    isNonInteractiveSession: true,
+    customSystemPrompt, appendSystemPrompt,
+    theme: resolveThemeSetting(getGlobalConfig().theme),
+    agentDefinitions: { activeAgents: agents, allAgents: [] },
+    maxBudgetUsd,
+  },
+  getAppState, setAppState,
+  abortController: this.abortController,
+  readFileState: this.readFileState,
+  nestedMemoryAttachmentTriggers: new Set<string>(),
+  loadedNestedMemoryPaths: this.loadedNestedMemoryPaths,
+  dynamicSkillDirTriggers: new Set<string>(),
+  discoveredSkillNames: this.discoveredSkillNames,
+  setInProgressToolUseIDs: () => {},
+  setResponseLength: () => {},
+  updateFileHistoryState: processUserInputContext.updateFileHistoryState,
+  updateAttributionState: processUserInputContext.updateAttributionState,
+  setSDKStatus,
+}
+```
+
+### 与第一次的差异
+
+| 字段 | 第一次（[5]） | 第二次 |
+|---|---|---|
+| `messages` | `this.mutableMessages` | `messages`（快照副本） |
+| `setMessages` | 回写 `mutableMessages` 或 `AppState` | `() => {}`（no-op） |
+| `mainLoopModel` | `initialMainLoopModel` | `modelFromUserInput ?? initialMainLoopModel`（可能被 slash 命令覆盖） |
+
+> **`setMessages` 变 no-op**：在 `processUserInput` 之后，消息已定型；后续没有其他地方调用 `setMessages`，所以设为空函数避免误操作。
+
+---
+
+## 速记口诀
+
+- **早写**：`recordTranscript(messages)` 在 query 之前——保 `--resume` 能恢复到用户消息被接受点。
+- **策略**：bare 模式 fire-and-forget（不阻塞）；交互模式 await + eager flush（CLAUDE_CODE_EAGER_FLUSH/IS_COWORK）。
+- **replayable 过滤**：user 非 meta 非 toolResult + 通过 selector；或 compact_boundary。
+- **messagesToAck**：`replayUserMessages` 门控（SDK 模式 true），在 [8] 首次 transcript 后 yield `isReplay: true`。
+- **第二次 context**：`messages` 用快照、`setMessages` no-op、`mainLoopModel` 可能被 slash 命令覆盖。

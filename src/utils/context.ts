@@ -224,11 +224,9 @@ export function getModelMaxOutputTokens(model: string): {
 }
 
 /**
- * 返回给定模型的最大思考预算 tokens。最大思考 tokens
- * 应严格小于最大输出 tokens。
+ * 返回给定模型的最大思考预算 tokens。最大思考 tokens 应严格小于最大输出 tokens。
  *
- * 已废弃，因为较新的模型使用自适应思考而非严格的
- * 思考 token 预算。
+ * 已废弃，因为较新的模型使用自适应思考而非严格的思考 token 预算。
  */
 export function getMaxThinkingTokensForModel(model: string): number {
   return getModelMaxOutputTokens(model).upperLimit - 1

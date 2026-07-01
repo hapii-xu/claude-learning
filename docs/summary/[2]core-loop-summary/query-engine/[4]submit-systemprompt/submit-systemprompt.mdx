@@ -1,0 +1,126 @@
+---
+title: "[4] 系统提示构建：三层拼接与结构化输出 hook"
+description: submitMessage 第二阶段——调用 fetchSystemPromptParts 获取 defaultSystemPrompt / userContext / systemContext，合并 coordinator context（COORDINATOR_MODE 下注入 scratchpad），可选注入 memoryMechanicsPrompt（显式自定义 prompt + AUTO_MEM_PATH_OVERRIDE 时），最后 asSystemPrompt 三层拼接。并在有结构化输出工具 + jsonSchema 时注册 function hook（src/QueryEngine.ts:398-465）。
+---
+
+# [4] 系统提示构建：三层拼接与结构化输出 hook
+
+> 本节覆盖 `398-465`——`submitMessage` 的第二阶段：组装本轮会话发给 API 的完整系统提示。它分三层：**基础提示**（default 或 custom）→ **memory 机制提示**（可选）→ **追加提示**（`appendSystemPrompt`），最后用 `asSystemPrompt` 包装成符合 API 期望的格式。同时处理 `coordinator` 上下文与结构化输出 hook 注册。
+
+---
+
+## 一、fetchSystemPromptParts：拿基础提示的三块
+
+```typescript
+headlessProfilerCheckpoint('before_getSystemPrompt')
+const customPrompt =
+  typeof customSystemPrompt === 'string' ? customSystemPrompt : undefined
+const {
+  defaultSystemPrompt,
+  userContext: baseUserContext,
+  systemContext,
+} = await fetchSystemPromptParts({
+  tools,
+  mainLoopModel: initialMainLoopModel,
+  additionalWorkingDirectories: Array.from(
+    initialAppState.toolPermissionContext.additionalWorkingDirectories.keys(),
+  ),
+  mcpClients,
+  customSystemPrompt: customPrompt,
+})
+headlessProfilerCheckpoint('after_getSystemPrompt')
+```
+
+- `customPrompt` 用三元收窄类型（`string | undefined`），避免传非字符串给 `fetchSystemPromptParts`。
+- 返回的 `defaultSystemPrompt` 是「**没有 customPrompt 时的默认 CLAUDE.md + 上下文**」；有 `customPrompt` 时它就是 `customPrompt` 本身（`fetchSystemPromptParts` 内部处理）。
+- `baseUserContext` / `systemContext` 是从环境、git、CLAUDE.md 等处抽取的元信息（见 `src/context.ts`）。
+- `headlessProfilerCheckpoint` 用于性能追踪（headless 模式下记录阶段耗时）。
+
+---
+
+## 二、userContext：合并 coordinator context
+
+```typescript
+const userContext = {
+  ...baseUserContext,
+  ...getCoordinatorUserContext(
+    mcpClients,
+    isScratchpadEnabled() ? getScratchpadDir() : undefined,
+  ),
+}
+```
+
+- `baseUserContext` 先铺底，再用 `getCoordinatorUserContext` 覆盖/追加。
+- `COORDINATOR_MODE` 关闭时，`getCoordinatorUserContext` 返回 `{}`，无害合并。
+- `COORDINATOR_MODE` 开启时，coordinator 会注入额外上下文（如远程工作目录、任务状态等）。
+
+> **为什么在 QueryEngine 层合并**：`fetchSystemPromptParts` 是更底层的工具（`src/utils/queryContext.ts`），它不知道 coordinator 的存在。把 coordinator 特定逻辑留在外层，保持底层纯粹。
+
+---
+
+## 三、⭐ memoryMechanicsPrompt：可选的 memory 机制引导
+
+```typescript
+const memoryMechanicsPrompt =
+  customPrompt !== undefined && hasAutoMemPathOverride()
+    ? await loadMemoryPrompt()
+    : null
+```
+
+- **两个条件缺一不可**：
+  1. `customPrompt !== undefined`：调用方提供了自定义系统提示（如 SDK 模式）。
+  2. `hasAutoMemPathOverride()`：环境变量 `CLAUDE_COWORK_MEMORY_PATH_OVERRIDE` 已设置（调方的 opt-in 信号）。
+- **为何是 opt-in**：memory 机制需要调用方接好 memory 目录并配置好路径。engine 不该在未知配置时自动启用——否则可能读写意外位置。
+
+> 只有当「SDK 调用方显式提供 customPrompt **并**设置 memory 路径覆盖」时，才会注入 `loadMemoryPrompt()` 返回的文本（告诉 Claude 如何使用 Write/Edit 工具、MEMORY.md 文件名、加载语义等）。
+
+---
+
+## 四、asSystemPrompt：三层拼接
+
+```typescript
+const systemPrompt = asSystemPrompt([
+  ...(customPrompt !== undefined ? [customPrompt] : defaultSystemPrompt),
+  ...(memoryMechanicsPrompt ? [memoryMechanicsPrompt] : []),
+  ...(appendSystemPrompt ? [appendSystemPrompt] : []),
+])
+```
+
+| 层 | 条件 | 内容 |
+|---|---|---|
+| **第一层** | `customPrompt` 存在？`customPrompt`：`defaultSystemPrompt` | 基础提示（CLAUDE.md 或自定义） |
+| **第二层** | `memoryMechanicsPrompt` 存在？它：跳过 | memory 机制引导（仅 SDK + opt-in） |
+| **第三层** | `appendSystemPrompt` 存在？它：跳过 | 调方追加的额外提示文本 |
+
+- `asSystemPrompt` 把数组包装成符合 API 期望的格式（`{ content: [...], type: 'text' }`）。
+- 拼接顺序固定：基础 → memory 引导 → 追加。memory 引导夹在中间，紧随基础提示之后，确保 Claude 看完基础规则就知道如何用 memory。
+
+---
+
+## 五、结构化输出 hook 注册
+
+```typescript
+const hasStructuredOutputTool = tools.some(t =>
+  toolMatchesName(t, SYNTHETIC_OUTPUT_TOOL_NAME),
+)
+if (jsonSchema && hasStructuredOutputTool) {
+  registerStructuredOutputEnforcement(setAppState, getSessionId())
+}
+```
+
+- **两个条件**：
+  1. `jsonSchema` 存在：调用方要求结构化输出（如 `-j` 模式）。
+  2. `SYNTHETIC_OUTPUT_TOOL_NAME` 工具存在：工具表里包含 `StructuredOutput` 工具。
+- **`registerStructuredOutputEnforcement`**（`src/utils/hooks/hookHelpers.ts`）注册一个 function hook，在 API 返回时检查结构化输出是否合法——不合法则触发重试（见 query.ts 的结构化输出重试上限守卫，`[10]`）。
+
+> **为什么在 submitMessage 层注册**：hook 的生命周期是「本轮会话」；每轮 `submitMessage` 注册一次，确保 hook 与本轮的 `sessionId` 绑定。
+
+---
+
+## 速记口诀
+
+- **fetchSystemPromptParts**：拿 defaultSystemPrompt / baseUserContext / systemContext 三块。
+- **coordinator 合并**：`baseUserContext` + `getCoordinatorUserContext`（COORDINATOR_MODE 下有内容）。
+- **memory 机制 opt-in**：`customPrompt` + `AUTO_MEM_PATH_OVERRIDE` 两个条件→ `loadMemoryPrompt()`。
+- **三层拼接**：基础（custom 或 default）→ memory 引导（可选）→ append。
+- **结构化输出 hook**：`jsonSchema` + `SYNTHETIC_OUTPUT_TOOL_NAME` 存在→ 注册 function hook。

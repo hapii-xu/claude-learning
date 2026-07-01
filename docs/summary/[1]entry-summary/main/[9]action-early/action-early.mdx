@@ -1,0 +1,197 @@
+---
+title: 主 action 早期处理 · src/main.tsx:1495-2300
+description: 主 .action() 早期处理：--bare→CLAUDE_CODE_SIMPLE / claude code 兼容 / KAIROS trust gate / 解构主标志 / --prefill→seedEarlyInput / outputFormat 与 --sdk-url 推导
+---
+
+# 主 action 早期处理 · 前 800 行
+
+> `src/main.tsx:1495–2300` 是主 `.action()` 的早期处理阶段：设置 bare 模式、兼容 `claude code` 调用、KAIROS trust gate、解构主标志、`--prefill` 预填、推导 `outputFormat`。
+
+---
+
+## 一、注册位置（1495）
+
+```ts
+// src/main.tsx:1495
+program.argument('[prompt]', '...').action(async (prompt, options) => {
+  // 这里是 claude 命令不带子命令时的默认入口
+  // 约 3070 行（1495-4566）
+})
+```
+
+---
+
+## 二、早期处理清单（1505–2300）
+
+| 步骤 | 行号 | 内容 |
+|---|---|---|
+| 1 | `1505-1507` | `--bare` → `process.env.CLAUDE_CODE_SIMPLE = '1'` |
+| 2 | `1510-1513` | `claude code` 向后兼容（把 `code` 作为 prompt 消耗） |
+| 3 | `1540-1579` | KAIROS assistant 模式激活 trust gate |
+| 4 | `1581-1598` | 解构主要标志（`print`, `outputFormat`, `inputFormat`, `verbose`, `permissionMode` 等） |
+| 5 | `1600-1602` | `--prefill` → `seedEarlyInput()`（写入 REPL 输入框） |
+| 6 | `1620-1746` | 推导 `outputFormat`（自动 stream-json 等）/ `--sdk-url` 触发自动设 stream-json + verbose + print |
+
+---
+
+## 三、`--bare` 模式（1505–1507）
+
+```ts
+// src/main.tsx:1505
+if (options.bare) {
+  process.env.CLAUDE_CODE_SIMPLE = '1';
+}
+```
+
+| 影响 | 说明 |
+|---|---|---|
+| hooks | 跳过所有 hooks 执行 |
+| LSP | 不启动 LSP 服务器 |
+| plugins | 不加载 plugins |
+| CLAUDE.md | 不读取 CLAUDE.md |
+| keychain | 不读取 keychain（OAuth + API key） |
+
+> **为什么是环境变量？** `CLAUDE_CODE_SIMPLE` 需要被多个模块读取（hooks/LSP/plugins/CLAUDE.md discovery），env var 是最简单的跨模块通信。
+
+---
+
+## 四、`claude code` 向后兼容（1510–1513）
+
+```ts
+// src/main.tsx:1510
+if (prompt === 'code') {
+  // 把 'code' 作为 prompt 消耗，让 claude code 启动 REPL
+  prompt = '';
+}
+```
+
+**背景**：早期版本用户习惯 `claude code` 启动，后来改用 `claude` 直接启动。此兼容代码确保旧习惯不报错。
+
+---
+
+## 五、KAIROS trust gate（1540–1579）
+
+```ts
+// src/main.tsx:1540
+if (feature('KAIROS') && _pendingAssistantChat?.sessionId) {
+  // 检查用户是否信任此 assistant session
+  const trustState = await getAssistantTrustState(sessionId);
+  if (trustState !== 'trusted') {
+    // 显示 trust gate UI
+    await showAssistantTrustGate(sessionId);
+  }
+}
+```
+
+---
+
+## 六、解构主标志（1581–1598）
+
+```ts
+// src/main.tsx:1581
+const {
+  print,
+  outputFormat,
+  inputFormat,
+  verbose,
+  permissionMode,
+  model,
+  effort,
+  maxBudgetUsd,
+  // ...更多
+} = options;
+```
+
+| 标志 | 类型 | 默认值 |
+|---|---|---|
+| `print` | `boolean` | `false` |
+| `outputFormat` | `'text' \| 'json' \| 'stream-json'` | 从 settings 推导 |
+| `inputFormat` | `'text' \| 'stream-json'` | `'text'` |
+| `verbose` | `boolean` | 从 settings |
+| `permissionMode` | `string` | 从 settings |
+| `model` | `string` | 从 settings |
+| `effort` | `'low' \| 'medium' \| 'high' \| 'max'` | 从 settings |
+
+---
+
+## 七、`--prefill` 预填（1600–1602）
+
+```ts
+// src/main.tsx:1600
+if (options.prefill) {
+  seedEarlyInput(options.prefill);
+}
+```
+
+**作用**：把 `--prefill` 的内容写入 REPL 输入框，用户进入后可以直接修改或发送。
+
+**示例**：
+
+```bash
+claude --prefill "帮我写一个 hello world"
+```
+
+---
+
+## 八、推导 `outputFormat`（1620–1746）
+
+```ts
+// src/main.tsx:1620（简化）
+let outputFormat = options.outputFormat;
+if (!outputFormat) {
+  if (options.sdkUrl) {
+    outputFormat = 'stream-json';  // --sdk-url 自动设 stream-json
+  } else if (process.env.CLHUDE_OUTPUT_FORMAT) {
+    outputFormat = process.env.CLAUDE_OUTPUT_FORMAT;
+  } else {
+    outputFormat = 'text';
+  }
+}
+```
+
+| 条件 | `outputFormat` |
+|---|---|
+| `--sdk-url` 存在 | `'stream-json'`（自动） |
+| `--output-format` 指定 | 使用指定值 |
+| `CLAUDE_OUTPUT_FORMAT` env | 使用 env 值 |
+| 默认 | `'text'` |
+
+---
+
+## 九、`--sdk-url` 自动设置（1620–1746）
+
+```ts
+// src/main.tsx:1650（示意）
+if (options.sdkUrl) {
+  // 自动设置三件套
+  outputFormat = 'stream-json';
+  verbose = true;
+  print = true;
+}
+```
+
+| 自动设置 | 原因 |
+|---|---|---|
+| `outputFormat = 'stream-json'` | SDK 需要流式 JSON 协议 |
+| `verbose = true` | SDK 调试需要详细日志 |
+| `print = true` | SDK 模式强制 headless |
+
+---
+
+## 十、常见问题 FAQ
+
+> **Q：为什么 `--bare` 后很多功能仍可用（如 `--model`）？**
+
+A：`--bare` 只跳过**有副作用的初始化**（hooks/LSP/plugins/CLAUDE.md/keychain），不影响命令行 option 解析。`--model` 只是参数传递，不需要初始化，因此仍然生效。
+
+> **Q：`--prefill` 和直接传 prompt 有什么区别？**
+
+A：`--prefill` 是**预填输入框**，用户进入 REPL 后可以修改再发送；直接传 prompt（`claude "say hello"`）是**立即发送**，用户无法修改。`--prefill` 适合"模板式"启动。
+
+> **Q：`--sdk-url` 为什么自动设置而不是让用户显式指定？**
+
+A：`--sdk-url` 本身就暗示"这是 SDK 调用"，用户只需提供 URL，其他配置（stream-json/verbose/print）是标准搭配，自动设置减少认知负担。
+
+---
+
+**下一步**：[10] action-setup-mcp —— 主 action 中段：setup + MCP 连接。

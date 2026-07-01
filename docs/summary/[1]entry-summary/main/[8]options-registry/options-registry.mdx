@@ -1,0 +1,173 @@
+---
+title: Option 注册 · src/main.tsx:1211-1493 + 4567-4695
+description: 163 个 option 注册，按 6 大类目录化：调试输出 / 权限安全 / 模型思考 / 会话恢复 / 配置外部资源 / 高级隐藏（含 worktree/tmux/ant/remote/teammate option）
+---
+
+# Option 注册 · 163 个命令行选项
+
+> `src/main.tsx:1211–1493` + `4567–4695` 定义了**163 个命令行 option**，覆盖调试输出、权限安全、模型思考、会话恢复、配置外部资源、高级隐藏功能。按 6 大类目录化，便于查找和实战应用。
+
+---
+
+## 一、总览表
+
+| 类别 | option 数量 | 行号范围 |
+|---|---|---|
+| 调试与输出 | 8 | 1218–1271 |
+| 权限与安全 | 7 | 1282–1352 |
+| 配置与外部资源 | 12 | 1354–1391 |
+| 会话恢复 | 7 | 1380–1426 |
+| 模型与思考 | 6 | 1292–1449 |
+| 高级/隐藏 | ~20 | 1447–1489 + 4567–4695 |
+
+---
+
+## 二、调试与输出（1218–1271）
+
+| Option | 行号 | 说明 | 示例 |
+|---|---|---|---|
+| `-d, --debug [filter]` | `1218` | 启用 debug，可选过滤 | `claude --debug api,hooks` |
+| `--debug-to-stderr` | `1228` | debug 输出到 stderr（hidden） | `claude --debug-to-stderr -p "..."` |
+| `--debug-file <path>` | `1229` | 写 debug log 到文件 | `claude --debug-file ./debug.log` |
+| `--verbose` | `1234` | 覆盖 settings 中的 verbose | `claude --verbose` |
+| `-p, --print` | `1235` | Headless / print 模式 | `claude -p "说 hello"` |
+| `--output-format <format>` | `1248` | `text` / `json` / `stream-json` | `claude -p "..." --output-format=json` |
+| `--include-hook-events` | `1261` | hook 事件加入输出流 | `claude -p "..." --include-hook-events` |
+| `--include-partial-messages` | `1266` | 流式输出部分消息块 | `claude -p "..." --include-partial-messages` |
+| `--input-format <format>` | `1271` | `text` / `stream-json` | `echo '{"type":"user",...}' \| claude -p --input-format=stream-json` |
+| `--json-schema <schema>` | `1254` | structured output 校验 | `claude -p "..." --json-schema '{"type":"object",...}'` |
+
+**实战：SDK 双向流式调用**
+
+```bash
+claude --print \
+  --input-format=stream-json \
+  --output-format=stream-json \
+  --sdk-url ws://localhost:3000
+```
+
+---
+
+## 三、权限与安全（1282–1352）
+
+| Option | 行号 | 说明 | 示例 |
+|---|---|---|---|
+| `--permission-mode <mode>` | `1292` | 权限模式 | `claude --permission-mode auto` |
+| `--dangerously-skip-permissions` | `1282` | 绕过所有权限检查 | `claude --dangerously-skip-permissions -p "rm -rf ..."` |
+| `--allowedTools <tools...>` | `1342` | 工具白名单 | `claude --allowedTools "Bash(git:*) Edit"` |
+| `--disallowedTools <tools...>` | `1350` | 工具黑名单 | `claude --disallowedTools Read FileWrite` |
+| `--tools <tools...>` | `1346` | 可用内建工具集 | `claude --tools "default"` |
+
+**实战：只允许 git 操作**
+
+```bash
+claude --allowedTools "Bash(git:*)" -p "帮我写一个 git commit 信息"
+```
+
+---
+
+## 四、模型与思考（1292–1449）
+
+| Option | 行号 | 说明 | 示例 |
+|---|---|---|---|
+| `--model <model>` | `1431` | 模型别名或全名 | `claude --model sonnet` |
+| `--effort <level>` | `1435` | `low`/`medium`/`high`/`max` | `claude --effort max` |
+| `--thinking <mode>` | `1292` | `enabled`/`adaptive`/`disabled`（hidden） | `claude --thinking adaptive` |
+| `--max-turns <turns>` | `1305` | 最大轮数（hidden） | `claude -p "..." --max-turns 5` |
+| `--max-budget-usd <amount>` | `1313` | 美元预算上限 | `claude -p "..." --max-budget-usd 0.50` |
+| `--betas <betas...>` | `1448` | API beta header | `claude --betas interleaved-thinking-2025-05-14` |
+| `--fallback-model <model>` | `1449` | 主模型过载时回落 | `claude -p "..." --fallback-model haiku` |
+
+---
+
+## 五、会话恢复（1380–1426）
+
+| Option | 行号 | 说明 | 示例 |
+|---|---|---|---|
+| `-c, --continue` | `1380` | 继续当前 cwd 最近的会话 | `claude -c` |
+| `-r, --resume [value]` | `1381` | 按 sessionId 恢复 | `claude --resume` 或 `claude --resume abc-123` |
+| `--fork-session` | `1386` | resume 时创建新 sessionId | `claude --fork-session --resume abc-123` |
+| `--from-pr [value]` | `1407` | 按 PR 号恢复 | `claude --from-pr 123` |
+| `--session-id <uuid>` | `1470` | 强制指定 sessionId | `claude --session-id $(uuidgen)` |
+| `--name <name>` | `1471` | 会话显示名 | `claude --name "my-feature-session"` |
+| `--no-session-persistence` | `1412` | 关闭会话持久化 | `claude -p "..." --no-session-persistence` |
+
+**实战：安全 resume 工作流**
+
+```bash
+# 先恢复到选择器找到目标 session
+claude --resume
+
+# 确认 id 后 fork 出新 session，原 session 不受影响
+claude --fork-session --resume abc-def-123
+```
+
+---
+
+## 六、配置与外部资源（1354–1391）
+
+| Option | 行号 | 说明 | 示例 |
+|---|---|---|---|
+| `--settings <file-or-json>` | `1459` | settings JSON 文件或字符串 | `claude --settings ./my-settings.json` |
+| `--setting-sources <sources>` | `1476` | 加载哪些 setting 来源 | `claude --setting-sources user,project` |
+| `--mcp-config <configs...>` | `1354` | 从 JSON 加载 MCP server | `claude --mcp-config ./mcp.json` |
+| `--strict-mcp-config` | `1465` | 只用 `--mcp-config` 的 server | `claude --strict-mcp-config --mcp-config ./mcp.json` |
+| `--system-prompt <prompt>` | `1360` | 完全覆盖系统提示词 | `claude --system-prompt "你是一个 SQL 专家"` |
+| `--append-system-prompt <prompt>` | `1362` | 追加系统提示词 | `claude --append-system-prompt "请用中文回复"` |
+| `--add-dir <directories...>` | `1463` | 追加工具可访问目录 | `claude --add-dir ~/lib --add-dir ~/scripts` |
+| `--plugin-dir <path>` | `1482` | 临时插件目录 | `claude --plugin-dir ./my-plugin` |
+| `--agents <json>` | `1472` | JSON 定义自定义 agents | `claude --agents '[{"name":"mybot",...}]'` |
+| `--agent <agent>` | `1447` | 当前会话 agent | `claude --agent mybot` |
+| `--ide` | `1464` | 启动时自动连接唯一可用 IDE | `claude --ide` |
+| `--chrome` | `1489` | 启用 Chrome 集成 | `claude --chrome` |
+| `--bare` | `1240` | 最小模式 | `claude --bare -p "..."` |
+| `--disable-slash-commands` | `1488` | 禁用所有 skills | `claude --disable-slash-commands` |
+
+**实战：最小化脚本调用**
+
+```bash
+claude --bare \
+  -p "$(cat query.txt)" \
+  --system-prompt-file ./sys.md \
+  --output-format=json \
+  --no-session-persistence
+```
+
+---
+
+## 七、高级/隐藏选项（1447–1489 + 4567–4695）
+
+| Option | 行号 | 说明 |
+|---|---|---|
+| `-w, --worktree [name]` | `4570` | 为本会话创建 git worktree |
+| `--tmux` | `4571` | 在 tmux 内创建 worktree 会话（被 cli.tsx 拦截） |
+| `--proactive` | `4620` | 启动 proactive 自治模式 |
+| `--brief` | `4633` | 启用 SendUserMessage 工具 |
+| `--sdk-url <url>` | `4667` | 远程 WebSocket I/O（hidden） |
+| `--teleport [session]` | `4675` | resume teleport（hidden） |
+| `--remote [description]` | `4678` | 创建远程会话（hidden） |
+| `--remote-control [name]` | `4682` | 启用 Remote Control（hidden） |
+| `--prefill <text>` | `1391` | 预填 prompt 输入框（hidden） |
+| `--advisor <model>` | `4578` | 服务端 advisor 工具（hidden） |
+| `--effort <level>` | `1435` | low/medium/high/max |
+| teammate 系列：`--agent-id`, `--agent-name`, `--team-name`, `--plan-mode-required`, `--parent-session-id`, `--teammate-mode`, `--agent-type`, `--agent-color` | `4653–4664` | 全部 hidden，tmux 派生 teammate 使用 |
+
+---
+
+## 八、常见问题 FAQ
+
+> **Q：为什么有这么多 hidden option？**
+
+A：hidden option 是**内部功能或实验性功能**，不对外宣传但存在。如 `--sdk-url` 供 SDK 内部使用、`--teleport` 供远程会话桥接。它们不在 `--help` 中显示，但可以通过代码发现。
+
+> **Q：`--bare` 与其他 option 的关系？**
+
+A：`--bare` 是一个**总开关**，设置 `CLAUDE_CODE_SIMPLE=1`，会影响后续很多初始化行为（跳过 hooks/LSP/plugins/CLAUDE.md/keychain）。其他 option 在 `--bare` 基础上仍然生效，但部分会被忽略（如 `--chrome` 在 bare 模式无意义）。
+
+> **Q：`--mcp-config` 和 settings 里的 MCP 配置怎么合并？**
+
+A：默认合并（settings + `--mcp-config`）。`--strict-mcp-config` 则**只用** `--mcp-config` 的 server，忽略 settings 里的。这对于测试隔离很有用。
+
+---
+
+**下一步**：[9] action-early —— 主 action 早期处理。

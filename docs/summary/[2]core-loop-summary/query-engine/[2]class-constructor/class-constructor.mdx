@@ -1,0 +1,109 @@
+---
+title: "[2] 类骨架：字段、构造与生命周期方法"
+description: QueryEngine 类的骨架——7 个私有字段（config / mutableMessages / abortController / permissionDenials / totalUsage / hasHandledOrphanedPermission / readFileState）加两个按轮次作用域的 Set（discoveredSkillNames / loadedNestedMemoryPaths），constructor 做字段初始化，以及一组对外的生命周期方法（interrupt / resetAbortController / getAbortSignal / getMessages / setModel 等）。这些是会话状态的「容器」，submitMessage 在其上读写（src/QueryEngine.ts:197-274, 1472-1543）。
+---
+
+# [2] 类骨架：字段、构造与生命周期方法
+
+> 本节看 QueryEngine 这个「状态容器」本身：它持有哪些字段、构造时怎么初始化、对外暴露哪些操作。真正的执行逻辑在 `submitMessage`（`[3]`~`[10]`），本节是它读写的「画布」。覆盖 `QueryEngine.ts:197-274`（类 + 字段 + 构造）与 `1472-1543`（生命周期方法）。
+
+---
+
+## 一、类的定位（文档注释解读）
+
+类头注释（`197-222`）点明三件事：
+
+- **一对话一实例**：每个对话对应一个 QueryEngine。
+- **每次 `submitMessage()` 开启一轮**：状态（消息、文件缓存、用量等）**跨轮次持久化**。
+- **三方共用**：headless / SDK 路径，以及（未来阶段）REPL。它把原先散在 `ask()` 里的核心逻辑抽成了独立类。
+
+> 一句话：QueryEngine 拥有「查询生命周期 + 会话状态」，是 `query()` 之上的有状态外壳。
+
+---
+
+## 二、⭐ 私有字段：会话状态的全部
+
+```typescript
+private config: QueryEngineConfig
+private mutableMessages: Message[]
+private abortController: AbortController
+private permissionDenials: SDKPermissionDenial[]
+private totalUsage: NonNullableUsage
+private hasHandledOrphanedPermission = false
+private readFileState: FileStateCache
+private discoveredSkillNames = new Set<string>()
+private loadedNestedMemoryPaths = new Set<string>()
+```
+
+| 字段 | 生命周期 | 作用 |
+|---|---|---|
+| `config` | 整个 engine | 构造入参，submitMessage 解构使用 |
+| `mutableMessages` | 跨轮持久 | 完整对话历史（真理之源） |
+| `abortController` | 可重置 | 中断信号；interrupt/reset 操作它 |
+| `permissionDenials` | **每轮清空** | 本轮被拒工具调用，供 result 报告 |
+| `totalUsage` | 跨轮累计 | token 用量总账 |
+| `hasHandledOrphanedPermission` | 整个 engine | 孤立权限只处理一次的守卫 |
+| `readFileState` | 跨轮持久 | 文件读取缓存 |
+| `discoveredSkillNames` | **每轮清空** | 技能发现追踪（`was_discovered` 埋点） |
+| `loadedNestedMemoryPaths` | 跨轮持久 | 已加载的嵌套 memory 路径去重 |
+
+### 为什么 discoveredSkillNames 每轮清空
+
+它需在 `submitMessage` 内**两次** `processUserInputContext` 重建之间保持（`[5]`/`[6]` 复用同一 Set），但必须在每次 `submitMessage` 开头 `.clear()`。
+
+> **原因**：SDK 模式下一个 engine 会跑很多轮，如果不清空，发现集会跨轮**无界增长**——这是内存治理暗线（`[0]` 第六节）在类字段层的体现。`loadedNestedMemoryPaths` 则是有意跨轮持久（已加载的 memory 不该重复加载）。
+
+---
+
+## 三、constructor：字段初始化
+
+`238-274` 的 constructor 逻辑极简（去掉 `logForDebugging` 后）：
+
+```typescript
+this.config = config
+this.mutableMessages = config.initialMessages ?? []
+this.abortController = config.abortController ?? createAbortController()
+this.permissionDenials = []
+this.readFileState = config.readFileCache
+this.totalUsage = EMPTY_USAGE
+```
+
+- `mutableMessages` 从 `initialMessages` 接续（恢复会话）或空数组起步。
+- `abortController` 优先用外部传入（让 ACP bridge / SDK 共享同一信号），否则自建。
+- `totalUsage` 从 `EMPTY_USAGE` 起累计。
+
+> 文件里大量 `logForDebugging('[Hapii] ...')` 是本仓库（decompiled 学习版）加的**阶段追踪日志**，不影响逻辑——阅读源码时把它们当作「分隔线」即可。
+
+---
+
+## 四、生命周期方法（1472-1543）
+
+submitMessage 之外，类对外暴露一组操作 abort 信号与状态的方法：
+
+| 方法 | 作用 | 要点 |
+|---|---|---|
+| `interrupt()` | `this.abortController.abort()` | 中止当前查询（用户按 ESC / Stop） |
+| `resetAbortController()` | 换一个全新未 abort 的 controller | **必须在 interrupt() 之后调用**，否则下次 submitMessage 拿到的是已 abort 的信号 |
+| `getAbortSignal()` | 返回 `signal` | 供外部消费者（如 ACP bridge）监听 |
+| `getMessages()` | 返回 `readonly Message[]` | 只读暴露 mutableMessages |
+| `getReadFileState()` | 返回文件缓存 | `ask()` 在 finally 回写它（`[11]`） |
+| `getSessionId()` | 返回全局 session id | 代理 `getSessionId()` |
+| `setModel(model)` | 改 `config.userSpecifiedModel` | 运行时切模型，下轮 submitMessage 生效 |
+
+### interrupt → reset 的配对
+
+```typescript
+interrupt(): void { this.abortController.abort() }
+resetAbortController(): void { this.abortController = createAbortController() }
+```
+
+> **为什么分两步**：`abort()` 是不可逆的——一旦 abort，这个 controller 的 signal 永远是 aborted。要让 engine 还能再跑下一轮，必须显式 `resetAbortController()` 换新。中断流程是「先 interrupt 停掉当前轮，再 reset 准备下一轮」。
+
+---
+
+## 速记口诀
+
+- **9 个字段**：7 私有 + 2 个 Set；记住哪些**每轮清空**（`permissionDenials` / `discoveredSkillNames`）哪些**跨轮持久**（`mutableMessages` / `totalUsage` / `readFileState` / `loadedNestedMemoryPaths`）。
+- **constructor**：接续 initialMessages、兜底 abortController、totalUsage 从空起步。
+- **生命周期方法**：interrupt（abort）→ resetAbortController（换新）是配对；getAbortSignal/getMessages/getReadFileState 对外只读暴露；setModel 运行时切模型。
+- **discoveredSkillNames 每轮清空** = 防 SDK 多轮无界增长（内存治理）。

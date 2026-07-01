@@ -1,0 +1,111 @@
+---
+title: "[1] 模块级设施 + 配置契约"
+description: 进入 QueryEngine 类之前，文件顶部铺设了一批模块级设施：调试用量接收端 UsageSink/setUsageSink（单例）、懒加载 messageSelector（避开 React/ink 启动开销）、feature 门控的条件导入 coordinator/snip（死代码消除 + 被排除字符串不进产物），以及最关键的 QueryEngineConfig 类型——这是构造一个 engine 的完整契约。本文逐项拆解（src/QueryEngine.ts:1-195）。
+---
+
+# [1] 模块级设施 + 配置契约
+
+> 本节覆盖 `QueryEngine.ts:1-195`——类定义之前的所有模块级内容。它们分三类：**调试钩子**（UsageSink）、**懒加载/条件导入**（性能与产物体积优化）、**配置类型**（`QueryEngineConfig`，构造 engine 的契约）。
+
+---
+
+## 一、UsageSink：调试面板的用量接收端
+
+文件最顶部（`1-14`）定义了一个**单例**回调，把每次累计用量推给浏览器调试面板：
+
+```typescript
+type UsageSink = (
+  usage: { input_tokens; output_tokens; cache_creation_input_tokens?; cache_read_input_tokens? },
+  model: string,
+) => void
+let _usageSink: UsageSink | null = null
+export function setUsageSink(sink: UsageSink | null): void {
+  _usageSink = sink
+}
+```
+
+- **单例模块级变量**：全进程一个 `_usageSink`，调试面板启动时 `setUsageSink(fn)` 注册，关闭时 `setUsageSink(null)` 注销。
+- **消费点**在 `[9]`：`submitMessage` 的 `message_stop` 分支里 `_usageSink?.(this.totalUsage, mainLoopModel)`，用 `try {} catch {}` 包住——**调试钩子绝不能让主流程崩**。
+
+---
+
+## 二、懒加载 messageSelector
+
+`MessageSelector.tsx` 引入了 React/ink，加载代价高。但它只在「过滤可重放用户消息」时才需要，所以用 try/require 懒加载（`103-113`）：
+
+```typescript
+const messageSelector = ():
+  | typeof import('src/components/MessageSelector.js')
+  | null => {
+  try {
+    return require('src/components/MessageSelector.js')
+  } catch {
+    return null
+  }
+}
+```
+
+> **为什么这样做**：headless/SDK 路径**不渲染 UI**，没必要为了一个 `selectableUserMessagesFilter` 把整个 React/ink 拉进启动路径。catch 返回 `null`，调用方用 `?.` + `?? true` 兜底（见 `[6]`、`[7]`）。
+
+---
+
+## 三、feature 门控的条件导入（死代码消除）
+
+两组功能用 `feature()` 在**模块求值期**决定是否 require（`134-152`）：
+
+```typescript
+const getCoordinatorUserContext = feature('COORDINATOR_MODE')
+  ? require('./coordinator/coordinatorMode.js').getCoordinatorUserContext
+  : () => ({})
+
+const snipModule = feature('HISTORY_SNIP')
+  ? require('./services/compact/snipCompact.js')
+  : null
+const snipProjection = feature('HISTORY_SNIP')
+  ? require('./services/compact/snipProjection.js')
+  : null
+```
+
+| 导入 | feature | 关闭时的替身 | 用在 |
+|---|---|---|---|
+| `getCoordinatorUserContext` | `COORDINATOR_MODE` | `() => ({})`（空对象） | `[4]` userContext 合并 |
+| `snipModule` / `snipProjection` | `HISTORY_SNIP` | `null` | `[11]` ask 注入 snipReplay |
+
+> **两层好处**：① **死代码消除**——feature 关闭时整个模块不被打进产物；② **被排除字符串不进产物**——snip 相关的标识符字符串只存在于被门控的模块里，配合 excluded-strings 检查（即便 bun test 下 `feature()` 返回 false 也能编过）。
+
+---
+
+## 四、⭐ QueryEngineConfig：构造 engine 的完整契约
+
+`154-195` 定义 `QueryEngineConfig`，是 `new QueryEngine(config)` 的唯一入参。分四组：
+
+| 组 | 字段 | 说明 |
+|---|---|---|
+| **运行环境** | `cwd` / `tools` / `commands` / `mcpClients` / `agents` | 工作目录、工具表、slash 命令、MCP 连接、子 agent 定义 |
+| **状态接入** | `canUseTool` / `getAppState` / `setAppState` / `initialMessages` / `readFileCache` | 权限回调、AppState 读写、初始历史、文件缓存 |
+| **提示/模型** | `customSystemPrompt` / `appendSystemPrompt` / `userSpecifiedModel` / `fallbackModel` / `thinkingConfig` | 系统提示定制、模型与降级、thinking 配置 |
+| **限制/能力** | `maxTurns` / `maxBudgetUsd` / `taskBudget` / `jsonSchema` / `replayUserMessages` / `includePartialMessages` / `handleElicitation` / `setSDKStatus` / `abortController` / `orphanedPermission` | 轮次/预算上限、结构化输出 schema、SDK 行为开关 |
+
+### snipReplay 回调（重点）
+
+```typescript
+snipReplay?: (
+  yieldedSystemMsg: Message,
+  store: Message[],
+) => { messages: Message[]; executed: boolean } | undefined
+```
+
+由 `ask()` 在 `HISTORY_SNIP` 启用时注入。它接收每条 yield 出的系统消息 + 当前 `mutableMessages`：不是 snip 边界则返回 `undefined`；是则重放并返回裁剪后的消息。
+
+> **为什么用「注入回调」而非内联判断**：snip 子类型字符串只能出现在被 feature 门控的模块里。把判断逻辑做成回调由 `ask()`（`[11]`）注入，保证 **QueryEngine 本文件不含被排除的字符串**——这样即使 `feature()` 在 bun test 下返回 false，本文件仍能通过 excluded-strings 检查与编译。
+>
+> **SDK 专用**：REPL 保留完整历史用于 UI 回滚；QueryEngine 在 snip 边界截断，限制长会话内存占用（无 UI 需保留）。
+
+---
+
+## 速记口诀
+
+- **UsageSink**：调试用量单例，message_stop 时 `try/catch` fire-and-forget 推送。
+- **messageSelector**：懒加载避开 React/ink 启动开销，catch 返回 null。
+- **条件导入**：`COORDINATOR_MODE` / `HISTORY_SNIP` → 死代码消除 + 被排除字符串隔离。
+- **QueryEngineConfig**：运行环境 + 状态接入 + 提示模型 + 限制能力 四组；`snipReplay` 用注入回调隔离门控字符串。
