@@ -1,4 +1,4 @@
-# Claude API 完整学习指南
+﻿# Claude API 完整学习指南
 
 > 本文档结合 [Anthropic 官方文档](https://platform.claude.com/docs) 与 Claude Code 源码（`src/services/api/claude.ts`、`src/utils/messages.ts`、`src/utils/thinking.ts`），系统梳理扩展思考、自适应思考、Thinking vs Tool、多轮对话 messages 传递、Effort 参数、任务预算、快速模式、结构化输出、引用、批处理、搜索结果、流式拒绝、多语言支持、流式传输等核心概念。
 
@@ -1160,545 +1160,530 @@ Sonnet 4.6 用 `high` 可能延迟较高，**默认推荐 `medium`**。
 | **主 agent 推荐** | `medium` 或 `high` |
 | **长周期 agent** | `xhigh` + 大 `max_tokens` |
 | **ultracode 本质** | `xhigh` + 多 agent 权限 |
+---
+
+# 六、任务预算（Task Budgets）完全学习指南
+
+## 一、一句话定位
+
+任务预算是给 Claude 的一个"软性建议"：告诉它整个 agent 循环大概能用多少 token，让它自己决定节奏、优先处理重要工作、接近预算时优雅收尾。
+
+**类比：**
+- `max_tokens` = 单次请求的硬上限（超过就截断）
+- `effort` = 每一步推理的深度（软引导）
+- `task_budget` = 整个 agent 循环的总工作量（软建议）
 
 ---
 
-====================六、任务预算（Task Budgets）完全学习指南====================
+## 二、任务预算解决什么问题？
 
-     
-  一、一句话定位
-     
-  任务预算是给 Claude 的一个"软性建议"：告诉它整个 agent 循环大概能用多少
-  token，让它自己决定节奏、优先处理重要工作、接近预算时优雅收尾。
+### 场景：长周期 agent 任务
 
-  类比：
-  - max_tokens = 单次请求的硬上限（超过就截断）
-  - effort = 每一步推理的深度（软引导）
-  - task_budget = 整个 agent 循环的总工作量（软建议）
-  
-  ---
-  二、任务预算解决什么问题？
+假设你让 Claude 审查一个代码仓库并提出重构计划。**没有任务预算时**：
+- Claude 不知道你要它干多少活
+- 可能陷入细节无限深挖
+- 或者过早结束、只给出浅层结果
+- 达到 `max_tokens` 被粗暴截断（而不是优雅收尾）
 
-  场景：长周期 agent 任务
+**有任务预算时**：
+- Claude 看到一个实时倒计时（服务端注入）
+- 自己调节节奏
+- 预算快用完时优雅结束（总结发现、报告进度）
+- 不会在中途被截断
 
-  假设你让 Claude 审查一个代码仓库并提出重构计划。没有任务预算时：
-  - Claude 不知道你要它干多少活
-  - 可能陷入细节无限深挖
-  - 或者过早结束、只给出浅层结果
-  - 达到 max_tokens 被粗暴截断（而不是优雅收尾）
+---
 
-  有任务预算时：
-  - Claude 看到一个实时倒计时（服务端注入）
-  - 自己调节节奏
-  - 预算快用完时优雅结束（总结发现、报告进度）
-  - 不会在中途被截断
+## 三、与 effort / max_tokens 的区别
 
-  ---
-  三、与 effort / max_tokens 的区别
+| 维度 | max_tokens | effort | task_budget |
+|------|-----------|--------|------------|
+| 作用范围 | 单个请求 | 每一步推理 | 整个 agent 循环 |
+| 限制类型 | 硬上限（强制） | 软引导 | 软建议（非强制） |
+| 控制内容 | 输出长度 | 思考深度 + 工具调用详细度 | 总 token 消耗 |
+| 超过会怎样 | `stop_reason: "max_tokens"` 截断 | 无惩罚，只是少做事 | 可能偶尔超出 |
+| 跨请求 | 每轮独立 | 每轮独立 | 跨请求累积 |
 
-  ┌────────────┬────────────────────────────────┬───────────────────────────┬──────────────────┐  
-  │    维度    │           max_tokens           │          effort           │   task_budget    │  
-  ├────────────┼────────────────────────────────┼───────────────────────────┼──────────────────┤  
-  │ 作用范围   │ 单个请求                       │ 每一步推理                │ 整个 agent 循环  │  
-  ├────────────┼────────────────────────────────┼───────────────────────────┼──────────────────┤  
-  │ 限制类型   │ 硬上限（强制）                 │ 软引导                    │ 软建议（非强制） │  
-  ├────────────┼────────────────────────────────┼───────────────────────────┼──────────────────┤  
-  │ 控制内容   │ 输出长度                       │ 思考深度 + 工具调用详细度 │ 总 token 消耗    │  
-  ├────────────┼────────────────────────────────┼───────────────────────────┼──────────────────┤  
-  │ 超过会怎样 │ stop_reason: "max_tokens" 截断 │ 无惩罚，只是少做事        │ 可能偶尔超出     │  
-  ├────────────┼────────────────────────────────┼───────────────────────────┼──────────────────┤  
-  │ 跨请求     │ 每轮独立                       │ 每轮独立                  │ 跨请求累积       │  
-  └────────────┴────────────────────────────────┴───────────────────────────┴──────────────────┘  
+### 三者协同关系
 
-  三者协同关系
+```
+整个 agent 循环
+  task_budget: 总预算 100k token
+  ┌─────────────────────────────┐
+  │ 请求 1                      │
+  │  effort: high (深度)        │
+  │  max_tokens: 64k (单请求上限)│
+  └─────────────────────────────┘
+  ┌─────────────────────────────┐
+  │ 请求 2（工具结果后）         │
+  │  effort: high (深度)        │
+  │  max_tokens: 64k (单请求上限)│
+  └─────────────────────────────┘
+  ┌─────────────────────────────┐
+  │ 请求 3 ...                  │
+  └─────────────────────────────┘
+  总消耗 ≤ 100k（建议值，可超）
+```
 
-  ┌─────────────────────────────────────────┐
-  │          整个 agent 循环                  │
-  │                                          │
-  │   task_budget: 总预算 100k token         │
-  │   ┌─────────────────────────────┐        │
-  │   │ 请求 1                       │        │
-  │   │  effort: high (深度)         │        │
-  │   │  max_tokens: 64k (单请求上限)│        │
-  │   └─────────────────────────────┘        │
-  │   ┌─────────────────────────────┐        │
-  │   │ 请求 2（工具结果后）         │        │
-  │   │  effort: high (深度)         │        │
-  │   │  max_tokens: 64k (单请求上限)│        │
-  │   └─────────────────────────────┘        │
-  │   ┌─────────────────────────────┐        │
-  │   │ 请求 3                       │        │
-  │   │  ...                         │        │
-  │   └─────────────────────────────┘        │
-  │                                          │
-  │   总消耗 ≤ 100k（建议值，可超）         │
-  └─────────────────────────────────────────┘
+---
 
-  ---
-  四、API 请求格式
+## 四、API 请求格式
 
-  4.1 三个字段
+### 4.1 三个字段
 
-  {
-    "output_config": {
-      "effort": "high",
-      "task_budget": {
-        "type": "tokens",       // 始终为 "tokens"
-        "total": 64000,         // 整个 agent 循环的总预算
-        "remaining": 50000      // 可选：从之前请求结转的剩余预算
-      }
+```json
+{
+  "output_config": {
+    "effort": "high",
+    "task_budget": {
+      "type": "tokens",
+      "total": 64000,
+      "remaining": 50000
     }
   }
+}
+```
 
-  4.2 需要 beta 头
+> `type` 始终为 `"tokens"`；`remaining` 可选，从之前请求结转的剩余预算。
 
-  anthropic-beta: task-budgets-2026-03-13
+### 4.2 需要 beta 头
 
-  4.3 完整请求示例
+```
+anthropic-beta: task-budgets-2026-03-13
+```
 
-  {
-    "model": "claude-opus-4-8",
-    "max_tokens": 128000,
-    "stream": true,
-    "betas": ["task-budgets-2026-03-13"],
-    "messages": [{
-      "role": "user",
-      "content": "Review the codebase and propose a refactor plan."
-    }],
-    "output_config": {
-      "effort": "high",
-      "task_budget": { "type": "tokens", "total": 64000 }
+### 4.3 完整请求示例
+
+```json
+{
+  "model": "claude-opus-4-8",
+  "max_tokens": 128000,
+  "stream": true,
+  "betas": ["task-budgets-2026-03-13"],
+  "messages": [{
+    "role": "user",
+    "content": "Review the codebase and propose a refactor plan."
+  }],
+  "output_config": {
+    "effort": "high",
+    "task_budget": { "type": "tokens", "total": 64000 }
+  }
+}
+```
+
+---
+
+## 五、源码实现解析
+
+### 5.1 TaskBudgetParam 类型定义
+
+`claude.ts` 第 513–522 行：
+
+```typescript
+// output_config.task_budget —— 让模型感知 API 侧的 token 预算。
+// Stainless SDK 类型还没有把 task_budget 加到 BetaOutputConfig 上，因此
+// 我们在本地定义线上结构并做类型转换。
+type TaskBudgetParam = {
+  type: 'tokens'
+  total: number
+  remaining?: number
+}
+```
+
+> **关键**：SDK 类型还没支持，需要本地定义。
+
+### 5.2 configureTaskBudgetParams 函数
+
+`claude.ts` 第 524–546 行：
+
+```typescript
+export function configureTaskBudgetParams(
+  taskBudget: Options['taskBudget'],
+  outputConfig: BetaOutputConfig & { task_budget?: TaskBudgetParam },
+  betas: string[],
+): void {
+  if (
+    !taskBudget ||
+    'task_budget' in outputConfig ||
+    !shouldIncludeFirstPartyOnlyBetas()   // ← 仅第一方 provider 支持
+  ) {
+    return
+  }
+  outputConfig.task_budget = {
+    type: 'tokens',
+    total: taskBudget.total,
+    ...(taskBudget.remaining !== undefined && {
+      remaining: taskBudget.remaining,
+    }),
+  }
+  if (!betas.includes(TASK_BUDGETS_BETA_HEADER)) {
+    betas.push(TASK_BUDGETS_BETA_HEADER)
+  }
+}
+```
+
+**学习要点：**
+
+1. **仅第一方 provider 支持**：Bedrock/Vertex 等第三方不支持（`shouldIncludeFirstPartyOnlyBetas()` 闸门）
+2. **自动加 beta 头**：不需要用户手动添加
+3. **remaining 可选**：只有显式传了才会写到请求体
+
+### 5.3 queryLoop 中的 taskBudgetRemaining 追踪
+
+`query.ts` 第 617–619 行：
+
+```typescript
+// task_budget.remaining 跨压缩边界的追踪。首次 compact 触发之前为 undefined
+// —— 上下文未压缩时服务端能看到完整历史并自行处理从 {total} 的倒计时。
+// compact 之后服务端只看到摘要，会低估消耗；remaining 告诉它被压缩掉的那个
+// pre-compact 最终窗口。可跨多次压缩累计。
+let taskBudgetRemaining: number | undefined
+```
+
+**关键设计：**
+- 首次请求不传 `remaining`（让服务端自己算）
+- 只有在上下文被**压缩后**才传 `remaining`
+- 因为压缩后服务端看不到完整历史了，需要客户端告诉它"之前已经花了多少"
+
+### 5.4 压缩前捕获上下文窗口
+
+`query.ts` 第 982–992 行：
+
+```typescript
+// task_budget：在下面 messagesForQuery 被替换为 postCompactMessages
+// 之前，捕获压缩前的最终上下文窗口。
+if (params.taskBudget) {
+  const preCompactContext =
+    finalContextTokensFromLastResponse(messagesForQuery)
+  taskBudgetRemaining = Math.max(
+    0,
+    (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext,
+  )
+}
+```
+
+**逻辑：**
+1. 压缩触发时，调用 `finalContextTokensFromLastResponse` 获取上一次 API 响应中的最终上下文窗口大小
+2. 从剩余预算中减去这个值
+3. 后续请求带着新的 `remaining` 值
+
+### 5.5 finalContextTokensFromLastResponse 的实现
+
+`tokens.ts` 第 82–92 行：
+
+```typescript
+/**
+ * 从最后一次 API response 的 usage.iterations[-1] 获取最终上下文窗口大小。
+ * 用于跨压缩边界计算 task_budget.remaining —
+ * 服务端的预算倒计时基于上下文，因此 remaining 按压缩前的
+ * 最终窗口递减，而非按计费消耗。
+ */
+export function finalContextTokensFromLastResponse(
+  messages: Message[],
+): number {
+  let i = messages.length - 1
+  while (i >= 0) {
+    const message = messages[i]
+    const usage = message ? getTokenUsage(message) : undefined
+    if (usage) {
+      const iterations = (usage as { iterations?: ... }).iterations
+      // ...
     }
   }
+}
+```
 
-  ---
-  五、源码实现解析
+**学习要点：**
+- 从消息数组**反向**查找最近一条有 `usage` 的消息
+- 读取 `usage.iterations[-1]`（服务端工具循环的最终上下文大小）
+- 排除 cache tokens（匹配服务端公式）
 
-  5.1 TaskBudgetParam 类型定义
+### 5.6 传递 task_budget 给 queryModel
 
-  claude.ts 第 513–522 行：
+`query.ts` 第 1277–1284 行：
 
-  // output_config.task_budget —— 让模型感知 API 侧的 token 预算。
-  // Stainless SDK 类型还没有把 task_budget 加到 BetaOutputConfig 上，因此
-  // 我们在本地定义线上结构并做类型转换。
-  type TaskBudgetParam = {
-    type: 'tokens'
-    total: number
-    remaining?: number
-  }
+```typescript
+...(params.taskBudget && {
+  taskBudget: {
+    total: params.taskBudget.total,
+    ...(taskBudgetRemaining !== undefined && {
+      remaining: taskBudgetRemaining,
+    }),
+  },
+}),
+```
 
-  关键：SDK 类型还没支持，需要本地定义。
+**逻辑：**
+- 如果有 `taskBudget` → 传给 `queryModel`
+- 如果算出了 `remaining` → 一起传
+- 否则只传 `total`
 
-  5.2 configureTaskBudgetParams 函数
+---
 
-  claude.ts 第 524–546 行：
+## 六、预算倒计时如何工作
 
-  export function configureTaskBudgetParams(
-    taskBudget: Options['taskBudget'],
-    outputConfig: BetaOutputConfig & { task_budget?: TaskBudgetParam },
-    betas: string[],
-  ): void {
-    if (
-      !taskBudget ||
-      'task_budget' in outputConfig ||
-      !shouldIncludeFirstPartyOnlyBetas()   // ← 仅第一方 provider 支持
-    ) {
-      return
-    }
-    outputConfig.task_budget = {
-      type: 'tokens',
-      total: taskBudget.total,
-      ...(taskBudget.remaining !== undefined && {
-        remaining: taskBudget.remaining,
-      }),
-    }
-    if (!betas.includes(TASK_BUDGETS_BETA_HEADER)) {
-      betas.push(TASK_BUDGETS_BETA_HEADER)
-    }
-  }
+### 6.1 服务端注入
 
-  学习要点：
-  1. 仅第一方 provider 支持：Bedrock/Vertex 等第三方不支持（shouldIncludeFirstPartyOnlyBetas()    
-  闸门）
-  2. 自动加 beta 头：不需要用户手动加
-  3. remaining 可选：只有显式传了才会写到请求体
+**倒计时只对模型可见，API 响应里没有剩余预算字段。**
 
-  5.3 queryLoop 中的 taskBudgetRemaining 追踪
+服务端在每轮对话中注入一个预算倒计时标记，显示当前剩余 token。模型看到这个标记后：
+- 调整工作节奏
+- 预算快用完时优雅结束
 
-  query.ts 第 617–619 行：
+### 6.2 客户端无法精确镜像
 
-  // task_budget.remaining 跨压缩边界的追踪。首次 compact 触发之前为 undefined
-  // —— 上下文未压缩时服务端能看到完整历史并自行处理从 {total} 的倒计时。
-  // compact 之后服务端只看到摘要，会低估消耗；remaining 告诉它被压缩掉的那个
-  // pre-compact 最终窗口。可跨多次压缩累计。
-  let taskBudgetRemaining: number | undefined
+> 倒计时反映的是 Claude 在当前 agent 循环中已处理的令牌，而不是您在各轮次之间重新发送的令牌。
 
-  关键设计：
-  - 首次请求不传 remaining（让服务端自己算）
-  - 只有在上下文被压缩后才传 remaining
-  - 因为压缩后服务端看不到完整历史了，需要客户端告诉它"之前已经花了多少"
+为什么？因为智能体循环中，客户端每次都会重发完整对话历史：
 
-  5.4 压缩前捕获上下文窗口
+| 轮次 | 你发送的负载 | Claude 本轮看到的（计入预算） |
+|------|------------|--------------------------|
+| 1 | ~20 token | 5,000（思考 + tool_use） |
+| 2 | ~7,800（历史 + 工具结果） | 6,800（新工具结果 + 新思考） |
+| 3 | ~13,000（完整历史 + 新工具结果） | 7,200（新工具结果 + text） |
 
-  query.ts 第 982–992 行：
+你发送的累计负载 = 20,820，但**预算只消耗 19,000**。
 
-  // task_budget：在下面 messagesForQuery 被替换为 postCompactMessages
-  // 之前，捕获压缩前的最终上下文窗口。
-  if (params.taskBudget) {
-    const preCompactContext =
-      finalContextTokensFromLastResponse(messagesForQuery)
-    taskBudgetRemaining = Math.max(
-      0,
-      (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext,
-    )
-  }
+### 6.3 跨压缩边界传递 remaining
 
-  逻辑：
-  1. 压缩触发时，调用 finalContextTokensFromLastResponse 获取上一次 API 响应中的最终上下文窗口大小
-  2. 从剩余预算中减去这个值
-  3. 后续请求带着新的 remaining 值
+**问题**：上下文压缩后，服务端只看到摘要，不知道之前花了多少预算。
 
-  5.5 finalContextTokensFromLastResponse 的实现
+**解决方案**：客户端计算并传递 `remaining`
 
-  tokens.ts 第 82–92 行：
-
-  /**
-   * 从最后一次 API response 的 usage.iterations[-1] 获取最终上下文窗口大小。
-   * 用于跨压缩边界计算 task_budget.remaining —
-   * 服务端的预算倒计时基于上下文，因此 remaining 按压缩前的
-   * 最终窗口递减，而非按计费消耗。
-   */
-  export function finalContextTokensFromLastResponse(
-    messages: Message[],
-  ): number {
-    let i = messages.length - 1
-    while (i >= 0) {
-      const message = messages[i]
-      const usage = message ? getTokenUsage(message) : undefined
-      if (usage) {
-        // Stainless 类型尚未包含 iterations — 像 advisor.ts:43 那样转换
-        const iterations = (usage as { iterations?: ... }).iterations
-        // ...
-      }
+```json
+{
+  "output_config": {
+    "effort": "high",
+    "task_budget": {
+      "type": "tokens",
+      "total": 128000,
+      "remaining": "<128000 - tokensSpentSoFar>"
     }
   }
+}
+```
 
-  学习要点：
-  - 从消息数组反向查找最近一条有 usage 的消息
-  - 读取 usage.iterations[-1]（服务端工具循环的最终上下文大小）
-  - 排除 cache tokens（匹配服务端公式）
+源码中的实现（`query.ts` 第 985–991 行）：
 
-  5.6 传递 task_budget 给 queryModel
+```typescript
+if (params.taskBudget) {
+  const preCompactContext =
+    finalContextTokensFromLastResponse(messagesForQuery)
+  taskBudgetRemaining = Math.max(
+    0,
+    (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext,
+  )
+}
+```
 
-  query.ts 第 1277–1284 行：
+> **注意**：这里用的是上下文窗口大小（不是计费消耗），因为服务端倒计时基于上下文。
 
-  ...(params.taskBudget && {
-    taskBudget: {
-      total: params.taskBudget.total,
-      ...(taskBudgetRemaining !== undefined && {
-        remaining: taskBudgetRemaining,
-      }),
-    },
-  }),
+---
 
-  逻辑：
-  - 如果有 taskBudget → 传给 queryModel
-  - 如果算出了 remaining → 一起传
-  - 否则只传 total
+## 七、任务预算的关键特性
 
-  ---
-  六、预算倒计时如何工作
+### 7.1 软性建议，非强制上限
 
-  6.1 服务端注入
+> 如果 Claude 正在执行某个操作，而中断该操作比完成它更具破坏性，Claude 可能偶尔会超出预算。
 
-  倒计时只对模型可见。API 响应里没有剩余预算字段。
+**为什么设计成软性？** 因为 agent 可能在调用关键工具的中途，强行截断会破坏任务完整性。
 
-  服务端在每轮对话中注入一个预算倒计时标记，显示当前剩余 token。模型看到这个标记后：
-  - 调整工作节奏
-  - 预算快用完时优雅结束
+### 7.2 与 max_tokens 独立
 
-  6.2 客户端无法精确镜像
+- `max_tokens` 限制单个请求的输出
+- `task_budget` 限制整个 agent 循环的总消耗
+- 两者**正交**，互不约束
 
-  query.ts 注释警告：
+### 7.3 过小预算会导致拒绝行为
 
-  ▎ 倒计时反映的是 Claude 在当前 agent 循环中已处理的令牌，而不是您在各轮次之间重新发送的令牌。   
+> 当 Claude 看到的预算明显不足以完成所要求的工作时，它可能会完全拒绝尝试该任务、大幅缩减任务范围，或者提前停止。
 
-  为什么？ 因为智能体循环中，客户端每次都会重发完整对话历史：
+**实例**：给一个需要数小时的编码任务设 20,000 token 预算 → Claude 可能直接拒绝。
 
-  ┌──────┬──────────────────────────────────┬───────────────────────────────┐
-  │ 轮次 │           你发送的负载           │ Claude 本轮看到的（计入预算） │
-  ├──────┼──────────────────────────────────┼───────────────────────────────┤
-  │ 1    │ ~20 token                        │ 5,000（思考 + tool_use）      │
-  ├──────┼──────────────────────────────────┼───────────────────────────────┤
-  │ 2    │ ~7,800（历史 + 工具结果）        │ 6,800（新工具结果 + 新思考）  │
-  ├──────┼──────────────────────────────────┼───────────────────────────────┤
-  │ 3    │ ~13,000（完整历史 + 新工具结果） │ 7,200（新工具结果 + text）    │
-  └──────┴──────────────────────────────────┴───────────────────────────────┘
+> **最佳实践**：`task_budget.total` 最小值为 20,000 token（低于会 400 错误），但实际应该根据任务设置合理值。
 
-  你发送的累计负载 = 20,820，但预算只消耗 19,000。
+---
 
-  6.3 跨压缩边界传递 remaining
+## 八、支持矩阵
 
-  问题：上下文压缩后，服务端只看到摘要，不知道之前花了多少预算。
+| 模型 | 支持情况 |
+|------|---------|
+| Claude Fable 5 | ✅ Beta |
+| Claude Mythos 5 | ✅ Beta |
+| Claude Opus 4.8 | ✅ Beta |
+| Claude Opus 4.7 | ✅ Beta |
+| Claude Opus 4.6 | ❌ 不支持 |
+| Claude Sonnet 4.6 | ❌ 不支持 |
+| Claude Haiku 4.5 | ❌ 不支持 |
 
-  解决方案：客户端计算并传递 remaining
+> **注意**：Claude Code CLI 和 Cowork UI 不支持任务预算。只能通过 API 直接使用。
 
-  output_config = {
-    effort: "high",
-    task_budget: {
-      type: "tokens",
-      total: 128000,
-      remaining: 128000 - tokensSpentSoFar   // ← 客户端自己算
-    }
-  }
+---
 
-  源码中的实现（query.ts 第 985–991 行）：
+## 九、如何选择合适的预算
 
-  if (params.taskBudget) {
-    const preCompactContext =
-      finalContextTokensFromLastResponse(messagesForQuery)
-    taskBudgetRemaining = Math.max(
-      0,
-      (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext,
-    )
-  }
+### 9.1 先测量，再设定
 
-  注意：这里用的是上下文窗口大小（不是计费消耗），因为服务端倒计时基于上下文。
+文档推荐：**先不设 `task_budget`**，跑一组代表性任务，记录总 token 消耗。
 
-  ---
-  七、任务预算的关键特性
-
-  7.1 软性建议，非强制上限
-
-  ▎ 如果 Claude 正在执行某个操作，而中断该操作比完成它更具破坏性，Claude 可能偶尔会超出预算。     
-
-  为什么设计成软性？ 因为 agent 可能在调用关键工具的中途，强行截断会破坏任务完整性。
-
-  7.2 与 max_tokens 独立
-
-  - max_tokens 限制单个请求的输出
-  - task_budget 限制整个 agent 循环的总消耗
-  - 两者正交，互不约束
-
-  7.3 过小预算会导致拒绝行为
-
-  ▎ 当 Claude 看到的预算明显不足以完成所要求的工作时，它可能会完全拒绝尝试该任务、大幅缩减任务范围
-  ▎ ，或者提前停止。
-
-  实例：给一个需要数小时的编码任务设 20,000 token 预算 → Claude 可能直接拒绝。
-
-  最佳实践：task_budget.total 最小值为 20,000 token（低于会 400
-  错误），但实际应该根据任务设置合理值。
-
-  ---
-  八、支持矩阵
-
-  ┌───────────────────┬───────────┐
-  │       模型        │ 支持情况  │
-  ├───────────────────┼───────────┤
-  │ Claude Fable 5    │ ✅ Beta   │
-  ├───────────────────┼───────────┤
-  │ Claude Mythos 5   │ ✅ Beta   │
-  ├───────────────────┼───────────┤
-  │ Claude Opus 4.8   │ ✅ Beta   │
-  ├───────────────────┼───────────┤
-  │ Claude Opus 4.7   │ ✅ Beta   │
-  ├───────────────────┼───────────┤
-  │ Claude Opus 4.6   │ ❌ 不支持 │
-  ├───────────────────┼───────────┤
-  │ Claude Sonnet 4.6 │ ❌ 不支持 │
-  ├───────────────────┼───────────┤
-  │ Claude Haiku 4.5  │ ❌ 不支持 │
-  └───────────────────┴───────────┘
-
-  注意：Claude Code CLI 和 Cowork UI 不支持任务预算。只能通过 API 直接使用。
-
-  ---
-  九、如何选择合适的预算
-
-  9.1 先测量，再设定
-
-  文档推荐：先不设 task_budget，跑一组代表性任务，记录总 token 消耗。
-
-  async function runTaskAndCountTokens(messages) {
-    let totalSpend = 0
-    while (true) {
-      const response = await client.beta.messages
-        .stream({ model: "claude-opus-4-8", max_tokens: 128000, messages, tools })
-        .finalMessage()
-      totalSpend += response.usage.output_tokens
-      if (response.stop_reason === "end_turn") return totalSpend
-      messages = [
-        ...messages,
-        { role: "assistant", content: response.content },
-        { role: "user", content: runTools(response.content) }
-      ]
-    }
-  }
-
-  统计：看 p99（99 分位）的 token 消耗，作为 task_budget 的起点。
-
-  9.2 实际场景推荐
-
-  ┌─────────────────────┬────────────────────────┐
-  │      任务类型       │        建议预算        │
-  ├─────────────────────┼────────────────────────┤
-  │ 快速分类 / 简单查询 │ 20,000 – 40,000        │
-  ├─────────────────────┼────────────────────────┤
-  │ 单文件代码重构      │ 40,000 – 80,000        │
-  ├─────────────────────┼────────────────────────┤
-  │ 跨文件 agent 编码   │ 80,000 – 200,000       │
-  ├─────────────────────┼────────────────────────┤
-  │ 大型代码库审查      │ 200,000 – 500,000      │
-  ├─────────────────────┼────────────────────────┤
-  │ 探索性研究任务      │ 不设（让 effort 控制） │
-  └─────────────────────┴────────────────────────┘
-
-  ---
-  十、与其他参数的交互
-
-  10.1 与 effort 的关系
-
-  - effort 控制每一步推理的深度
-  - task_budget 控制整个循环的总工作量
-  - 互补：effort 调节深度，task_budget 调节广度
-
-  10.2 与 adaptive thinking 的关系
-
-  task_budget 把思考 token 计入总数。随着预算消耗，adaptive thinking
-  自然缩减规模（模型看到剩余预算变少，会减少思考）。
-
-  10.3 与 prompt caching 的关系
-
-  ⚠️ 冲突：如果你每轮递减 task_budget.remaining，这个变化会使缓存前缀失效。
-
-  最佳实践：
-  - 初始请求设置一次预算
-  - 让模型根据服务端倒计时自我调节
-  - 不要每轮都改 remaining
-
-  例外：上下文压缩后必须传 remaining（否则服务端会重置倒计时）。
-
-  ---
-  十一、完整 agent 循环示例
-
-  import Anthropic from '@anthropic-ai/sdk'
-
-  const client = new Anthropic()
-  const messages = [{ role: 'user', content: 'Audit this repo for security issues.' }]
-
-  // 设置任务预算：整个循环最多用 100k token
-  let taskBudgetTotal = 100000
-  let taskBudgetRemaining: number | undefined
-
+```typescript
+async function runTaskAndCountTokens(messages) {
+  let totalSpend = 0
   while (true) {
-    const response = await client.beta.messages.stream({
-      model: 'claude-opus-4-8',
-      max_tokens: 128000,
-      messages,
-      tools: [{ name: 'bash', /* ... */ }],
-      betas: ['task-budgets-2026-03-13'],
-      output_config: {
-        effort: 'high',
-        task_budget: {
-          type: 'tokens',
-          total: taskBudgetTotal,
-          ...(taskBudgetRemaining !== undefined && { remaining: taskBudgetRemaining })
-        }
+    const response = await client.beta.messages
+      .stream({ model: "claude-opus-4-8", max_tokens: 128000, messages, tools })
+      .finalMessage()
+    totalSpend += response.usage.output_tokens
+    if (response.stop_reason === "end_turn") return totalSpend
+    messages = [
+      ...messages,
+      { role: "assistant", content: response.content },
+      { role: "user", content: runTools(response.content) }
+    ]
+  }
+}
+```
+
+统计：看 **p99（99 分位）** 的 token 消耗，作为 `task_budget` 的起点。
+
+### 9.2 实际场景推荐
+
+| 任务类型 | 建议预算 |
+|---------|---------|
+| 快速分类 / 简单查询 | 20,000 – 40,000 |
+| 单文件代码重构 | 40,000 – 80,000 |
+| 跨文件 agent 编码 | 80,000 – 200,000 |
+| 大型代码库审查 | 200,000 – 500,000 |
+| 探索性研究任务 | 不设（让 effort 控制） |
+
+---
+
+## 十、与其他参数的交互
+
+### 10.1 与 effort 的关系
+
+- `effort` 控制每一步推理的**深度**
+- `task_budget` 控制整个循环的**总工作量**
+- **互补**：effort 调节深度，task_budget 调节广度
+
+### 10.2 与 adaptive thinking 的关系
+
+`task_budget` 把思考 token 计入总数。随着预算消耗，adaptive thinking 自然缩减规模（模型看到剩余预算变少，会减少思考）。
+
+### 10.3 与 prompt caching 的关系
+
+> ⚠️ **冲突**：如果你每轮递减 `task_budget.remaining`，这个变化会使缓存前缀失效。
+
+**最佳实践：**
+- 初始请求设置一次预算
+- 让模型根据服务端倒计时自我调节
+- **不要每轮都改 `remaining`**
+
+**例外**：上下文压缩后必须传 `remaining`（否则服务端会重置倒计时）。
+
+---
+
+## 十一、完整 agent 循环示例
+
+```typescript
+import Anthropic from '@anthropic-ai/sdk'
+
+const client = new Anthropic()
+const messages = [{ role: 'user', content: 'Audit this repo for security issues.' }]
+
+// 设置任务预算：整个循环最多用 100k token
+let taskBudgetTotal = 100000
+let taskBudgetRemaining: number | undefined
+
+while (true) {
+  const response = await client.beta.messages.stream({
+    model: 'claude-opus-4-8',
+    max_tokens: 128000,
+    messages,
+    tools: [{ name: 'bash', /* ... */ }],
+    betas: ['task-budgets-2026-03-13'],
+    output_config: {
+      effort: 'high',
+      task_budget: {
+        type: 'tokens',
+        total: taskBudgetTotal,
+        ...(taskBudgetRemaining !== undefined && { remaining: taskBudgetRemaining })
       }
-    }).finalMessage()
-
-    // 统计本轮消耗（客户端侧）
-    const thisTurnTokens = response.usage.output_tokens
-
-    if (response.stop_reason === 'end_turn') {
-      console.log('任务完成')
-      break
     }
+  }).finalMessage()
 
-    if (response.stop_reason === 'tool_use') {
-      // 执行工具，追加结果
-      const toolResults = executeTools(response.content)
-      messages.push({ role: 'assistant', content: response.content })
-      messages.push({ role: 'user', content: toolResults })
-
-      // 注意：不要在每轮都递减 remaining！
-      // 只在上下文压缩时才传 remaining
-    }
+  if (response.stop_reason === 'end_turn') {
+    console.log('任务完成')
+    break
   }
 
-  ---
-  十二、常见误区
+  if (response.stop_reason === 'tool_use') {
+    const toolResults = executeTools(response.content)
+    messages.push({ role: 'assistant', content: response.content })
+    messages.push({ role: 'user', content: toolResults })
+    // 注意：不要在每轮都递减 remaining！只在上下文压缩时才传 remaining
+  }
+}
+```
 
-  ❌ 误区 1：task_budget 是硬上限
+---
 
-  正确：是软建议，Claude 可能偶尔超出。真正硬上限是 max_tokens。
+## 十二、常见误区
 
-  ❌ 误区 2：客户端可以精确跟踪剩余预算
+| | 误区 | 正确理解 |
+|--|------|---------|
+| ❌ | `task_budget` 是硬上限 | 是软建议，Claude 可能偶尔超出。真正硬上限是 `max_tokens` |
+| ❌ | 客户端可以精确跟踪剩余预算 | 倒计时由服务端注入，客户端看不到。只能用 `remaining` 在压缩边界传递估算值 |
+| ❌ | 每轮都应该递减 `remaining` | 不要每轮递减，会破坏缓存。只在压缩时才传 `remaining` |
+| ❌ | `task_budget` 越小越省钱 | 过小预算会导致拒绝行为或过早结束，反而完不成任务 |
+| ❌ | 所有模型都支持 | 只有 4 个新模型支持（Fable 5 / Mythos 5 / Opus 4.8 / Opus 4.7），且是 beta |
+| ❌ | `task_budget` 必须小于 `max_tokens` | 两者正交。`task_budget` 跨多个请求，`max_tokens` 限单个请求，无大小关系 |
 
-  正确：倒计时由服务端注入，客户端看不到。客户端只能用 remaining 在压缩边界传递估算值。
+---
 
-  ❌ 误区 3：每轮都应该递减 remaining
+## 十三、源码核心数据流
 
-  正确：不要每轮递减，会破坏缓存。只在压缩时才传 remaining。
+```
+用户请求（带 taskBudget: {total: 64000}）
+  ↓
+QueryEngine.query(config)
+  ↓
+queryLoop()
+  ├── 初始化 taskBudgetRemaining = undefined
+  ↓ 循环开始
+  ↓
+  ├── queryModel({ taskBudget: { total, remaining? } })
+  │     ↓
+  │   [claude.ts:configureTaskBudgetParams]
+  │     ├── 写 output_config.task_budget
+  │     └── 加 TASK_BUDGETS_BETA_HEADER
+  │     ↓
+  │   发送 API 请求
+  │     ↓
+  │   服务端注入倒计时标记（模型可见）
+  │     ↓
+  │   模型按节奏生成，可能调用工具
+  │     ↓
+  │   返回响应（无剩余预算字段）
+  ↓
+  ├── 检查响应：stop_reason
+  │     ├── 'tool_use' → 执行工具 → 继续循环
+  │     └── 'end_turn' → 结束
+  ↓
+  ├── 触发 autocompact？
+  │     ├── 否 → 继续循环
+  │     └── 是 →
+  │           ├── finalContextTokensFromLastResponse() 获取 pre-compact 上下文
+  │           ├── taskBudgetRemaining = (taskBudgetRemaining ?? total) - preCompactContext
+  │           └── 后续请求带着新的 remaining
+  ↓
+  ↓ 循环结束
+```
 
-  ❌ 误区 4：task_budget 越小越省钱
+---
 
-  正确：过小预算会导致拒绝行为或过早结束，反而完不成任务。
+## 十四、一句话总结
 
-  ❌ 误区 5：所有模型都支持
-
-  正确：只有 4 个新模型支持（Fable 5 / Mythos 5 / Opus 4.8 / Opus 4.7），且是 beta。
-
-  ❌ 误区 6：task_budget 必须小于 max_tokens
-
-  正确：两者正交。task_budget 跨多个请求，max_tokens 限单个请求，无大小关系。
-
-  ---
-  十三、源码核心数据流
-
-  用户请求（带 taskBudget: {total: 64000}）
-    ↓
-  QueryEngine.query(config)
-    ↓
-  queryLoop()
-    ├── 初始化 taskBudgetRemaining = undefined
-    ↓
-    ↓ 循环开始
-    ↓
-    ├── queryModel({ taskBudget: { total, remaining? } })
-    │     ↓
-    │   [claude.ts:configureTaskBudgetParams]
-    │     ├── 写 output_config.task_budget
-    │     └── 加 TASK_BUDGETS_BETA_HEADER
-    │     ↓
-    │   发送 API 请求
-    │     ↓
-    │   服务端注入倒计时标记（模型可见）
-    │     ↓
-    │   模型按节奏生成，可能调用工具
-    │     ↓
-    │   返回响应（无剩余预算字段）
-    ↓
-    ├── 检查响应：stop_reason
-    │     ├── 'tool_use' → 执行工具 → 继续循环
-    │     └── 'end_turn' → 结束
-    ↓
-    ├── 触发 autocompact？
-    │     ├── 否 → 继续循环
-    │     └── 是 →
-    │           ├── finalContextTokensFromLastResponse() 获取 pre-compact 上下文
-    │           ├── taskBudgetRemaining = (taskBudgetRemaining ?? total) - preCompactContext      
-    │           └── 后续请求带着新的 remaining
-    ↓
-    ↓ 循环结束
-
-  ---
-  十四、一句话总结
-
-  ▎ task_budget 是给模型的"工作量预算提示"：软性建议，非强制上限；跨请求累积；配合 effort
-  ▎ 控制深度、配合 max_tokens 控制单请求上限；压缩后需要客户端传 remaining 维持倒计时连续性。
-
+> `task_budget` 是给模型的"工作量预算提示"：软性建议，非强制上限；跨请求累积；配合 `effort` 控制深度、配合 `max_tokens` 控制单请求上限；压缩后需要客户端传 `remaining` 维持倒计时连续性。
 ====================七、快速模式（Fast Mode）完全学习指南====================
   一、一句话定位
        快速模式让 Opus 模型的输出速度提升 2.5 倍（每秒输出 token 数 OTPS
